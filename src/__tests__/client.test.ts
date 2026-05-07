@@ -71,5 +71,7 @@ describe('RentmanClient', () => {
     const all = await client.listAll<typeof mockEquipment>('/equipment', {}, 1);
     expect(all).toHaveLength(2);
     expect(all[1]?.name).toBe('Truss');
+    // Exactly 2 requests — no extra page fetched after itemCount is reached
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 });

@@ -116,7 +116,8 @@ export class RentmanClient {
 
   /**
    * Fetch all pages of a collection, handling the 300-item-per-page API limit
-   * automatically. Use with caution — this may issue many HTTP requests.
+   * automatically. Uses `itemCount` from the first response to avoid
+   * unnecessary extra requests. Use with caution — this may issue many HTTP requests.
    *
    * @example
    * const allEquipment = await client.listAll<RentmanEquipmentItem>('/equipment');
@@ -133,7 +134,9 @@ export class RentmanClient {
       const page = await this.list<T>(path, { ...query, limit: pageSize, offset });
       results.push(...page.data);
       offset += page.data.length;
-      if (page.data.length < pageSize) break;
+
+      // Stop when we have collected all items or the page was empty.
+      if (offset >= page.itemCount || page.data.length === 0) break;
     }
 
     return results;
