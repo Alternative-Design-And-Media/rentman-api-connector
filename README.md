@@ -1,9 +1,9 @@
-# @alternative-design/rentman-api-connector
+# @alternative-design-and-media/rentman-api-connector
 
 > Type-safe Rentman REST API connector for Node.js and edge runtimes (Cloudflare Workers).
 > Synced to **OAS v1.7.0** (deployment 2025-11-13).
 
-[![npm](https://img.shields.io/npm/v/@alternative-design/rentman-api-connector)](https://www.npmjs.com/package/@alternative-design/rentman-api-connector)
+[![npm](https://img.shields.io/npm/v/@alternative-design-and-media/rentman-api-connector)](https://www.npmjs.com/package/@alternative-design-and-media/rentman-api-connector)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 ---
@@ -23,9 +23,9 @@
 ## Installation
 
 ```bash
-npm install @alternative-design/rentman-api-connector
+npm install @alternative-design-and-media/rentman-api-connector
 # or
-pnpm add @alternative-design/rentman-api-connector
+pnpm add @alternative-design-and-media/rentman-api-connector
 ```
 
 ---
@@ -39,7 +39,7 @@ import {
   notNull,
   type RentmanEquipmentItem,
   type RentmanContact,
-} from '@alternative-design/rentman-api-connector';
+} from '@alternative-design-and-media/rentman-api-connector';
 
 // Create a client once; reuse everywhere.
 const rentman = createRentmanClient({
@@ -116,7 +116,7 @@ DELETE an item by ID.
 ### Query builder helpers
 
 ```ts
-import { rel, notNull, isNull, buildRentmanQuery } from '@alternative-design/rentman-api-connector';
+import { rel, notNull, isNull, buildRentmanQuery } from '@alternative-design-and-media/rentman-api-connector';
 
 // rel(field, op, value) — relational filter
 rel('distance', 'lte', 300)    // → distance[lte]=300
