@@ -567,3 +567,115 @@ export interface RentmanFactor extends RentmanBaseEntity {
   value?: number | null;
   remark?: string | null;
 }
+
+// ---------------------------------------------------------------------------
+// Equipment sets content (kit components)
+// ---------------------------------------------------------------------------
+
+export interface RentmanEquipmentSetContent extends RentmanBaseEntity {
+  /** Path reference to the parent equipment set, e.g. `/equipment/4362`. */
+  parent_equipment: string;
+  /** Path reference to the component equipment item. */
+  equipment: string;
+  /**
+   * Quantity of this component in the set.
+   * Note: typed `string` per OAS (not `number`).
+   */
+  quantity: string;
+  order?: number | null;
+  remark?: string | null;
+}
+
+// ---------------------------------------------------------------------------
+// Planning (project equipment planning entries)
+// ---------------------------------------------------------------------------
+
+export interface RentmanPlanning extends RentmanBaseEntity {
+  /** Path reference to the project, e.g. `/projects/123`. */
+  project: string;
+  subproject?: string | null;
+  /** Path reference to the equipment item. */
+  equipment: string;
+  start?: string | null;
+  end?: string | null;
+  quantity?: number | null;
+  remark?: string | null;
+}
+
+// ---------------------------------------------------------------------------
+// Crew activities (Tijd module)
+// ---------------------------------------------------------------------------
+
+export interface RentmanCrewActivity extends RentmanBaseEntity {
+  name: string;
+  color?: string | null;
+  remark?: string | null;
+}
+
+// ---------------------------------------------------------------------------
+// Functions & function groups (crew function lookup tables)
+// ---------------------------------------------------------------------------
+
+export interface RentmanFunction extends RentmanBaseEntity {
+  name: string;
+  displayname?: string | null;
+  group?: string | null;
+  remark?: string | null;
+}
+
+export interface RentmanFunctionGroup extends RentmanBaseEntity {
+  name: string;
+  remark?: string | null;
+}
+
+// ---------------------------------------------------------------------------
+// Invoice moments (payment moment lookup values)
+// ---------------------------------------------------------------------------
+
+export interface RentmanInvoiceMoment extends RentmanBaseEntity {
+  name: string;
+  remark?: string | null;
+}
+
+// ---------------------------------------------------------------------------
+// Tag links (tag-to-resource junction table)
+// ---------------------------------------------------------------------------
+
+export interface RentmanTaglink extends RentmanBaseEntity {
+  /** Path reference to the tag, e.g. `/tags/7`. */
+  tag: string;
+  /** Path reference to the tagged resource, e.g. `/equipment/42`. */
+  item: string;
+  itemtype?: string | null;
+}
+
+// ---------------------------------------------------------------------------
+// Briefpapier / letterpaper
+// ---------------------------------------------------------------------------
+
+export interface RentmanBriefpapier extends RentmanBaseEntity {
+  name: string;
+  remark?: string | null;
+}
+
+// ---------------------------------------------------------------------------
+// Number series (invoice / quote number series)
+// ---------------------------------------------------------------------------
+
+export interface RentmanNumberSeries extends RentmanBaseEntity {
+  name: string;
+  prefix?: string | null;
+  type?: string | null;
+  next_number?: number | null;
+  remark?: string | null;
+}
+
+// ---------------------------------------------------------------------------
+// Templates (document template metadata)
+// ---------------------------------------------------------------------------
+
+export interface RentmanTemplate extends RentmanBaseEntity {
+  name: string;
+  type?: string | null;
+  remark?: string | null;
+}
