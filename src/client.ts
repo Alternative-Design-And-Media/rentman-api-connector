@@ -83,8 +83,13 @@ export class RentmanClient {
     });
 
     if (!res.ok) {
+      // Read the body exactly once via text() to avoid "Body has already been
+      // used" in edge runtimes (Cloudflare Workers) where consuming the stream
+      // via json() — even if it throws — prevents a second read via text().
+      let bodyText: string;
+      try { bodyText = await res.text(); } catch { bodyText = '<failed to read body>'; }
       let body: unknown;
-      try { body = await res.json(); } catch { body = await res.text(); }
+      try { body = JSON.parse(bodyText); } catch { body = bodyText; }
       throw new RentmanApiError(
         `Rentman API ${init.method ?? 'GET'} ${path} → ${res.status} ${res.statusText}`,
         res.status,

@@ -72,6 +72,63 @@ describe('RentmanClient', () => {
     await expect(client.list('/equipment')).rejects.toBeInstanceOf(RentmanApiError);
   });
 
+  it('throws RentmanApiError with correct status and message on 404', async () => {
+    // Simulate a Cloudflare Workers response where text() can only be called
+    // once (json() must NOT be called before text()).
+    let textConsumed = false;
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 404,
+      statusText: 'Not Found',
+      text: () => {
+        if (textConsumed) throw new Error('Body has already been used');
+        textConsumed = true;
+        return Promise.resolve('{"message":"Not found"}');
+      },
+      json: () => { throw new Error('Body has already been used'); },
+    });
+    const client = createRentmanClient({ token: 't', fetch: fetchMock as unknown as typeof fetch });
+    let err: RentmanApiError | undefined;
+    try {
+      await client.get('/equipment', 99999999);
+    } catch (e) {
+      err = e as RentmanApiError;
+    }
+    expect(err).toBeInstanceOf(RentmanApiError);
+    expect(err!.status).toBe(404);
+    expect(err!.message).toContain('404');
+    expect(err!.message).toContain('Not Found');
+    expect(err!.body).toEqual({ message: 'Not found' });
+  });
+
+  it('throws RentmanApiError with correct status and message on 403', async () => {
+    let textConsumed = false;
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 403,
+      statusText: 'Forbidden',
+      text: () => {
+        if (textConsumed) throw new Error('Body has already been used');
+        textConsumed = true;
+        return Promise.resolve('Forbidden');
+      },
+      json: () => { throw new Error('Body has already been used'); },
+    });
+    const client = createRentmanClient({ token: 't', fetch: fetchMock as unknown as typeof fetch });
+    let err: RentmanApiError | undefined;
+    try {
+      await client.list('/equipment');
+    } catch (e) {
+      err = e as RentmanApiError;
+    }
+    expect(err).toBeInstanceOf(RentmanApiError);
+    expect(err!.status).toBe(403);
+    expect(err!.message).toContain('403');
+    expect(err!.message).toContain('Forbidden');
+    // Non-JSON body falls back to plain string
+    expect(err!.body).toBe('Forbidden');
+  });
+
   it('auto-paginates in listAll', async () => {
     const page1: RentmanCollectionResponse<typeof mockEquipment> = {
       data: [mockEquipment],
