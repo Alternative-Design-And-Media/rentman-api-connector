@@ -11,6 +11,14 @@
  * - `updateHash` is present on every entity; use it for cheap change detection
  *   instead of comparing `modified` timestamps.
  * - `custom` exposes the `custom_<number>` keys returned by the API.
+ *   On entities that support custom fields the shape can be narrowed at
+ *   **compile time** by passing a `TCustom` type argument, e.g.:
+ *
+ *       interface MyEquipmentCustom { custom_16?: string; custom_57?: string; }
+ *       type MyEquipmentItem = RentmanEquipmentItem<MyEquipmentCustom>;
+ *
+ *   The default (`DefaultCustomFields`) keeps full backward compatibility —
+ *   existing code that omits the type argument continues to compile unchanged.
  * - Use `WithUnknownFields<T>` when you need to access fields outside the typed
  *   surface (e.g. raw API response debugging or OAS-to-types sync).
  */
@@ -46,9 +54,41 @@ export interface RentmanItemResponse<T> {
 export type RentmanResponse<T> = RentmanCollectionResponse<T> | RentmanItemResponse<T>;
 
 // ---------------------------------------------------------------------------
+// Custom-field helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Default shape for the `custom` field on every entity that exposes custom
+ * fields in the Rentman API.
+ *
+ * Keys follow the `custom_<number>` pattern (e.g. `custom_16`).
+ * Values are `string | number | boolean | null`.
+ *
+ * Pass a **narrower** interface as the `TCustom` type argument on the entity
+ * type when you know the exact fields used in your Rentman account:
+ *
+ * ```ts
+ * interface AcmeEquipmentCustom {
+ *   custom_16?: string; // Name EN
+ *   custom_57?: string; // Safety ID
+ * }
+ * type AcmeEquipmentItem = RentmanEquipmentItem<AcmeEquipmentCustom>;
+ * ```
+ */
+export type DefaultCustomFields = Partial<
+  Record<`custom_${number}`, string | number | boolean | null>
+>;
+
+// ---------------------------------------------------------------------------
 // Common fields shared by (almost) every entity
 // ---------------------------------------------------------------------------
 
+/**
+ * Base entity.
+ *
+ * Includes the default open `custom` shape for backward compatibility with older
+ * versions where all entities inherited `custom?: DefaultCustomFields`.
+ */
 export interface RentmanBaseEntity {
   id: number;
   created: string;
@@ -60,10 +100,27 @@ export interface RentmanBaseEntity {
    */
   updateHash: string;
   /**
-   * Custom fields. Keys follow the `custom_<number>` pattern (e.g. `custom_16`).
-   * Values are `string | number | boolean | null`.
+   * Custom fields in their default open shape (`custom_<number>` keys).
+   * Entities with typed custom fields should extend
+   * `RentmanBaseEntityWithCustom<TCustom>`.
    */
-  custom?: Partial<Record<`custom_${number}`, string | number | boolean | null>>;
+  custom?: DefaultCustomFields;
+}
+
+/**
+ * Base entity **with** a typed `custom` field.
+ *
+ * @typeParam TCustom - Shape of the `custom` object for this entity.
+ *   Defaults to `DefaultCustomFields` for full backward compatibility.
+ */
+export interface RentmanBaseEntityWithCustom<
+  TCustom = DefaultCustomFields,
+> extends Omit<RentmanBaseEntity, 'custom'> {
+  /**
+   * Custom fields. Keys follow the `custom_<number>` pattern (e.g. `custom_16`).
+   * Narrow this by passing a `TCustom` type argument to the entity interface.
+   */
+  custom?: TCustom;
 }
 
 /**
@@ -81,7 +138,20 @@ export type WithUnknownFields<T> = T & Record<string, unknown>;
 // Equipment
 // ---------------------------------------------------------------------------
 
-export interface RentmanEquipmentItem extends RentmanBaseEntity {
+/**
+ * A Rentman equipment item.
+ *
+ * @typeParam TCustom - Shape of the `custom` object.
+ *   Default: `DefaultCustomFields` (open `custom_${number}` record).
+ *
+ * @example Narrow custom fields for your account:
+ * ```ts
+ * interface AcmeEquipmentCustom { custom_16?: string; custom_57?: string; }
+ * type AcmeEquipmentItem = RentmanEquipmentItem<AcmeEquipmentCustom>;
+ * ```
+ */
+export interface RentmanEquipmentItem<TCustom = DefaultCustomFields>
+  extends RentmanBaseEntityWithCustom<TCustom> {
   name: string;
   code?: string | null;
   folder?: string | null;
@@ -121,7 +191,11 @@ export interface RentmanEquipmentItem extends RentmanBaseEntity {
 // Contacts & contact persons
 // ---------------------------------------------------------------------------
 
-export interface RentmanContact extends RentmanBaseEntity {
+/**
+ * @typeParam TCustom - Shape of the `custom` object. Default: `DefaultCustomFields`.
+ */
+export interface RentmanContact<TCustom = DefaultCustomFields>
+  extends RentmanBaseEntityWithCustom<TCustom> {
   displayname: string;
   firstname?: string | null;
   middle?: string | null;
@@ -146,7 +220,11 @@ export interface RentmanContact extends RentmanBaseEntity {
   folder?: string | null;
 }
 
-export interface RentmanContactPerson extends RentmanBaseEntity {
+/**
+ * @typeParam TCustom - Shape of the `custom` object. Default: `DefaultCustomFields`.
+ */
+export interface RentmanContactPerson<TCustom = DefaultCustomFields>
+  extends RentmanBaseEntityWithCustom<TCustom> {
   contact: string;
   firstname?: string | null;
   middle?: string | null;
@@ -198,7 +276,11 @@ export interface RentmanCrewRate extends RentmanBaseEntity {
 // Projects & sub-projects
 // ---------------------------------------------------------------------------
 
-export interface RentmanProject extends RentmanBaseEntity {
+/**
+ * @typeParam TCustom - Shape of the `custom` object. Default: `DefaultCustomFields`.
+ */
+export interface RentmanProject<TCustom = DefaultCustomFields>
+  extends RentmanBaseEntityWithCustom<TCustom> {
   number: number;
   name: string;
   folder?: string | null;
@@ -219,7 +301,11 @@ export interface RentmanProject extends RentmanBaseEntity {
   price?: number | null;
 }
 
-export interface RentmanSubProject extends RentmanBaseEntity {
+/**
+ * @typeParam TCustom - Shape of the `custom` object. Default: `DefaultCustomFields`.
+ */
+export interface RentmanSubProject<TCustom = DefaultCustomFields>
+  extends RentmanBaseEntityWithCustom<TCustom> {
   project: string;
   name?: string | null;
   number?: number | null;
@@ -358,7 +444,11 @@ export interface RentmanAppointmentCrew extends RentmanBaseEntity {
 // Vehicles
 // ---------------------------------------------------------------------------
 
-export interface RentmanVehicle extends RentmanBaseEntity {
+/**
+ * @typeParam TCustom - Shape of the `custom` object. Default: `DefaultCustomFields`.
+ */
+export interface RentmanVehicle<TCustom = DefaultCustomFields>
+  extends RentmanBaseEntityWithCustom<TCustom> {
   name: string;
   license_plate?: string | null;
   folder?: string | null;
@@ -441,7 +531,11 @@ export interface RentmanStockLocation extends RentmanBaseEntity {
 // Subrentals
 // ---------------------------------------------------------------------------
 
-export interface RentmanSubrental extends RentmanBaseEntity {
+/**
+ * @typeParam TCustom - Shape of the `custom` object. Default: `DefaultCustomFields`.
+ */
+export interface RentmanSubrental<TCustom = DefaultCustomFields>
+  extends RentmanBaseEntityWithCustom<TCustom> {
   project: string;
   contact?: string | null;
   status?: string | null;
@@ -450,7 +544,11 @@ export interface RentmanSubrental extends RentmanBaseEntity {
   out?: string | null;
 }
 
-export interface RentmanSubrentalEquipment extends RentmanBaseEntity {
+/**
+ * @typeParam TCustom - Shape of the `custom` object. Default: `DefaultCustomFields`.
+ */
+export interface RentmanSubrentalEquipment<TCustom = DefaultCustomFields>
+  extends RentmanBaseEntityWithCustom<TCustom> {
   subrental: string;
   equipment: string;
   quantity?: number | null;
@@ -468,7 +566,11 @@ export interface RentmanSubrentalEquipmentGroup extends RentmanBaseEntity {
 // Time registration
 // ---------------------------------------------------------------------------
 
-export interface RentmanTimeRegistration extends RentmanBaseEntity {
+/**
+ * @typeParam TCustom - Shape of the `custom` object. Default: `DefaultCustomFields`.
+ */
+export interface RentmanTimeRegistration<TCustom = DefaultCustomFields>
+  extends RentmanBaseEntityWithCustom<TCustom> {
   crew: string;
   start?: string | null;
   end?: string | null;
@@ -541,7 +643,11 @@ export interface RentmanLedgerCode extends RentmanBaseEntity {
   code?: string | null;
 }
 
-export interface RentmanRepair extends RentmanBaseEntity {
+/**
+ * @typeParam TCustom - Shape of the `custom` object. Default: `DefaultCustomFields`.
+ */
+export interface RentmanRepair<TCustom = DefaultCustomFields>
+  extends RentmanBaseEntityWithCustom<TCustom> {
   equipment: string;
   start?: string | null;
   end?: string | null;
@@ -549,7 +655,11 @@ export interface RentmanRepair extends RentmanBaseEntity {
   remark?: string | null;
 }
 
-export interface RentmanSerialNumber extends RentmanBaseEntity {
+/**
+ * @typeParam TCustom - Shape of the `custom` object. Default: `DefaultCustomFields`.
+ */
+export interface RentmanSerialNumber<TCustom = DefaultCustomFields>
+  extends RentmanBaseEntityWithCustom<TCustom> {
   equipment: string;
   serial_number?: string | null;
   remark?: string | null;
