@@ -60,7 +60,7 @@ export class RentmanClient {
 
   constructor(private readonly opts: RentmanClientOptions) {
     this.baseUrl = opts.baseUrl ?? RENTMAN_BASE_URL;
-    this.fetchImpl = opts.fetch ?? globalThis.fetch;
+    this.fetchImpl = opts.fetch ?? globalThis.fetch.bind(globalThis);
   }
 
   private async resolveToken(): Promise<string> {

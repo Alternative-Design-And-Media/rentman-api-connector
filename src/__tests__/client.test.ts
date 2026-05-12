@@ -45,6 +45,27 @@ describe('RentmanClient', () => {
     expect(res.offset).toBe(0);
   });
 
+  it('binds default global fetch to globalThis context', async () => {
+    const originalFetch = globalThis.fetch;
+    const fetchMock = vi.fn(function (this: typeof globalThis) {
+      expect(this).toBe(globalThis);
+      return Promise.resolve({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve({ data: [], itemCount: 0, limit: 300, offset: 0 }),
+      });
+    });
+
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+    try {
+      const client = createRentmanClient({ token: 't' });
+      await client.list('/equipment');
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
   it('throws RentmanApiError on non-2xx', async () => {
     const fetchMock = makeFetch(401, { message: 'Unauthorized' });
     const client = createRentmanClient({ token: 'bad', fetch: fetchMock as unknown as typeof fetch });
