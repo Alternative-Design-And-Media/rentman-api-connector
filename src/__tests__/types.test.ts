@@ -1,6 +1,7 @@
 import { describe, it, expectTypeOf } from 'vitest';
 import type {
   RentmanEquipmentSetContent,
+  RentmanEquipmentItem,
   RentmanPlanning,
   RentmanCrewActivity,
   RentmanFunction,
@@ -10,6 +11,7 @@ import type {
   RentmanBriefpapier,
   RentmanNumberSeries,
   RentmanTemplate,
+  WithUnknownFields,
 } from '../types.js';
 
 describe('RentmanEquipmentSetContent', () => {
@@ -279,5 +281,36 @@ describe('RentmanTemplate', () => {
       remark: 'Default quote layout',
     };
     expectTypeOf(sample).toMatchTypeOf<RentmanTemplate>();
+  });
+});
+
+describe('RentmanBaseEntity — no open index signature', () => {
+  it('typed fields still resolve', () => {
+    const item = {} as unknown as RentmanEquipmentItem;
+    expectTypeOf(item.name).toBeString();
+    expectTypeOf(item.id).toBeNumber();
+  });
+
+  it('custom fields accept valid custom_N keys', () => {
+    const item = {} as unknown as RentmanEquipmentItem;
+    // valid — template literal key
+    const v = item.custom?.['custom_16'];
+    expectTypeOf(v).toEqualTypeOf<string | number | boolean | null | undefined>();
+  });
+
+  it('nonexistent fields produce TS2339', () => {
+    const item = {} as unknown as RentmanEquipmentItem;
+    // @ts-expect-error should not exist
+    item.nonExistentField;
+    // @ts-expect-error subelement was the bug field from adam-mcp#200
+    item.subelement;
+  });
+});
+
+describe('WithUnknownFields escape hatch', () => {
+  it('allows arbitrary field access when explicitly opted in', () => {
+    const item = {} as unknown as WithUnknownFields<RentmanEquipmentItem>;
+    const v = item.arbitraryField; // must NOT error
+    expectTypeOf(v).toBeUnknown();
   });
 });

@@ -11,8 +11,8 @@
  * - `updateHash` is present on every entity; use it for cheap change detection
  *   instead of comparing `modified` timestamps.
  * - `custom` exposes the `custom_<number>` keys returned by the API.
- * - The index signature `[key: string]: unknown` provides forward compatibility
- *   for fields not yet modelled.
+ * - Use `WithUnknownFields<T>` when you need to access fields outside the typed
+ *   surface (e.g. raw API response debugging or OAS-to-types sync).
  */
 
 // ---------------------------------------------------------------------------
@@ -59,11 +59,23 @@ export interface RentmanBaseEntity {
    * fields. Provided by the API on every item.
    */
   updateHash: string;
-  /** Custom fields (`custom_1`, `custom_2`, …). Not queryable. */
-  custom?: Record<string, unknown>;
-  /** Forward-compatibility index signature for unmodelled fields. */
-  [key: string]: unknown;
+  /**
+   * Custom fields. Keys follow the `custom_<number>` pattern (e.g. `custom_16`).
+   * Values are `string | number | boolean | null`.
+   */
+  custom?: Partial<Record<`custom_${number}`, string | number | boolean | null>>;
 }
+
+/**
+ * Utility type that widens `T` with an open index signature.
+ * Use **only** when you are intentionally accessing fields outside the typed
+ * surface (e.g. reading raw API responses for debugging or OAS-to-types sync).
+ *
+ * @example
+ * const raw = (await client.get<WithUnknownFields<RentmanEquipmentItem>>(ENDPOINTS.equipment, 42)).data;
+ * console.log(raw.someNewFieldNotYetModelled); // compiles, typed `unknown`
+ */
+export type WithUnknownFields<T> = T & Record<string, unknown>;
 
 // ---------------------------------------------------------------------------
 // Equipment
