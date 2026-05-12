@@ -84,9 +84,10 @@ export type DefaultCustomFields = Partial<
 // ---------------------------------------------------------------------------
 
 /**
- * Base entity without a `custom` field.
- * Entities that do **not** expose custom fields in the OAS extend this directly.
- * Entities that **do** expose custom fields use `RentmanBaseEntityWithCustom<TCustom>`.
+ * Base entity.
+ *
+ * Includes the default open `custom` shape for backward compatibility with older
+ * versions where all entities inherited `custom?: DefaultCustomFields`.
  */
 export interface RentmanBaseEntity {
   id: number;
@@ -98,6 +99,12 @@ export interface RentmanBaseEntity {
    * fields. Provided by the API on every item.
    */
   updateHash: string;
+  /**
+   * Custom fields in their default open shape (`custom_<number>` keys).
+   * Entities with typed custom fields should extend
+   * `RentmanBaseEntityWithCustom<TCustom>`.
+   */
+  custom?: DefaultCustomFields;
 }
 
 /**
@@ -108,7 +115,7 @@ export interface RentmanBaseEntity {
  */
 export interface RentmanBaseEntityWithCustom<
   TCustom = DefaultCustomFields,
-> extends RentmanBaseEntity {
+> extends Omit<RentmanBaseEntity, 'custom'> {
   /**
    * Custom fields. Keys follow the `custom_<number>` pattern (e.g. `custom_16`).
    * Narrow this by passing a `TCustom` type argument to the entity interface.
