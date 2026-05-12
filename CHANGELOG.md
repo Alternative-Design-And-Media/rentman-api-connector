@@ -3,6 +3,13 @@
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.2.1] — 2026-05-12
+
+### Fixed
+- `RentmanClient` now binds the default `globalThis.fetch` to `globalThis` in the constructor, preventing `TypeError: Illegal invocation` in Cloudflare Workers when using the default fetch implementation.
+
+---
+
 ## [0.2.0] — 2026-05-12
 
 ### Added
