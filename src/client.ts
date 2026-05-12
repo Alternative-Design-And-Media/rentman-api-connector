@@ -15,6 +15,7 @@ import type {
   RentmanItemResponse,
 } from './types.js';
 import { buildRentmanQuery, type RentmanQueryOptions } from './query.js';
+import type { RentmanEndpoint } from './endpoints.js';
 
 export const RENTMAN_BASE_URL = 'https://api.rentman.net';
 
@@ -107,7 +108,7 @@ export class RentmanClient {
    * console.log(res.data, res.itemCount, res.limit, res.offset);
    */
   list<T>(
-    path: string,
+    path: RentmanEndpoint,
     query?: RentmanQueryOptions,
   ): Promise<RentmanCollectionResponse<T>> {
     const qs = query ? `?${buildRentmanQuery(query).toString()}` : '';
@@ -123,7 +124,7 @@ export class RentmanClient {
    * const allEquipment = await client.listAll<RentmanEquipmentItem>('/equipment');
    */
   async listAll<T>(
-    path: string,
+    path: RentmanEndpoint,
     query?: Omit<RentmanQueryOptions, 'limit' | 'offset'>,
     pageSize = 300,
   ): Promise<T[]> {
@@ -153,7 +154,7 @@ export class RentmanClient {
    * const res = await client.get<RentmanEquipmentItem>('/equipment', 42);
    */
   get<T>(
-    path: string,
+    path: RentmanEndpoint,
     id: number,
     query?: Pick<RentmanQueryOptions, 'fields'>,
   ): Promise<RentmanItemResponse<T>> {
@@ -169,7 +170,7 @@ export class RentmanClient {
 
   /** Create a new item (POST). Returns the created item. */
   create<TInput, TOutput = TInput>(
-    path: string,
+    path: RentmanEndpoint,
     body: TInput,
   ): Promise<RentmanItemResponse<TOutput>> {
     return this.request<RentmanItemResponse<TOutput>>(path, {
@@ -180,7 +181,7 @@ export class RentmanClient {
 
   /** Update an existing item (PUT). Returns the updated item. */
   update<TInput, TOutput = TInput>(
-    path: string,
+    path: RentmanEndpoint,
     id: number,
     body: TInput,
   ): Promise<RentmanItemResponse<TOutput>> {
@@ -191,7 +192,7 @@ export class RentmanClient {
   }
 
   /** Delete an item (DELETE). Returns `undefined` on success. */
-  delete(path: string, id: number): Promise<void> {
+  delete(path: RentmanEndpoint, id: number): Promise<void> {
     return this.request<void>(`${path}/${id}`, { method: 'DELETE' });
   }
 }
