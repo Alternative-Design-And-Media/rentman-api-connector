@@ -35,6 +35,7 @@ pnpm add @alternative-design-and-media/rentman-api-connector
 ```ts
 import {
   createRentmanClient,
+  ENDPOINTS,
   rel,
   notNull,
   type RentmanEquipmentItem,
@@ -48,7 +49,7 @@ const rentman = createRentmanClient({
 
 // --- List with pagination metadata ---
 const { data, itemCount, limit, offset } =
-  await rentman.list<RentmanEquipmentItem>('/equipment', {
+  await rentman.list<RentmanEquipmentItem>(ENDPOINTS.equipment, {
     fields: ['id', 'name', 'current_quantity'],
     sort: ['+name'],
     limit: 50,
@@ -58,23 +59,23 @@ const { data, itemCount, limit, offset } =
 console.log(`${itemCount} items total, showing ${data.length}`);
 
 // --- Auto-paginate (fetches all pages) ---
-const allEquipment = await rentman.listAll<RentmanEquipmentItem>('/equipment');
+const allEquipment = await rentman.listAll<RentmanEquipmentItem>(ENDPOINTS.equipment);
 
 // --- Relational + null-check filters ---
-const contacts = await rentman.list<RentmanContact>('/contacts', {
+const contacts = await rentman.list<RentmanContact>(ENDPOINTS.contacts, {
   filters: { country: 'gb' },
   relFilters: [rel('creditlimit', 'gt', 1000)],
   nullFilters: [notNull('folder')],
 });
 
 // --- Get a single item ---
-const { data: item } = await rentman.get<RentmanEquipmentItem>('/equipment', 42);
+const { data: item } = await rentman.get<RentmanEquipmentItem>(ENDPOINTS.equipment, 42);
 console.log(item.updateHash); // use for change tracking
 
 // --- Create, update, delete ---
-await rentman.create('/stockmovements', { equipment: '/equipment/42', quantity: 5, type: 'manual' });
-await rentman.update('/equipment', 42, { remark: 'Updated via API' });
-await rentman.delete('/equipment', 99);
+await rentman.create(ENDPOINTS.stockMovements, { equipment: '/equipment/42', quantity: 5, type: 'manual' });
+await rentman.update(ENDPOINTS.equipment, 42, { remark: 'Updated via API' });
+await rentman.delete(ENDPOINTS.equipment, 99);
 ```
 
 ---

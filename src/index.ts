@@ -35,3 +35,5 @@
 export * from './types.js';
 export * from './query.js';
 export * from './client.js';
+export { ENDPOINTS } from './endpoints.js';
+export type { RentmanEndpoint } from './endpoints.js';
