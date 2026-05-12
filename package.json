@@ -1,6 +1,6 @@
 {
   "name": "@alternative-design-and-media/rentman-api-connector",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Type-safe Rentman REST API client for Node.js and edge runtimes (Cloudflare Workers). Synced to OAS v1.7.0.",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
