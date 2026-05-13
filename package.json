@@ -16,7 +16,9 @@
     "dist",
     "LICENSE",
     "README.md",
-    "CHANGELOG.md"
+    "CHANGELOG.md",
+    "llms.txt",
+    "llms-full.txt"
   ],
   "scripts": {
     "build": "tsup src/index.ts --format cjs,esm --dts --clean",

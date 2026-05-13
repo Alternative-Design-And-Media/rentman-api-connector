@@ -1,0 +1,354 @@
+# @alternative-design-and-media/rentman-api-connector (llms-full)
+
+Machine-oriented reference for AI coding assistants.
+
+## Package
+
+- Name: `@alternative-design-and-media/rentman-api-connector`
+- Purpose: Type-safe Rentman REST API connector with typed endpoints, typed response wrappers, and query helpers.
+- OAS sync: v1.7.0 (deployment 2025-11-13)
+
+## Runtime and install
+
+- Runtime: Node.js 18+ and edge runtimes with native `fetch` (Cloudflare Workers)
+- Install:
+
+```bash
+npm install @alternative-design-and-media/rentman-api-connector
+```
+
+## Main exports
+
+- Client API: `createRentmanClient`, `RentmanClient`, `RentmanApiError`
+- Endpoint constants: `ENDPOINTS`, `RentmanEndpoint`
+- Query API: `buildRentmanQuery`, `rel`, `notNull`, `isNull`
+- Types: all resource/entity and response types from package root
+
+## Client creation
+
+Signature:
+
+```ts
+createRentmanClient(opts: RentmanClientOptions): RentmanClient
+```
+
+Options:
+
+```ts
+interface RentmanClientOptions {
+  token: string | (() => string | Promise<string>);
+  baseUrl?: string; // default: https://api.rentman.net
+  fetch?: typeof globalThis.fetch;
+}
+```
+
+Usage:
+
+```ts
+import { createRentmanClient } from '@alternative-design-and-media/rentman-api-connector';
+
+const rentman = createRentmanClient({
+  token: process.env.RENTMAN_TOKEN!,
+});
+```
+
+Token rotation usage:
+
+```ts
+const rentman = createRentmanClient({
+  token: async () => await getTokenFromVault(),
+});
+```
+
+## Client methods (signatures + behavior)
+
+```ts
+list<T>(path: RentmanEndpoint, query?: RentmanQueryOptions): Promise<RentmanCollectionResponse<T>>
+listAll<T>(path: RentmanEndpoint, query?: Omit<RentmanQueryOptions, 'limit' | 'offset'>, pageSize?: number): Promise<T[]>
+get<T>(path: RentmanEndpoint, id: number, query?: Pick<RentmanQueryOptions, 'fields'>): Promise<RentmanItemResponse<T>>
+create<TInput, TOutput = TInput>(path: RentmanEndpoint, body: TInput): Promise<RentmanItemResponse<TOutput>>
+update<TInput, TOutput = TInput>(path: RentmanEndpoint, id: number, body: TInput): Promise<RentmanItemResponse<TOutput>>
+delete(path: RentmanEndpoint, id: number): Promise<void>
+```
+
+Behavior notes:
+
+- `list` returns `{ data, itemCount, limit, offset }`
+- `listAll` auto-paginates and concatenates all pages
+- `listAll` default `pageSize` is `300` (Rentman API hard cap)
+- `get` supports optional `fields` projection
+- `create` and `update` JSON-encode `body`
+- `delete` expects `204` and resolves to `void`
+
+Error behavior:
+
+- Non-2xx API responses throw `RentmanApiError`:
+  - `message`: includes method/path/status
+  - `status`: HTTP status code
+  - `body`: parsed JSON response body when possible, else text
+
+## Query builder reference
+
+Types:
+
+```ts
+type RentmanRelOp = 'lt' | 'lte' | 'gt' | 'gte' | 'neq';
+
+interface RentmanRelFilter {
+  field: string;
+  op: RentmanRelOp;
+  value: string | number;
+}
+
+interface RentmanNullFilter {
+  field: string;
+  isNull: boolean;
+}
+
+interface RentmanQueryOptions {
+  fields?: string | string[];
+  sort?: string | string[];
+  filters?: Record<string, string | number>;
+  relFilters?: RentmanRelFilter[];
+  nullFilters?: RentmanNullFilter[];
+  limit?: number;
+  offset?: number;
+}
+```
+
+Serialization rules in `buildRentmanQuery`:
+
+- `fields`: array joins with commas
+- `sort`: array joins with commas
+- `filters`: key/value as direct query params
+- `relFilters`: `field[op]=value`
+- `nullFilters`: `field[isnull]=true|false`
+- `limit` and `offset` emitted if defined
+
+Helper signatures:
+
+```ts
+buildRentmanQuery(opts: RentmanQueryOptions): URLSearchParams
+rel(field: string, op: RentmanRelOp, value: string | number): RentmanRelFilter
+notNull(field: string): RentmanNullFilter
+isNull(field: string): RentmanNullFilter
+```
+
+Helper examples:
+
+```ts
+import { buildRentmanQuery, rel, notNull, isNull } from '@alternative-design-and-media/rentman-api-connector';
+
+const params = buildRentmanQuery({
+  fields: ['id', 'name'],
+  sort: ['+name', '-created'],
+  filters: { country: 'gb' },
+  relFilters: [rel('creditlimit', 'gt', 1000)],
+  nullFilters: [notNull('folder'), isNull('archive')],
+  limit: 100,
+  offset: 0,
+});
+```
+
+Caveats:
+
+- With pagination (`limit`/`offset`), Rentman applies only the first sort field.
+- Generated fields cannot be used for filtering/sorting when paginating.
+
+## Custom fields typing pattern
+
+Default custom field type is open:
+
+```ts
+Partial<Record<`custom_${number}`, string | number | boolean | null>>
+```
+
+For stronger typing/autocomplete, pass account-specific custom field map:
+
+```ts
+import { type RentmanEquipmentItem } from '@alternative-design-and-media/rentman-api-connector';
+
+interface EquipmentCustom {
+  custom_16?: string;
+  custom_57?: string;
+  custom_88?: number;
+}
+
+type MyEquipment = RentmanEquipmentItem<EquipmentCustom>;
+```
+
+Example:
+
+```ts
+import { createRentmanClient, ENDPOINTS, type RentmanProject } from '@alternative-design-and-media/rentman-api-connector';
+
+interface ProjectCustom {
+  custom_3?: string;
+  custom_11?: boolean;
+  custom_24?: number;
+}
+
+type MyProject = RentmanProject<ProjectCustom>;
+
+const rentman = createRentmanClient({ token: process.env.RENTMAN_TOKEN! });
+const { data: project } = await rentman.get<MyProject>(ENDPOINTS.projects, 500);
+```
+
+## Typical usage patterns
+
+List with pagination:
+
+```ts
+import { createRentmanClient, ENDPOINTS, type RentmanEquipmentItem } from '@alternative-design-and-media/rentman-api-connector';
+
+const rentman = createRentmanClient({ token: process.env.RENTMAN_TOKEN! });
+
+const { data, itemCount, limit, offset } = await rentman.list<RentmanEquipmentItem>(ENDPOINTS.equipment, {
+  fields: ['id', 'name', 'current_quantity'],
+  sort: ['+name'],
+  limit: 50,
+  offset: 0,
+});
+```
+
+Auto-pagination:
+
+```ts
+const allProjects = await rentman.listAll(ENDPOINTS.projects, {
+  fields: ['id', 'number', 'name'],
+  sort: ['-planperiod_start'],
+});
+```
+
+Create/update/delete:
+
+```ts
+await rentman.create(ENDPOINTS.stockMovements, {
+  equipment: '/equipment/42',
+  quantity: 10,
+  type: 'manual',
+});
+
+await rentman.update(ENDPOINTS.equipment, 42, {
+  remark: 'Updated via API',
+});
+
+await rentman.delete(ENDPOINTS.equipment, 99);
+```
+
+Error handling:
+
+```ts
+import { RentmanApiError } from '@alternative-design-and-media/rentman-api-connector';
+
+try {
+  await rentman.get(ENDPOINTS.equipment, 42);
+} catch (err) {
+  if (err instanceof RentmanApiError) {
+    console.error(err.status, err.body);
+  }
+}
+```
+
+## Endpoint -> path -> type mapping
+
+### Equipment & inventory
+
+- `equipment` -> `/equipment` -> `RentmanEquipmentItem`
+- `equipmentSetsContent` -> `/equipmentsetscontent` -> `RentmanEquipmentSetContent`
+- `accessories` -> `/accessories` -> `RentmanAccessory`
+- `stockMovements` -> `/stockmovements` -> `RentmanStockMovement`
+- `stockLocations` -> `/stocklocations` -> `RentmanStockLocation`
+- `serialNumbers` -> `/serialnumbers` -> `RentmanSerialNumber`
+- `repairs` -> `/repairs` -> `RentmanRepair`
+
+### Contacts & people
+
+- `contacts` -> `/contacts` -> `RentmanContact`
+- `contactPersons` -> `/contactpersons` -> `RentmanContactPerson`
+- `crew` -> `/crew` -> `RentmanCrewMember`
+- `crewAvailabilities` -> `/crewavailabilities` -> `RentmanCrewAvailability`
+- `crewRates` -> `/crewrates` -> `RentmanCrewRate`
+
+### Projects
+
+- `projects` -> `/projects` -> `RentmanProject`
+- `subProjects` -> `/subprojects` -> `RentmanSubProject`
+- `projectEquipment` -> `/projectequipment` -> `RentmanProjectEquipment`
+- `projectEquipmentGroups` -> `/projectequipmentgroups` -> `RentmanProjectEquipmentGroup`
+- `projectFunctions` -> `/projectfunctions` -> `RentmanProjectFunction`
+- `projectFunctionGroups` -> `/projectfunctiongroups` -> `RentmanProjectFunctionGroup`
+- `projectCrew` -> `/projectcrew` -> `RentmanProjectCrew`
+- `projectVehicles` -> `/projectvehicles` -> `RentmanProjectVehicle`
+- `projectRequests` -> `/projectrequests` -> `RentmanProjectRequest`
+- `projectTypes` -> `/projecttypes` -> `RentmanProjectType`
+- `planning` -> `/planning` -> `RentmanPlanning`
+
+### Finance
+
+- `invoices` -> `/invoices` -> `RentmanInvoice`
+- `invoiceLines` -> `/invoicelines` -> `RentmanInvoiceLine`
+- `invoiceMoments` -> `/invoicemoments` -> `RentmanInvoiceMoment`
+- `quotes` -> `/quotes` -> `RentmanQuote`
+- `payments` -> `/payments` -> `RentmanPayment`
+- `costs` -> `/costs` -> `RentmanCost`
+- `taxClasses` -> `/taxclasses` -> `RentmanTaxClass`
+- `ledgerCodes` -> `/ledgercodes` -> `RentmanLedgerCode`
+- `rates` -> `/rates` -> `RentmanRate`
+- `factors` -> `/factors` -> `RentmanFactor`
+- `factorGroups` -> `/factorgroups` -> `RentmanFactorGroup`
+
+### Subrentals
+
+- `subrentals` -> `/subrentals` -> `RentmanSubrental`
+- `subrentalEquipment` -> `/subrentalequipment` -> `RentmanSubrentalEquipment`
+- `subrentalEquipmentGroups` -> `/subrentalequipmentgroups` -> `RentmanSubrentalEquipmentGroup`
+
+### Appointments & vehicles
+
+- `appointments` -> `/appointments` -> `RentmanAppointment`
+- `appointmentCrew` -> `/appointmentcrew` -> `RentmanAppointmentCrew`
+- `vehicles` -> `/vehicles` -> `RentmanVehicle`
+
+### Time & leave
+
+- `timeRegistrations` -> `/timeregistrations` -> `RentmanTimeRegistration`
+- `timeRegistrationActivities` -> `/timeregistrationactivities` -> `RentmanTimeRegistrationActivity`
+- `leaveMutations` -> `/leavemutations` -> `RentmanLeaveMutation`
+- `leaveRequests` -> `/leaverequests` -> `RentmanLeaveRequest`
+- `leaveTypes` -> `/leavetypes` -> `RentmanLeaveType`
+- `activities` -> `/activities` -> `RentmanCrewActivity`
+
+### Files & folders
+
+- `files` -> `/files` -> `RentmanFile`
+- `fileFolders` -> `/filefolders` -> `RentmanFileFolder`
+- `folders` -> `/folders` -> `RentmanFolder`
+
+### Reference / lookup
+
+- `functions` -> `/functions` -> `RentmanFunction`
+- `functionGroups` -> `/functiongroups` -> `RentmanFunctionGroup`
+- `statuses` -> `/statuses` -> `RentmanStatus`
+- `contracts` -> `/contracts` -> `RentmanContract`
+- `taglinks` -> `/taglinks` -> `RentmanTaglink`
+- `briefpapier` -> `/briefpapier` -> `RentmanBriefpapier`
+- `numberSeries` -> `/numberseries` -> `RentmanNumberSeries`
+- `templates` -> `/templates` -> `RentmanTemplate`
+
+## Constraints and caveats
+
+- API limit: max 300 items per page.
+- API limits (per README): 50,000 requests/day, 10 req/s, 20 concurrent requests.
+- `updateHash` exists on every entity and can be used for cheap change detection.
+- Types are synced to OAS 1.7.0; unknown future fields can be accessed with `WithUnknownFields<T>`.
+
+## Canonical import paths (important)
+
+Always import from:
+
+```ts
+'@alternative-design-and-media/rentman-api-connector'
+```
+
+Do not use historical/incorrect package names.

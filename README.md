@@ -33,6 +33,13 @@ pnpm add @alternative-design-and-media/rentman-api-connector
 
 ---
 
+## For AI agents / coding assistants
+
+- Compact reference: [`llms.txt`](./llms.txt)
+- Detailed machine-oriented reference: [`llms-full.txt`](./llms-full.txt)
+
+---
+
 ## Quick Start
 
 ```ts

@@ -108,6 +108,11 @@ export class RentmanClient {
   /**
    * Fetch a collection of items from the given resource path.
    *
+   * @param path - Rentman API collection path (prefer `ENDPOINTS.<key>` constants).
+   * @param query - Optional query options (`fields`, `sort`, `filters`, `relFilters`, `nullFilters`, `limit`, `offset`).
+   * @returns A collection response with `data` plus pagination metadata (`itemCount`, `limit`, `offset`).
+   * @throws {RentmanApiError} When the API returns a non-2xx response.
+   *
    * @example
    * const res = await client.list<RentmanEquipmentItem>('/equipment', { limit: 50 });
    * console.log(res.data, res.itemCount, res.limit, res.offset);
@@ -124,6 +129,12 @@ export class RentmanClient {
    * Fetch all pages of a collection, handling the 300-item-per-page API limit
    * automatically. Uses `itemCount` from the first response to avoid
    * unnecessary extra requests. Use with caution — this may issue many HTTP requests.
+   *
+   * @param path - Rentman API collection path (prefer `ENDPOINTS.<key>` constants).
+   * @param query - Optional query options excluding `limit`/`offset`; pagination is managed internally.
+   * @param pageSize - Page size per request. Defaults to `300` (Rentman API hard cap).
+   * @returns A flattened array containing items from all fetched pages.
+   * @throws {RentmanApiError} When any page request returns a non-2xx response.
    *
    * @example
    * const allEquipment = await client.listAll<RentmanEquipmentItem>('/equipment');
@@ -155,6 +166,12 @@ export class RentmanClient {
   /**
    * Fetch a single item by ID.
    *
+   * @param path - Rentman API collection path (prefer `ENDPOINTS.<key>` constants).
+   * @param id - Numeric resource ID.
+   * @param query - Optional field projection (`fields`) for the item response.
+   * @returns An item response wrapper containing the fetched resource in `data`.
+   * @throws {RentmanApiError} When the API returns a non-2xx response.
+   *
    * @example
    * const res = await client.get<RentmanEquipmentItem>('/equipment', 42);
    */
@@ -173,7 +190,14 @@ export class RentmanClient {
   // Mutations
   // -------------------------------------------------------------------------
 
-  /** Create a new item (POST). Returns the created item. */
+  /**
+   * Create a new item with `POST`.
+   *
+   * @param path - Rentman API collection path (prefer `ENDPOINTS.<key>` constants).
+   * @param body - Request payload to send as JSON.
+   * @returns An item response wrapper containing the created resource in `data`.
+   * @throws {RentmanApiError} When the API returns a non-2xx response.
+   */
   create<TInput, TOutput = TInput>(
     path: RentmanEndpoint,
     body: TInput,
@@ -184,7 +208,15 @@ export class RentmanClient {
     });
   }
 
-  /** Update an existing item (PUT). Returns the updated item. */
+  /**
+   * Update an existing item with `PUT`.
+   *
+   * @param path - Rentman API collection path (prefer `ENDPOINTS.<key>` constants).
+   * @param id - Numeric resource ID.
+   * @param body - Request payload to send as JSON.
+   * @returns An item response wrapper containing the updated resource in `data`.
+   * @throws {RentmanApiError} When the API returns a non-2xx response.
+   */
   update<TInput, TOutput = TInput>(
     path: RentmanEndpoint,
     id: number,
@@ -196,7 +228,14 @@ export class RentmanClient {
     });
   }
 
-  /** Delete an item (DELETE). Returns `undefined` on success. */
+  /**
+   * Delete an item with `DELETE`.
+   *
+   * @param path - Rentman API collection path (prefer `ENDPOINTS.<key>` constants).
+   * @param id - Numeric resource ID.
+   * @returns `undefined` when the API confirms deletion (`204 No Content`).
+   * @throws {RentmanApiError} When the API returns a non-2xx response.
+   */
   delete(path: RentmanEndpoint, id: number): Promise<void> {
     return this.request<void>(`${path}/${id}`, { method: 'DELETE' });
   }
@@ -204,6 +243,10 @@ export class RentmanClient {
 
 /**
  * Create a pre-configured `RentmanClient` instance.
+ *
+ * @param opts - Client options with JWT token (or token factory), optional base URL, and optional custom `fetch`.
+ * @returns A reusable `RentmanClient` configured for the Rentman REST API.
+ * @throws {TypeError} May propagate runtime fetch errors from the environment when requests are made.
  *
  * @example
  * const rentman = createRentmanClient({ token: process.env.RENTMAN_TOKEN });

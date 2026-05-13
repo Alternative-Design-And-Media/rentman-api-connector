@@ -1,5 +1,5 @@
 /**
- * @module @alternative-design/rentman-api-connector
+ * @module @alternative-design-and-media/rentman-api-connector
  *
  * Type-safe Rentman REST API connector.
  * Synced to Rentman OAS v1.7.0 (deployment 2025-11-13).
@@ -7,7 +7,7 @@
  * ## Quick start
  *
  * ```ts
- * import { createRentmanClient, type RentmanEquipmentItem } from '@alternative-design/rentman-api-connector';
+ * import { createRentmanClient, type RentmanEquipmentItem } from '@alternative-design-and-media/rentman-api-connector';
  *
  * const rentman = createRentmanClient({ token: process.env.RENTMAN_TOKEN });
  *
@@ -23,7 +23,7 @@
  * const allEquipment = await rentman.listAll<RentmanEquipmentItem>('/equipment');
  *
  * // Type-safe relational filter + null-check
- * import { rel, notNull } from '@alternative-design/rentman-api-connector';
+ * import { rel, notNull } from '@alternative-design-and-media/rentman-api-connector';
  * const res = await rentman.list<RentmanContact>('/contacts', {
  *   filters: { country: 'gb' },
  *   relFilters: [rel('distance', 'lte', 300)],
