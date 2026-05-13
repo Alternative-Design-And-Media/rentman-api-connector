@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { buildRentmanQuery, rel, notNull, isNull } from '../query.js';
 
 describe('buildRentmanQuery', () => {
@@ -57,5 +57,56 @@ describe('buildRentmanQuery', () => {
   it('skips relFilters/nullFilters params when arrays are empty', () => {
     const p = buildRentmanQuery({ relFilters: [], nullFilters: [] });
     expect(p.toString()).toBe('');
+  });
+
+  it('warns when multiple sort fields are used with pagination', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    buildRentmanQuery({
+      sort: ['+name', '-created'],
+      limit: 100,
+    });
+
+    expect(warn).toHaveBeenCalledOnce();
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining('Received: sort=[+name, -created]'),
+    );
+    warn.mockRestore();
+  });
+
+  it('suppresses pagination sort warning when suppressWarnings is true', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    buildRentmanQuery({
+      sort: ['+name', '-created'],
+      offset: 100,
+      suppressWarnings: true,
+    });
+
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
+  it('does not warn for a single sort field with pagination', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    buildRentmanQuery({
+      sort: ['+name'],
+      limit: 100,
+    });
+
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
+  it('does not warn for multiple sort fields without pagination', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    buildRentmanQuery({
+      sort: ['+name', '-created'],
+    });
+
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
   });
 });

@@ -47,6 +47,8 @@ export interface RentmanQueryOptions {
   limit?: number;
   /** Items to skip for pagination. */
   offset?: number;
+  /** Disable non-fatal runtime warnings for known Rentman API caveats. */
+  suppressWarnings?: boolean;
 }
 
 /**
@@ -62,6 +64,8 @@ export interface RentmanQueryOptions {
  *
  * Caveats:
  * - With pagination (`limit`/`offset`), Rentman applies only the first sort field.
+ *   This helper emits a warning when multiple sort fields are provided, unless
+ *   `suppressWarnings` is set to `true`.
  * - Generated fields cannot be used as filter or sort keys when paginating.
  *
  * @param opts - Query options to serialize into Rentman-compatible URL parameters.
@@ -81,6 +85,19 @@ export interface RentmanQueryOptions {
  */
 export function buildRentmanQuery(opts: RentmanQueryOptions): URLSearchParams {
   const p = new URLSearchParams();
+
+  if (
+    !opts.suppressWarnings &&
+    Array.isArray(opts.sort) &&
+    opts.sort.length > 1 &&
+    (opts.limit !== undefined || opts.offset !== undefined)
+  ) {
+    console.warn(
+      '[rentman-api-connector] Only the first sort field is applied by the Rentman API '
+      + 'when limit/offset pagination is active. '
+      + `Received: sort=[${opts.sort.join(', ')}]`,
+    );
+  }
 
   if (opts.fields) {
     const f = Array.isArray(opts.fields) ? opts.fields.join(',') : opts.fields;
