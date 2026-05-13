@@ -12,12 +12,14 @@ permissions:
 jobs:
   check-oas:
     runs-on: ubuntu-latest
+    env:
+      RENTMAN_OAS_URL: ${{ vars.RENTMAN_OAS_URL || 'https://api.rentman.net/oas.json' }}
     steps:
       - uses: actions/checkout@v4
 
       - name: Fetch latest Rentman OAS
         run: |
-          curl -fsSL https://api.rentman.net/oas.json -o oas-latest.json
+          curl -fsSL "$RENTMAN_OAS_URL" -o oas-latest.json
 
       - name: Compare versions
         id: compare

@@ -40,6 +40,13 @@ npm run typecheck # type-check without building
 npm run build     # build to dist/
 ```
 
+## OAS sync workflow
+
+The GitHub Actions OAS sync check reads the descriptor URL from the `RENTMAN_OAS_URL` environment variable.
+
+- Default: `https://api.rentman.net/oas.json`
+- Override it by setting the repository or organization Actions variable named `RENTMAN_OAS_URL`
+
 ## Coding standards
 
 - TypeScript strict mode (already enabled in `tsconfig.json`).
