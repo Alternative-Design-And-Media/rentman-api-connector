@@ -22,6 +22,11 @@ describe('buildRentmanQuery', () => {
     expect(p.get('sort')).toBe('+name,-created');
   });
 
+  it('accepts sort as a string', () => {
+    const p = buildRentmanQuery({ sort: '-created' });
+    expect(p.get('sort')).toBe('-created');
+  });
+
   it('maps equality filters to individual keys', () => {
     const p = buildRentmanQuery({ filters: { country: 'gb', status: 'active' } });
     expect(p.get('country')).toBe('gb');
@@ -47,5 +52,10 @@ describe('buildRentmanQuery', () => {
     const p = buildRentmanQuery({ limit: 50, offset: 100 });
     expect(p.get('limit')).toBe('50');
     expect(p.get('offset')).toBe('100');
+  });
+
+  it('skips relFilters/nullFilters params when arrays are empty', () => {
+    const p = buildRentmanQuery({ relFilters: [], nullFilters: [] });
+    expect(p.toString()).toBe('');
   });
 });

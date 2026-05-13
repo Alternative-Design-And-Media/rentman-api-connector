@@ -59,7 +59,12 @@ export class RentmanClient {
   private readonly fetchImpl: typeof globalThis.fetch;
 
   constructor(private readonly opts: RentmanClientOptions) {
-    this.baseUrl = opts.baseUrl ?? RENTMAN_BASE_URL;
+    const resolvedBaseUrl = opts.baseUrl ?? RENTMAN_BASE_URL;
+    let normalizedBaseUrl = resolvedBaseUrl;
+    while (normalizedBaseUrl.length > 1 && normalizedBaseUrl.endsWith('/')) {
+      normalizedBaseUrl = normalizedBaseUrl.slice(0, -1);
+    }
+    this.baseUrl = normalizedBaseUrl;
     this.fetchImpl = opts.fetch ?? globalThis.fetch.bind(globalThis);
   }
 
