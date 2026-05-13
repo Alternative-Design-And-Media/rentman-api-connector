@@ -152,4 +152,148 @@ describe('RentmanClient', () => {
     // Exactly 2 requests — no extra page fetched after itemCount is reached
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
+
+  it('gets a single item by id from /path/id', async () => {
+    const mockResponse = { data: mockEquipment, itemCount: 1, limit: 300, offset: 0 };
+    const fetchMock = makeFetch(200, mockResponse);
+    const client = createRentmanClient({ token: 't', fetch: fetchMock as unknown as typeof fetch });
+
+    const res = await client.get<typeof mockEquipment>('/equipment', 1);
+
+    expect(res.data.id).toBe(1);
+    const [url] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe('https://api.rentman.net/equipment/1');
+  });
+
+  it('creates an item with POST and JSON body', async () => {
+    const mockResponse = { data: mockEquipment, itemCount: 1, limit: 300, offset: 0 };
+    const fetchMock = makeFetch(200, mockResponse);
+    const client = createRentmanClient({ token: 't', fetch: fetchMock as unknown as typeof fetch });
+    const body = { name: 'Cable reel' };
+
+    await client.create('/equipment', body);
+
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe('https://api.rentman.net/equipment');
+    expect(init.method).toBe('POST');
+    expect(init.body).toBe(JSON.stringify(body));
+    expect((init.headers as Record<string, string>)['Content-Type']).toBe('application/json');
+  });
+
+  it('updates an item with PUT to /path/id and JSON body', async () => {
+    const mockResponse = { data: mockEquipment, itemCount: 1, limit: 300, offset: 0 };
+    const fetchMock = makeFetch(200, mockResponse);
+    const client = createRentmanClient({ token: 't', fetch: fetchMock as unknown as typeof fetch });
+    const body = { name: 'Cable reel v2' };
+
+    await client.update('/equipment', 1, body);
+
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe('https://api.rentman.net/equipment/1');
+    expect(init.method).toBe('PUT');
+    expect(init.body).toBe(JSON.stringify(body));
+  });
+
+  it('deletes an item with DELETE and returns void', async () => {
+    const fetchMock = makeFetch(204, {});
+    const client = createRentmanClient({ token: 't', fetch: fetchMock as unknown as typeof fetch });
+
+    const res = await client.delete('/equipment', 1);
+
+    expect(res).toBeUndefined();
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe('https://api.rentman.net/equipment/1');
+    expect(init.method).toBe('DELETE');
+  });
+
+  it('listAll returns [] for 0 items and performs one request', async () => {
+    const fetchMock = makeFetch(200, { data: [], itemCount: 0, limit: 300, offset: 0 });
+    const client = createRentmanClient({ token: 't', fetch: fetchMock as unknown as typeof fetch });
+
+    const all = await client.listAll('/equipment');
+
+    expect(all).toEqual([]);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('listAll does not fetch an extra page when itemCount is divisible by pageSize', async () => {
+    const page1: RentmanCollectionResponse<typeof mockEquipment> = {
+      data: [mockEquipment, { ...mockEquipment, id: 2, name: 'Truss' }],
+      itemCount: 4,
+      limit: 2,
+      offset: 0,
+    };
+    const page2: RentmanCollectionResponse<typeof mockEquipment> = {
+      data: [{ ...mockEquipment, id: 3, name: 'Case' }, { ...mockEquipment, id: 4, name: 'Stand' }],
+      itemCount: 4,
+      limit: 2,
+      offset: 2,
+    };
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve(page1) })
+      .mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve(page2) });
+    const client = createRentmanClient({ token: 't', fetch: fetchMock as unknown as typeof fetch });
+
+    const all = await client.listAll('/equipment', {}, 2);
+
+    expect(all).toHaveLength(4);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('listAll uses custom pageSize', async () => {
+    const page: RentmanCollectionResponse<typeof mockEquipment> = {
+      data: [mockEquipment],
+      itemCount: 1,
+      limit: 2,
+      offset: 0,
+    };
+    const fetchMock = makeFetch(200, page);
+    const client = createRentmanClient({ token: 't', fetch: fetchMock as unknown as typeof fetch });
+
+    await client.listAll('/equipment', {}, 2);
+
+    const [url] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const parsed = new URL(url);
+    expect(parsed.searchParams.get('limit')).toBe('2');
+    expect(parsed.searchParams.get('offset')).toBe('0');
+  });
+
+  it('prepends custom baseUrl to requests and normalizes trailing slash', async () => {
+    const fetchMock = makeFetch(200, { data: [], itemCount: 0, limit: 300, offset: 0 });
+    const client = createRentmanClient({
+      token: 't',
+      baseUrl: 'https://example.test/',
+      fetch: fetchMock as unknown as typeof fetch,
+    });
+
+    await client.list('/equipment');
+
+    const [url] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe('https://example.test/equipment');
+  });
+
+  it('list serializes query options into URL params via buildRentmanQuery', async () => {
+    const fetchMock = makeFetch(200, { data: [], itemCount: 0, limit: 50, offset: 0 });
+    const client = createRentmanClient({ token: 't', fetch: fetchMock as unknown as typeof fetch });
+
+    await client.list('/equipment', {
+      fields: ['id', 'name'],
+      sort: ['+name', '-created'],
+      filters: { country: 'gb' },
+      relFilters: [{ field: 'distance', op: 'lte', value: 300 }],
+      nullFilters: [{ field: 'folder', isNull: false }],
+      limit: 50,
+      offset: 0,
+    });
+
+    const [url] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const parsed = new URL(url);
+    expect(parsed.searchParams.get('fields')).toBe('id,name');
+    expect(parsed.searchParams.get('sort')).toBe('+name,-created');
+    expect(parsed.searchParams.get('country')).toBe('gb');
+    expect(parsed.searchParams.get('distance[lte]')).toBe('300');
+    expect(parsed.searchParams.get('folder[isnull]')).toBe('false');
+    expect(parsed.searchParams.get('limit')).toBe('50');
+    expect(parsed.searchParams.get('offset')).toBe('0');
+  });
 });

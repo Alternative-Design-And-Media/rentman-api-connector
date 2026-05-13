@@ -59,7 +59,7 @@ export class RentmanClient {
   private readonly fetchImpl: typeof globalThis.fetch;
 
   constructor(private readonly opts: RentmanClientOptions) {
-    this.baseUrl = opts.baseUrl ?? RENTMAN_BASE_URL;
+    this.baseUrl = (opts.baseUrl ?? RENTMAN_BASE_URL).replace(/\/+$/, '');
     this.fetchImpl = opts.fetch ?? globalThis.fetch.bind(globalThis);
   }
 
