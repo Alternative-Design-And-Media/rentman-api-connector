@@ -52,6 +52,21 @@ export interface RentmanQueryOptions {
 /**
  * Build a `URLSearchParams` object from `RentmanQueryOptions`.
  *
+ * Serialization rules:
+ * - `fields`: `string[]` becomes comma-separated (`fields=id,name`), `string` is used as-is.
+ * - `sort`: `string[]` becomes comma-separated (`sort=+name,-created`), `string` is used as-is.
+ * - `filters`: each key/value is emitted as `key=value`.
+ * - `relFilters`: each filter is emitted as `field[op]=value` where `op` is `lt|lte|gt|gte|neq`.
+ * - `nullFilters`: each filter is emitted as `field[isnull]=true|false`.
+ * - `limit` / `offset`: emitted as numeric query params when defined.
+ *
+ * Caveats:
+ * - With pagination (`limit`/`offset`), Rentman applies only the first sort field.
+ * - Generated fields cannot be used as filter or sort keys when paginating.
+ *
+ * @param opts - Query options to serialize into Rentman-compatible URL parameters.
+ * @returns A `URLSearchParams` instance ready to append to collection/list requests.
+ *
  * @example
  * const params = buildRentmanQuery({
  *   fields: ['id', 'name', 'price'],
@@ -105,12 +120,29 @@ export function buildRentmanQuery(opts: RentmanQueryOptions): URLSearchParams {
 // Convenience helpers
 // ---------------------------------------------------------------------------
 
-/** Create a relational filter object (less typing at call site). */
+/**
+ * Create a relational filter object for operators `lt`, `lte`, `gt`, `gte`, or `neq`.
+ *
+ * @param field - API field name to compare.
+ * @param op - Relational operator to apply.
+ * @param value - Comparison value serialized as string in the final query.
+ * @returns A `RentmanRelFilter` value for use in `relFilters`.
+ */
 export const rel = (field: string, op: RentmanRelOp, value: string | number): RentmanRelFilter =>
   ({ field, op, value });
 
-/** Shorthand for `field[isnull]=false` filter. */
+/**
+ * Build a null-check filter matching records where the field is not null.
+ *
+ * @param field - API field name to check.
+ * @returns A `RentmanNullFilter` value that serializes to `field[isnull]=false`.
+ */
 export const notNull = (field: string): RentmanNullFilter => ({ field, isNull: false });
 
-/** Shorthand for `field[isnull]=true` filter. */
+/**
+ * Build a null-check filter matching records where the field is null.
+ *
+ * @param field - API field name to check.
+ * @returns A `RentmanNullFilter` value that serializes to `field[isnull]=true`.
+ */
 export const isNull = (field: string): RentmanNullFilter => ({ field, isNull: true });

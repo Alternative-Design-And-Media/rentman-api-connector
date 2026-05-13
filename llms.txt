@@ -1,0 +1,168 @@
+# @alternative-design-and-media/rentman-api-connector
+
+Type-safe Rentman REST API connector for Node.js and edge runtimes (Cloudflare Workers), synced to OAS v1.7.0.
+
+## When to use
+
+Use this package when you need typed access to Rentman REST resources with:
+- endpoint constants (`ENDPOINTS`)
+- typed responses (`RentmanCollectionResponse<T>`, `RentmanItemResponse<T>`)
+- query helpers for fields/sort/filters
+- auto-pagination (`listAll`)
+
+## Runtime support
+
+- Node.js 18+
+- Edge runtimes with native `fetch` (e.g. Cloudflare Workers)
+
+## Install
+
+```bash
+npm install @alternative-design-and-media/rentman-api-connector
+```
+
+## Core exports
+
+- `createRentmanClient(options)`
+- `RentmanClient`
+- `RentmanApiError`
+- `ENDPOINTS`
+- query helpers: `buildRentmanQuery`, `rel`, `notNull`, `isNull`
+- resource types from `src/types.ts` (e.g. `RentmanEquipmentItem`, `RentmanProject`, `RentmanContact`)
+
+## `createRentmanClient()`
+
+```ts
+import { createRentmanClient } from '@alternative-design-and-media/rentman-api-connector';
+
+const rentman = createRentmanClient({
+  token: process.env.RENTMAN_TOKEN!,
+  // optional: baseUrl, fetch
+});
+```
+
+`token` supports either:
+- a static string JWT
+- a function `() => string | Promise<string>` for token rotation
+
+## Client methods
+
+- `list<T>(path, query?)` → `Promise<RentmanCollectionResponse<T>>`
+- `listAll<T>(path, query?, pageSize = 300)` → `Promise<T[]>` (auto-paginates)
+- `get<T>(path, id, query?)` → `Promise<RentmanItemResponse<T>>`
+- `create<TIn, TOut>(path, body)` → `Promise<RentmanItemResponse<TOut>>`
+- `update<TIn, TOut>(path, id, body)` → `Promise<RentmanItemResponse<TOut>>`
+- `delete(path, id)` → `Promise<void>`
+
+All methods throw `RentmanApiError` for non-2xx API responses.
+
+## Query helpers
+
+```ts
+import { buildRentmanQuery, rel, notNull, isNull } from '@alternative-design-and-media/rentman-api-connector';
+
+const params = buildRentmanQuery({
+  fields: ['id', 'name'],
+  sort: ['+name'],
+  filters: { country: 'gb' },
+  relFilters: [rel('distance', 'lte', 300)],
+  nullFilters: [notNull('folder'), isNull('archive')],
+  limit: 50,
+  offset: 0,
+});
+```
+
+- `rel(field, op, value)` supports `lt | lte | gt | gte | neq`
+- `notNull(field)` serializes to `field[isnull]=false`
+- `isNull(field)` serializes to `field[isnull]=true`
+
+## Custom field typing pattern
+
+Default type is open (`custom_<number>` keys). For account-specific autocomplete, narrow with `TCustom`:
+
+```ts
+import { type RentmanEquipmentItem } from '@alternative-design-and-media/rentman-api-connector';
+
+interface EquipmentCustom {
+  custom_16?: string;
+  custom_88?: number;
+}
+
+type MyEquipment = RentmanEquipmentItem<EquipmentCustom>;
+```
+
+## Error handling
+
+```ts
+import { RentmanApiError } from '@alternative-design-and-media/rentman-api-connector';
+
+try {
+  await rentman.list(ENDPOINTS.equipment, { limit: 50 });
+} catch (err) {
+  if (err instanceof RentmanApiError) {
+    console.error(err.status, err.body);
+  }
+}
+```
+
+## Endpoint overview (`ENDPOINTS` key -> path -> type)
+
+- `equipment` -> `/equipment` -> `RentmanEquipmentItem`
+- `equipmentSetsContent` -> `/equipmentsetscontent` -> `RentmanEquipmentSetContent`
+- `accessories` -> `/accessories` -> `RentmanAccessory`
+- `stockMovements` -> `/stockmovements` -> `RentmanStockMovement`
+- `stockLocations` -> `/stocklocations` -> `RentmanStockLocation`
+- `serialNumbers` -> `/serialnumbers` -> `RentmanSerialNumber`
+- `repairs` -> `/repairs` -> `RentmanRepair`
+- `contacts` -> `/contacts` -> `RentmanContact`
+- `contactPersons` -> `/contactpersons` -> `RentmanContactPerson`
+- `crew` -> `/crew` -> `RentmanCrewMember`
+- `crewAvailabilities` -> `/crewavailabilities` -> `RentmanCrewAvailability`
+- `crewRates` -> `/crewrates` -> `RentmanCrewRate`
+- `projects` -> `/projects` -> `RentmanProject`
+- `subProjects` -> `/subprojects` -> `RentmanSubProject`
+- `projectEquipment` -> `/projectequipment` -> `RentmanProjectEquipment`
+- `projectEquipmentGroups` -> `/projectequipmentgroups` -> `RentmanProjectEquipmentGroup`
+- `projectFunctions` -> `/projectfunctions` -> `RentmanProjectFunction`
+- `projectFunctionGroups` -> `/projectfunctiongroups` -> `RentmanProjectFunctionGroup`
+- `projectCrew` -> `/projectcrew` -> `RentmanProjectCrew`
+- `projectVehicles` -> `/projectvehicles` -> `RentmanProjectVehicle`
+- `projectRequests` -> `/projectrequests` -> `RentmanProjectRequest`
+- `projectTypes` -> `/projecttypes` -> `RentmanProjectType`
+- `planning` -> `/planning` -> `RentmanPlanning`
+- `invoices` -> `/invoices` -> `RentmanInvoice`
+- `invoiceLines` -> `/invoicelines` -> `RentmanInvoiceLine`
+- `invoiceMoments` -> `/invoicemoments` -> `RentmanInvoiceMoment`
+- `quotes` -> `/quotes` -> `RentmanQuote`
+- `payments` -> `/payments` -> `RentmanPayment`
+- `costs` -> `/costs` -> `RentmanCost`
+- `taxClasses` -> `/taxclasses` -> `RentmanTaxClass`
+- `ledgerCodes` -> `/ledgercodes` -> `RentmanLedgerCode`
+- `rates` -> `/rates` -> `RentmanRate`
+- `factors` -> `/factors` -> `RentmanFactor`
+- `factorGroups` -> `/factorgroups` -> `RentmanFactorGroup`
+- `subrentals` -> `/subrentals` -> `RentmanSubrental`
+- `subrentalEquipment` -> `/subrentalequipment` -> `RentmanSubrentalEquipment`
+- `subrentalEquipmentGroups` -> `/subrentalequipmentgroups` -> `RentmanSubrentalEquipmentGroup`
+- `appointments` -> `/appointments` -> `RentmanAppointment`
+- `appointmentCrew` -> `/appointmentcrew` -> `RentmanAppointmentCrew`
+- `vehicles` -> `/vehicles` -> `RentmanVehicle`
+- `timeRegistrations` -> `/timeregistrations` -> `RentmanTimeRegistration`
+- `timeRegistrationActivities` -> `/timeregistrationactivities` -> `RentmanTimeRegistrationActivity`
+- `leaveMutations` -> `/leavemutations` -> `RentmanLeaveMutation`
+- `leaveRequests` -> `/leaverequests` -> `RentmanLeaveRequest`
+- `leaveTypes` -> `/leavetypes` -> `RentmanLeaveType`
+- `activities` -> `/activities` -> `RentmanCrewActivity`
+- `files` -> `/files` -> `RentmanFile`
+- `fileFolders` -> `/filefolders` -> `RentmanFileFolder`
+- `folders` -> `/folders` -> `RentmanFolder`
+- `functions` -> `/functions` -> `RentmanFunction`
+- `functionGroups` -> `/functiongroups` -> `RentmanFunctionGroup`
+- `statuses` -> `/statuses` -> `RentmanStatus`
+- `contracts` -> `/contracts` -> `RentmanContract`
+- `taglinks` -> `/taglinks` -> `RentmanTaglink`
+- `briefpapier` -> `/briefpapier` -> `RentmanBriefpapier`
+- `numberSeries` -> `/numberseries` -> `RentmanNumberSeries`
+- `templates` -> `/templates` -> `RentmanTemplate`
+
+For fuller signatures, examples, and caveats, see `llms-full.txt` and `README.md`.
