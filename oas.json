@@ -3,8 +3,13 @@
   "openapi": "3.1.1",
   "info": {
     "title": "Rentman API Documentation",
-    "version": "1.7.0",
-    "description": "Rentman4G API is an easy-to-use **RESTful** inspired API.\n\n# Versions\n\nWe only support one version of the API. Integrations are automatically migrated when a new version comes online.\n\nLast deployment is **2025-11-13 10:02**.\n\n# Introduction\n\nThis API enables you to interact with Rentman programmatically. You can use this API to create automatic\nsynchronisations, connect other software applications, or develop any other type of integration. This page documents all\nthe resources available in the Rentman API. The amount of resources is limited for now but more data types will be added\nat a later stage. You can request more data types by getting in touch via\nour <a href=\"https://rentman.io/public-roadmap\">Public Roadmap</a>.\n\nTo further improve the Rentman API we would like to know what kind of integrations you are developing.  \nPlease share us your ideas or already developed connections at support@rentman.io\n\n## Authentication\n\nRentman uses **JWT** for authentication. This token is unique for every Rentman user. The **JWT** can be generated in\nthe **extensions** tab in **configuration** in the Rentman application. Only the last generated token will be a valid\ntoken. When regenerating a token the previous token will not work anymore.\n\n## Headers\n\nEach request to this API expects some request headers to be set.\n\n- `Content-Type` - This should always be set to `application/json`\n- `Authorization` - This header should be of the form `Bearer <token>`, where `token` is the JWT from the rentman\n  account.\n\n## Response Format\n\nEvery successful `GET` response from the Rentman Open API is a JSON object consisting of a `data` key and other\nmetadata. The `data` key contains an array of JSON objects representing the requested items if the request is for a\ncollection. The `data` key contains a JSON object representing the requested item if the request is for one item.\nThe `data` key responses of `POST` and `PUT` contain the created and updated items respectively. Successful `DELETE`\nrequests don't have responses. The keys other than the `data` key are:\n\n- `itemCount` - The amount of items in the response.\n- `limit` - The maximal amount of items that can be returned. This equals the limit parameter if it is set. Otherwise,\n  it is the response data limit.\n- `offset` - The amount of items skipped in the response items. This equals the offset parameter if it is set.\n  Otherwise, it is `0`. All the keys are always given when a response is present.\n\n## Querying\n\nThe Rentman API support several types of querying with query parameters:\n\n- `fields` - The value of the `fields` key is a set of all fields that are requested. For\n  example, `displayname,firstname` will only return the displayname and the firstname of every object. There are some\n  fields that will always be returned such as `id`, `created` and `modified`.\n- `sort` - The value of the `sort` key is a set of fields where the items are sorted on. For example, `+id,-firstname`\n  will return an array of items first sorted on id ascending and then sorted on firstname descending.\n\nIt is also possible to filter on values of fields when requesting a collection of items.\n> Example: To only get the contacts situated in Great Britain, a query can be added with the key `country` and the value\n`gb`.\n\n```\nGET https://api.rentman.net/contacts?country=gb\n```\n\n### Relational operators\n\nThe following relational operators can be used for filtering:\n\n- `lt` - less than (`<`)\n- `gt` - greater than (`>`)\n- `lte` - less than or equal to (`<=`)\n- `gte` - greater than or equal to (`>=`)\n- `neq` - not equal to (`!=`). This can also be used with multiple values, in which case it behaves like 'not in'\n\n> Example: The filter `distance[lte]=300` can be used to only retrieve items with a distance less than or equal to 300.\n\n```\nGET https://api.rentman.net/contacts?distance[lte]=300\n```\n\n### Filtering null values\n\nFiltering on null values is possible by putting `[isnull]` behind a field name, followed by a boolean value, which can\nbe `true`, `false`, `1` or `0`.\n\n> Example: The filter `folder[isnull]=false` can be used to only retrieve items where the value of `folder` is not null.\n\n```\nGET https://api.rentman.net/contacts?folder[isnull]=false\n```\n\n### Pagination\n\nPagination works with the `limit` and `offset` parameters.\n\n- `limit` - The value of the `limit` key is the amount of items returned. A limit of `2` will only return the first two\n  items.\n- `offset` - The value of the `offset` key is the amount of items skipped. An offset of `3` will not show the first\n  three items. Commonly used in combination with `limit` to paginate.\n\n> Example: To request the first 30 items of a collection in sets of 10 items three requests have to be made. All requests should have the parameter\n`limit=10`. The first request has in addition the parameter\n`offset=0` (this is the default, so it can be omitted as well), the second request has the parameter\n`offset=10` and the third has the parameter `offset=20`.\n\n```\nGET https://api.rentman.net/contacts?limit=10&offset=0\n```\n\n```\nGET https://api.rentman.net/contacts?limit=10&offset=10\n```\n\n```\nGET https://api.rentman.net/contacts?limit=10&offset=20\n```\n\n## Limitations\n\n### Possible sort inconsistencies\n\nEvery request sent to the Rentman API also sends a request to the Rentman backend to retrieve information. All query\nparameters that are given to a Rentman API request are also given the Rentman backend request, except for the sorting\nparameter. Due to limitations, when pagination and sorting is applied at the same time only the first field of the\nsorting parameter can be used before paginating in the Rentman backend. When the Rentman API retrieves the paginated\nitems from the Rentman backend, the items will be sorted and returned. This results in a pagination sorted only on the\nfirst sorting field and can cause some inconsistencies where items that are supposed to be on the page request by the\nsecond or third sorting parameter are on different pages since these sort parameters are not taken into account when\npaginating.\n\nThis issue can only exist when sorting on multiple fields and paginating at the same time.\n\n### Generated fields\n\nSome fields contain a `GENERATED FIELD` tag. All fields with this tag cannot be used for sorting while the `limit`\nand `offset` parameters are not empty. Generated fields are fields that the Rentman backend computes and are not stored\nin the database.\n\nThis is a limitation due to the way these parameters are computed in the API. Every request sent to the Rentman API also\nsends a request to the Rentman backend to retrieve information. The `limit` and `offset` parameters are added to this\nrequest to the Rentman backend. If there is a sorting parameter given to the Rentman API request, the first field of the\nsorting parameter is also sent with the Rentman backend request. The Rentman backend then sorts and returns a subset of\nthe items as defined by the query parameters of the Rentman API request. Due to limitations of the Rentman backend, the\nsort value that is sent to the Rentman backend cannot be one of the generated fields.\n\nThe fields containing `GENERATED FIELD` are also not queryable for filtering.\n\n## Omitted fields in list requests\n\nTo keep requests at a low cost, some fields of items are omitted when in a collection request. To get the values of\nthese fields, the specific item has to be requested. The fields that are returned are specified in the documentation for\nthe specific requests.\n\n## Custom fields\n\nCustom fields can be accessed via the `custom` key in `data`. These custom fields will have generic keys with the\nformat `custom_<number>`. Custom fields are not queryable.\n\n## Custom child collections\n\nThe Rentman API borrows the link structure from Rentman backend in most cases. However, some useful links (\ne.g. `projects` linking to `plannedequipment`) do not exist in the Rentman backend. For the Rentman API these links are\ncustom implemented and can be recognized by the `Get <linked_type> custom linked collection` title.\ne.g. `Get plannedequipment custom linked collection` for `projects`. It will never be possible to create items through\nthese linked collections since these links don't actually exist in the Rentman backend. It may also be possible that\nrelevant parent fields are missing in these custom children.\n\n## updateHash\n\nEvery item that is requested also contains a field `updateHash`. This is a field that is generated by the Rentman API\nand is a hash value computed with the `id` and `modified` field of the item. This hash can therefore be used to\nrecognize when an item is updated, since this field is unique per item and per update of that item.\n\n## Response data limitation\n\nDue to data traffic limitations responses to collection, requests are limited to 300 items per response. If a request is\ndone for more than 300 items, only the first 300 items are returned. If you want to request more than 300 items it is\nnecessary to use the `limit` and `offset` parameters to paginate your requests.\n\n## Rate limitation\n\nThe rate at which requests can be sent to the Rentman API is limited to 50.000 requests per day, and 10 requests per second. A maximum of 20 requests can be sent at once.\n"
+    "version": "1.11.0",
+    "description": "Rentman API is an easy-to-use **RESTful** inspired API.\n\n# Versions\n\nWe only support one version of the API. Integrations are automatically migrated when a new version comes online.\n\nLast deployment is **2026-05-04 08:51**.\n\n# Introduction\n\nThis API enables you to interact with Rentman programmatically. You can use this API to create automatic\nsynchronisations, connect other software applications, or develop any other type of integration. This page documents all\nthe resources available in the Rentman API. The amount of resources is limited for now but more data types will be added\nat a later stage. You can request more data types by getting in touch via\nour <a href=\"https://rentman.io/public-roadmap\">Public Roadmap</a>.\n\nTo further improve the Rentman API we would like to know what kind of integrations you are developing.  \nPlease share us your ideas or already developed connections at support@rentman.io\n\n## Authentication\n\nRentman uses **JWT** for authentication. This token is unique for every Rentman user. The **JWT** can be generated in\nthe **integrations** tab in **configuration** in the Rentman application. Only the last generated token will be a valid\ntoken. When regenerating a token the previous token will not work anymore.\n\n## Headers\n\nEach request to this API expects some request headers to be set.\n\n- `Content-Type` - This should always be set to `application/json`\n- `Authorization` - This header should be of the form `Bearer <token>`, where `token` is the JWT from the rentman\n  account.\n\n## Response Format\n\nEvery successful `GET` response from the Rentman Open API is a JSON object consisting of a `data` key and other\nmetadata. The `data` key contains an array of JSON objects representing the requested items if the request is for a\ncollection. The `data` key contains a JSON object representing the requested item if the request is for one item.\nThe `data` key responses of `POST` and `PUT` contain the created and updated items respectively. Successful `DELETE`\nrequests don't have responses. The keys other than the `data` key are:\n\n- `itemCount` - The amount of items in the response.\n- `limit` - The maximal amount of items that can be returned. This equals the limit parameter if it is set. Otherwise,\n  it is the response data limit.\n- `offset` - The amount of items skipped in the response items. This equals the offset parameter if it is set.\n  Otherwise, it is `0`. All the keys are always given when a response is present.\n\n## Querying\n\nThe Rentman API support several types of querying with query parameters:\n\n- `fields` - The value of the `fields` key is a set of all fields that are requested. For\n  example, `displayname,firstname` will only return the displayname and the firstname of every object. There are some\n  fields that will always be returned such as `id`, `created` and `modified`.\n- `sort` - The value of the `sort` key is a set of fields where the items are sorted on. For example, `+id,-firstname`\n  will return an array of items first sorted on id ascending and then sorted on firstname descending.\n\nIt is also possible to filter on values of fields when requesting a collection of items.\n> Example: To only get the contacts situated in Great Britain, a query can be added with the key `country` and the value\n`gb`.\n\n```\nGET https://api.rentman.net/contacts?country=gb\n```\n\n### Relational operators\n\nThe following relational operators can be used for filtering:\n\n- `lt` - less than (`<`)\n- `gt` - greater than (`>`)\n- `lte` - less than or equal to (`<=`)\n- `gte` - greater than or equal to (`>=`)\n- `neq` - not equal to (`!=`). This can also be used with multiple values, in which case it behaves like 'not in'\n\n> Example: The filter `distance[lte]=300` can be used to only retrieve items with a distance less than or equal to 300.\n\n```\nGET https://api.rentman.net/contacts?distance[lte]=300\n```\n\n### Filtering null values\n\nFiltering on null values is possible by putting `[isnull]` behind a field name, followed by a boolean value, which can\nbe `true`, `false`, `1` or `0`.\n\n> Example: The filter `folder[isnull]=false` can be used to only retrieve items where the value of `folder` is not null.\n\n```\nGET https://api.rentman.net/contacts?folder[isnull]=false\n```\n\n### Pagination\n\nCollection responses include a `next_page_url` field that points to the next page of results. To paginate through a\ncollection, simply follow the `next_page_url` until it is `null`.\n\n- `limit` - The number of items per page on the first request (default: 300, max: 1500). The limit is carried over\n  automatically in subsequent pages via the cursor.\n\n> Example: Paginate through contacts in pages of 10 items.\n\n```\nGET https://api.rentman.net/contacts?limit=10\n```\n\nThe response includes:\n```json\n{\n  \"data\": [...],\n  \"itemCount\": 10,\n  \"limit\": 10,\n  \"offset\": 0,\n  \"next_page_url\": \"https://api.rentman.net/contacts?cursor=eyJhZnRlciI6NDU2LCJvcmRlciI6ImRlc2MiLCJsaW1pdCI6MTB9\"\n}\n```\n\nTo get the next page, follow the `next_page_url`:\n\n```\nGET https://api.rentman.net/contacts?cursor=eyJhZnRlciI6NDU2LCJvcmRlciI6ImRlc2MiLCJsaW1pdCI6MTB9\n```\n\nWhen the last page is reached, `next_page_url` will be `null`.\n\nPagination can be combined with filters — the `next_page_url` will include all original filter parameters:\n\n```\nGET https://api.rentman.net/contacts?limit=10&country=gb\n```\n\n```\nhttps://api.rentman.net/contacts?country=gb&cursor=eyJhZnRlciI6NDU2LCJvcmRlciI6ImRlc2MiLCJsaW1pdCI6MTB9\n```\n\n> Note: The `cursor` parameter in the URL is an opaque token. Do not construct or modify it manually — always use\n> the `next_page_url` as-is.\n\n#### Offset-based pagination\n\nIf you need to sort by a column other than `id`, you can use offset-based pagination with the `offset` parameter.\nWhen `offset` is used, `next_page_url` is not available and you must calculate page offsets yourself.\n\n- `offset` - The number of items to skip. Commonly used in combination with `limit`.\n\n> Example: To request the first 30 items sorted by firstname in sets of 10:\n\n```\nGET https://api.rentman.net/contacts?limit=10&sort=+firstname&offset=0\n```\n\n```\nGET https://api.rentman.net/contacts?limit=10&sort=+firstname&offset=10\n```\n\n```\nGET https://api.rentman.net/contacts?limit=10&sort=+firstname&offset=20\n```\n\n## Limitations\n\n### Possible sort inconsistencies\n\nEvery request sent to the Rentman API also sends a request to the Rentman backend to retrieve information. All query\nparameters that are given to a Rentman API request are also given the Rentman backend request, except for the sorting\nparameter. Due to limitations, when pagination and sorting is applied at the same time only the first field of the\nsorting parameter can be used before paginating in the Rentman backend. When the Rentman API retrieves the paginated\nitems from the Rentman backend, the items will be sorted and returned. This results in a pagination sorted only on the\nfirst sorting field and can cause some inconsistencies where items that are supposed to be on the page request by the\nsecond or third sorting parameter are on different pages since these sort parameters are not taken into account when\npaginating.\n\nThis issue can only exist when sorting on multiple fields and paginating at the same time.\n\n### Generated fields\n\nSome fields contain a `GENERATED FIELD` tag. All fields with this tag cannot be used for sorting while the `limit`\nand `offset` parameters are not empty. Generated fields are fields that the Rentman backend computes and are not stored\nin the database.\n\nThis is a limitation due to the way these parameters are computed in the API. Every request sent to the Rentman API also\nsends a request to the Rentman backend to retrieve information. The `limit` and `offset` parameters are added to this\nrequest to the Rentman backend. If there is a sorting parameter given to the Rentman API request, the first field of the\nsorting parameter is also sent with the Rentman backend request. The Rentman backend then sorts and returns a subset of\nthe items as defined by the query parameters of the Rentman API request. Due to limitations of the Rentman backend, the\nsort value that is sent to the Rentman backend cannot be one of the generated fields.\n\nThe fields containing `GENERATED FIELD` are also not queryable for filtering.\n\n## Omitted fields in list requests\n\nTo keep requests at a low cost, some fields of items are omitted when in a collection request when not specifying fields. \nTo get the values of these fields, request them using the `?fields` parameter.\nThe fields that are returned are specified in the documentation for the specific requests.\n\n## Custom fields\n\nCustom fields can be accessed via the `custom` key in `data`. These custom fields will have generic keys with the\nformat `custom_<number>`. Custom fields are not queryable.\n\n## Custom child collections\n\nThe Rentman API borrows the link structure from Rentman backend in most cases. However, some useful links (\ne.g. `projects` linking to `plannedequipment`) do not exist in the Rentman backend. For the Rentman API these links are\ncustom implemented and can be recognized by the `Get <linked_type> custom linked collection` title.\ne.g. `Get plannedequipment custom linked collection` for `projects`. It will never be possible to create items through\nthese linked collections since these links don't actually exist in the Rentman backend. It may also be possible that\nrelevant parent fields are missing in these custom children.\n\n## updateHash\n\nEvery item that is requested also contains a field `updateHash`. This is a field that is generated by the Rentman API\nand is a hash value computed with the `id` and `modified` field of the item. This hash can therefore be used to\nrecognize when an item is updated, since this field is unique per item and per update of that item.\n\n## Response data limitation\n\nResponses to collection requests default to 300 items when no `limit` parameter is specified. You can request up to 1500\nitems per request by setting the `limit` parameter. Additionally, there is a maximum response size of 5 MB. If you need\nmore than 1500 items, use pagination to iterate through the results. If the response exceeds 5 MB you will receive an\nerror. Use the `limit` parameter to request fewer items, or use the `fields` parameter to filter unnecessary fields\nfrom the response.\n\n## Rate limitation\n\nThe rate at which requests can be sent to the Rentman API is limited to 50.000 requests per day, and 10 requests per second. A maximum of 20 requests can be sent at once.\n",
+    "x-logo": {
+      "url": "https://cdn.prod.website-files.com/680b7c8bdefaec9c53251168/6877620893893ba9994b2a11_rentman-logo.svg",
+      "altText": "Rentman",
+      "href": "https://rentman.io"
+    }
   },
   "servers": [
     {
@@ -19,6 +24,10 @@
     {
       "name": "actualcontent",
       "description": "Represents the actual content of serialized physical combinations"
+    },
+    {
+      "name": "alternatives",
+      "description": "Represents alternatives of an equipment item. Each equipment can have multiple alternatives. Alternatives are equipment items themselves."
     },
     {
       "name": "appointmentcrew",
@@ -89,8 +98,12 @@
       "description": "Contacts, equipment, crew, vehicles, containers, projecttemplates and default functions are organised into folders"
     },
     {
+      "name": "invitations",
+      "description": "With this endpoint, you can read sent invitations for crew functions."
+    },
+    {
       "name": "invoicelines",
-      "description": "Invoice lines are the individual lines denoting an entry on an invoice."
+      "description": "Invoice lines are generated lines based on tax rates and ledgers of the items within an invoice. They sum up to the total of the invoice. Useful for exporting to accounting systems. It is currently not possible to get the exact same details which are displayed on the invoice pdf, since that depends on the used document template."
     },
     {
       "name": "invoices",
@@ -203,6 +216,10 @@
     {
       "name": "subrentals",
       "description": "With this endpoint you can retrieve subrentals and their information."
+    },
+    {
+      "name": "suppliers",
+      "description": "Represents a supplier relationship between a contact and an equipment item. Each supplier entry links a contact to an equipment item, optionally with a purchase price and additional details."
     },
     {
       "name": "taxclasses",
@@ -332,6 +349,119 @@
             }
           }
         ]
+      },
+      "put": {
+        "summary": "Update Accessory item.",
+        "operationId": "updateAccessory",
+        "description": "",
+        "tags": [
+          "accessories"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful request (note that the 'data' field can be expanded)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/AccessoryResponse"
+                        }
+                      }
+                    },
+                    {
+                      "$ref": "#/components/schemas/ApiResponse"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "500": {
+            "description": "Something went wrong"
+          },
+          "502": {
+            "description": "Bad gateway"
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccessoryRequest"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "Numeric ID of the itemtype",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ]
+      },
+      "delete": {
+        "summary": "Delete Accessory item.",
+        "operationId": "deleteAccessory",
+        "description": "",
+        "tags": [
+          "accessories"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful request (note that the 'data' field can be expanded)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "null"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "500": {
+            "description": "Something went wrong"
+          },
+          "502": {
+            "description": "Bad gateway"
+          }
+        },
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "Numeric ID of the itemtype",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ]
       }
     },
     "/actualcontent": {
@@ -413,6 +543,231 @@
                       "$ref": "#/components/schemas/ApiResponse"
                     }
                   ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "500": {
+            "description": "Something went wrong"
+          },
+          "502": {
+            "description": "Bad gateway"
+          }
+        },
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "Numeric ID of the itemtype",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ]
+      }
+    },
+    "/alternatives": {
+      "get": {
+        "summary": "Get Alternative collection.",
+        "operationId": "getAlternativeCollection",
+        "description": "Represents alternatives of an equipment item. Each equipment can have multiple alternatives. Alternatives are equipment items themselves.",
+        "tags": [
+          "alternatives"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful request (note that the 'data' field can be expanded)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/AlternativeResponse"
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "$ref": "#/components/schemas/ApiResponse"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "500": {
+            "description": "Something went wrong"
+          },
+          "502": {
+            "description": "Bad gateway"
+          }
+        }
+      }
+    },
+    "/alternatives/{id}": {
+      "get": {
+        "summary": "Get Alternative item.",
+        "operationId": "getAlternativeItem",
+        "description": "",
+        "tags": [
+          "alternatives"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful request (note that the 'data' field can be expanded)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/AlternativeResponse"
+                        }
+                      }
+                    },
+                    {
+                      "$ref": "#/components/schemas/ApiResponse"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "500": {
+            "description": "Something went wrong"
+          },
+          "502": {
+            "description": "Bad gateway"
+          }
+        },
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "Numeric ID of the itemtype",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ]
+      },
+      "put": {
+        "summary": "Update Alternative item.",
+        "operationId": "updateAlternative",
+        "description": "",
+        "tags": [
+          "alternatives"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful request (note that the 'data' field can be expanded)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/AlternativeResponse"
+                        }
+                      }
+                    },
+                    {
+                      "$ref": "#/components/schemas/ApiResponse"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "500": {
+            "description": "Something went wrong"
+          },
+          "502": {
+            "description": "Bad gateway"
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AlternativeRequest"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "Numeric ID of the itemtype",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ]
+      },
+      "delete": {
+        "summary": "Delete Alternative item.",
+        "operationId": "deleteAlternative",
+        "description": "",
+        "tags": [
+          "alternatives"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful request (note that the 'data' field can be expanded)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "null"
                 }
               }
             }
@@ -2149,7 +2504,7 @@
       "get": {
         "summary": "Get InvoiceLine collection.",
         "operationId": "getContractInvoiceLineCollection",
-        "description": "Invoice lines are the individual lines denoting an entry on an invoice.",
+        "description": "Invoice lines are generated lines based on tax rates and ledgers of the items within an invoice. They sum up to the total of the invoice. Useful for exporting to accounting systems. It is currently not possible to get the exact same details which are displayed on the invoice pdf, since that depends on the used document template.",
         "tags": [
           "contracts"
         ],
@@ -2927,6 +3282,69 @@
         ]
       }
     },
+    "/crew/{id}/invitations": {
+      "get": {
+        "summary": "Get Invitations collection.",
+        "operationId": "getCrewInvitationsCollection",
+        "description": "With this endpoint, you can read sent invitations for crew functions.",
+        "tags": [
+          "crew"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful request (note that the 'data' field can be expanded)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/InvitationsResponse"
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "$ref": "#/components/schemas/ApiResponse"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "500": {
+            "description": "Something went wrong"
+          },
+          "502": {
+            "description": "Bad gateway"
+          }
+        },
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "Numeric ID of the itemtype",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ]
+      }
+    },
     "/crewavailability": {
       "get": {
         "summary": "Get CrewAvailability collection.",
@@ -3314,6 +3732,62 @@
             "description": "Bad gateway"
           }
         }
+      },
+      "post": {
+        "summary": "Create Equipment item.",
+        "operationId": "createEquipment",
+        "description": "",
+        "tags": [
+          "equipment"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful request (note that the 'data' field can be expanded)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/EquipmentResponse"
+                        }
+                      }
+                    },
+                    {
+                      "$ref": "#/components/schemas/ApiResponse"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "500": {
+            "description": "Something went wrong"
+          },
+          "502": {
+            "description": "Bad gateway"
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EquipmentRequest"
+              }
+            }
+          }
+        }
       }
     },
     "/equipment/{id}": {
@@ -3437,6 +3911,203 @@
             }
           }
         ]
+      },
+      "post": {
+        "summary": "Create Accessory item.",
+        "operationId": "createAccessory",
+        "description": "",
+        "tags": [
+          "equipment"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful request (note that the 'data' field can be expanded)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/AccessoryResponse"
+                        }
+                      }
+                    },
+                    {
+                      "$ref": "#/components/schemas/ApiResponse"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "500": {
+            "description": "Something went wrong"
+          },
+          "502": {
+            "description": "Bad gateway"
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccessoryRequest"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "Numeric ID of the itemtype",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ]
+      }
+    },
+    "/equipment/{id}/alternatives": {
+      "get": {
+        "summary": "Get Alternative collection.",
+        "operationId": "getEquipmentAlternativeCollection",
+        "description": "Represents alternatives of an equipment item. Each equipment can have multiple alternatives. Alternatives are equipment items themselves.",
+        "tags": [
+          "equipment"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful request (note that the 'data' field can be expanded)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/AlternativeResponse"
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "$ref": "#/components/schemas/ApiResponse"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "500": {
+            "description": "Something went wrong"
+          },
+          "502": {
+            "description": "Bad gateway"
+          }
+        },
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "Numeric ID of the itemtype",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ]
+      },
+      "post": {
+        "summary": "Create Alternative item.",
+        "operationId": "createAlternative",
+        "description": "",
+        "tags": [
+          "equipment"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful request (note that the 'data' field can be expanded)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/AlternativeResponse"
+                        }
+                      }
+                    },
+                    {
+                      "$ref": "#/components/schemas/ApiResponse"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "500": {
+            "description": "Something went wrong"
+          },
+          "502": {
+            "description": "Bad gateway"
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AlternativeRequest"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "Numeric ID of the itemtype",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ]
       }
     },
     "/equipment/{id}/equipmentsetscontent": {
@@ -3487,6 +4158,73 @@
           },
           "502": {
             "description": "Bad gateway"
+          }
+        },
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "Numeric ID of the itemtype",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ]
+      },
+      "post": {
+        "summary": "Create EquipmentSetContent item.",
+        "operationId": "createEquipmentSetContent",
+        "description": "",
+        "tags": [
+          "equipment"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful request (note that the 'data' field can be expanded)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/EquipmentSetContentResponse"
+                        }
+                      }
+                    },
+                    {
+                      "$ref": "#/components/schemas/ApiResponse"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "500": {
+            "description": "Something went wrong"
+          },
+          "502": {
+            "description": "Bad gateway"
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EquipmentSetContentRequest"
+              }
+            }
           }
         },
         "parameters": [
@@ -3752,6 +4490,73 @@
             }
           }
         ]
+      },
+      "post": {
+        "summary": "Create SerialNumber item.",
+        "operationId": "createSerialNumber",
+        "description": "",
+        "tags": [
+          "equipment"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful request (note that the 'data' field can be expanded)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SerialNumberResponse"
+                        }
+                      }
+                    },
+                    {
+                      "$ref": "#/components/schemas/ApiResponse"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "500": {
+            "description": "Something went wrong"
+          },
+          "502": {
+            "description": "Bad gateway"
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SerialNumberRequest"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "Numeric ID of the itemtype",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ]
       }
     },
     "/equipment/{id}/stockmovements": {
@@ -3867,6 +4672,136 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/StockMovementRequest"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "Numeric ID of the itemtype",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ]
+      }
+    },
+    "/equipment/{id}/suppliers": {
+      "get": {
+        "summary": "Get Supplier collection.",
+        "operationId": "getEquipmentSupplierCollection",
+        "description": "Represents a supplier relationship between a contact and an equipment item. Each supplier entry links a contact to an equipment item, optionally with a purchase price and additional details.",
+        "tags": [
+          "equipment"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful request (note that the 'data' field can be expanded)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/SupplierResponse"
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "$ref": "#/components/schemas/ApiResponse"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "500": {
+            "description": "Something went wrong"
+          },
+          "502": {
+            "description": "Bad gateway"
+          }
+        },
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "Numeric ID of the itemtype",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ]
+      },
+      "post": {
+        "summary": "Create Supplier item.",
+        "operationId": "createSupplier",
+        "description": "",
+        "tags": [
+          "equipment"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful request (note that the 'data' field can be expanded)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SupplierResponse"
+                        }
+                      }
+                    },
+                    {
+                      "$ref": "#/components/schemas/ApiResponse"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "500": {
+            "description": "Something went wrong"
+          },
+          "502": {
+            "description": "Bad gateway"
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SupplierRequest"
               }
             }
           }
@@ -4075,6 +5010,119 @@
                       "$ref": "#/components/schemas/ApiResponse"
                     }
                   ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "500": {
+            "description": "Something went wrong"
+          },
+          "502": {
+            "description": "Bad gateway"
+          }
+        },
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "Numeric ID of the itemtype",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ]
+      },
+      "put": {
+        "summary": "Update EquipmentSetContent item.",
+        "operationId": "updateEquipmentSetContent",
+        "description": "",
+        "tags": [
+          "equipmentsetscontent"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful request (note that the 'data' field can be expanded)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/EquipmentSetContentResponse"
+                        }
+                      }
+                    },
+                    {
+                      "$ref": "#/components/schemas/ApiResponse"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "500": {
+            "description": "Something went wrong"
+          },
+          "502": {
+            "description": "Bad gateway"
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EquipmentSetContentRequest"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "Numeric ID of the itemtype",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ]
+      },
+      "delete": {
+        "summary": "Delete EquipmentSetContent item.",
+        "operationId": "deleteEquipmentSetContent",
+        "description": "",
+        "tags": [
+          "equipmentsetscontent"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful request (note that the 'data' field can be expanded)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "null"
                 }
               }
             }
@@ -4731,11 +5779,123 @@
         ]
       }
     },
+    "/invitations": {
+      "get": {
+        "summary": "Get Invitations collection.",
+        "operationId": "getInvitationsCollection",
+        "description": "With this endpoint, you can read sent invitations for crew functions.",
+        "tags": [
+          "invitations"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful request (note that the 'data' field can be expanded)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/InvitationsResponse"
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "$ref": "#/components/schemas/ApiResponse"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "500": {
+            "description": "Something went wrong"
+          },
+          "502": {
+            "description": "Bad gateway"
+          }
+        }
+      }
+    },
+    "/invitations/{id}": {
+      "get": {
+        "summary": "Get Invitations item.",
+        "operationId": "getInvitationsItem",
+        "description": "",
+        "tags": [
+          "invitations"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful request (note that the 'data' field can be expanded)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/InvitationsResponse"
+                        }
+                      }
+                    },
+                    {
+                      "$ref": "#/components/schemas/ApiResponse"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "500": {
+            "description": "Something went wrong"
+          },
+          "502": {
+            "description": "Bad gateway"
+          }
+        },
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "Numeric ID of the itemtype",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ]
+      }
+    },
     "/invoicelines": {
       "get": {
         "summary": "Get InvoiceLine collection.",
         "operationId": "getInvoiceLineCollection",
-        "description": "Invoice lines are the individual lines denoting an entry on an invoice.",
+        "description": "Invoice lines are generated lines based on tax rates and ledgers of the items within an invoice. They sum up to the total of the invoice. Useful for exporting to accounting systems. It is currently not possible to get the exact same details which are displayed on the invoice pdf, since that depends on the used document template.",
         "tags": [
           "invoicelines"
         ],
@@ -5022,7 +6182,7 @@
       "get": {
         "summary": "Get InvoiceLine collection.",
         "operationId": "getFactuurInvoiceLineCollection",
-        "description": "Invoice lines are the individual lines denoting an entry on an invoice.",
+        "description": "Invoice lines are generated lines based on tax rates and ledgers of the items within an invoice. They sum up to the total of the invoice. Useful for exporting to accounting systems. It is currently not possible to get the exact same details which are displayed on the invoice pdf, since that depends on the used document template.",
         "tags": [
           "invoices"
         ],
@@ -9190,7 +10350,7 @@
       "get": {
         "summary": "Get InvoiceLine collection.",
         "operationId": "getQuotationInvoiceLineCollection",
-        "description": "Invoice lines are the individual lines denoting an entry on an invoice.",
+        "description": "Invoice lines are generated lines based on tax rates and ledgers of the items within an invoice. They sum up to the total of the invoice. Useful for exporting to accounting systems. It is currently not possible to get the exact same details which are displayed on the invoice pdf, since that depends on the used document template.",
         "tags": [
           "quotes"
         ],
@@ -9884,6 +11044,119 @@
             }
           }
         ]
+      },
+      "put": {
+        "summary": "Update SerialNumber item.",
+        "operationId": "updateSerialNumber",
+        "description": "",
+        "tags": [
+          "serialnumbers"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful request (note that the 'data' field can be expanded)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SerialNumberResponse"
+                        }
+                      }
+                    },
+                    {
+                      "$ref": "#/components/schemas/ApiResponse"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "500": {
+            "description": "Something went wrong"
+          },
+          "502": {
+            "description": "Bad gateway"
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SerialNumberRequest"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "Numeric ID of the itemtype",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ]
+      },
+      "delete": {
+        "summary": "Delete SerialNumber item.",
+        "operationId": "deleteSerialNumber",
+        "description": "",
+        "tags": [
+          "serialnumbers"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful request (note that the 'data' field can be expanded)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "null"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "500": {
+            "description": "Something went wrong"
+          },
+          "502": {
+            "description": "Bad gateway"
+          }
+        },
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "Numeric ID of the itemtype",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ]
       }
     },
     "/serialnumbers/{id}/actualcontent": {
@@ -10410,6 +11683,73 @@
           },
           "502": {
             "description": "Bad gateway"
+          }
+        },
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "Numeric ID of the itemtype",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ]
+      },
+      "post": {
+        "summary": "Create Vehicle item.",
+        "operationId": "createVehicle",
+        "description": "",
+        "tags": [
+          "stocklocations"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful request (note that the 'data' field can be expanded)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/VehicleResponse"
+                        }
+                      }
+                    },
+                    {
+                      "$ref": "#/components/schemas/ApiResponse"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "500": {
+            "description": "Something went wrong"
+          },
+          "502": {
+            "description": "Bad gateway"
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VehicleRequest"
+              }
+            }
           }
         },
         "parameters": [
@@ -11791,6 +13131,357 @@
         ]
       }
     },
+    "/suppliers": {
+      "get": {
+        "summary": "Get Supplier collection.",
+        "operationId": "getSupplierCollection",
+        "description": "Represents a supplier relationship between a contact and an equipment item. Each supplier entry links a contact to an equipment item, optionally with a purchase price and additional details.",
+        "tags": [
+          "suppliers"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful request (note that the 'data' field can be expanded)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/SupplierResponse"
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "$ref": "#/components/schemas/ApiResponse"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "500": {
+            "description": "Something went wrong"
+          },
+          "502": {
+            "description": "Bad gateway"
+          }
+        }
+      }
+    },
+    "/suppliers/{id}": {
+      "get": {
+        "summary": "Get Supplier item.",
+        "operationId": "getSupplierItem",
+        "description": "",
+        "tags": [
+          "suppliers"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful request (note that the 'data' field can be expanded)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SupplierResponse"
+                        }
+                      }
+                    },
+                    {
+                      "$ref": "#/components/schemas/ApiResponse"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "500": {
+            "description": "Something went wrong"
+          },
+          "502": {
+            "description": "Bad gateway"
+          }
+        },
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "Numeric ID of the itemtype",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ]
+      },
+      "put": {
+        "summary": "Update Supplier item.",
+        "operationId": "updateSupplier",
+        "description": "",
+        "tags": [
+          "suppliers"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful request (note that the 'data' field can be expanded)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SupplierResponse"
+                        }
+                      }
+                    },
+                    {
+                      "$ref": "#/components/schemas/ApiResponse"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "500": {
+            "description": "Something went wrong"
+          },
+          "502": {
+            "description": "Bad gateway"
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SupplierRequest"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "Numeric ID of the itemtype",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ]
+      },
+      "delete": {
+        "summary": "Delete Supplier item.",
+        "operationId": "deleteSupplier",
+        "description": "",
+        "tags": [
+          "suppliers"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful request (note that the 'data' field can be expanded)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "null"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "500": {
+            "description": "Something went wrong"
+          },
+          "502": {
+            "description": "Bad gateway"
+          }
+        },
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "Numeric ID of the itemtype",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ]
+      }
+    },
+    "/suppliers/{id}/file_folders": {
+      "get": {
+        "summary": "Get FileFolder collection.",
+        "operationId": "getSupplierFileFolderCollection",
+        "description": "This endpoint exposes the folders that files can be in. A file folder is attached in the user interface to another item, e.g. a project or an equipment item, this is done using the `item` and `itemtype` field.",
+        "tags": [
+          "suppliers"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful request (note that the 'data' field can be expanded)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/FileFolderResponse"
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "$ref": "#/components/schemas/ApiResponse"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "500": {
+            "description": "Something went wrong"
+          },
+          "502": {
+            "description": "Bad gateway"
+          }
+        },
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "Numeric ID of the itemtype",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ]
+      }
+    },
+    "/suppliers/{id}/files": {
+      "get": {
+        "summary": "Get File collection.",
+        "operationId": "getSupplierFileCollection",
+        "description": "All user-generated documents and uploaded files are available in this endpoint. Files are always linked to at least one other item. There are two types of links. The `file_item` and `file_itemtype` describe the item where the file originates from, for example a quotation or an import. If a file is attached in the user interface to another item, e.g. a project or an equipment item, this is done using the `item` and `itemtype` field.",
+        "tags": [
+          "suppliers"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful request (note that the 'data' field can be expanded)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/FileResponse"
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "$ref": "#/components/schemas/ApiResponse"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "500": {
+            "description": "Something went wrong"
+          },
+          "502": {
+            "description": "Bad gateway"
+          }
+        },
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "Numeric ID of the itemtype",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ]
+      }
+    },
     "/taxclasses": {
       "get": {
         "summary": "Get TaxClass collection.",
@@ -12472,6 +14163,62 @@
             "description": "Bad gateway"
           }
         }
+      },
+      "post": {
+        "summary": "Create Vehicle item.",
+        "operationId": "createVehicle",
+        "description": "",
+        "tags": [
+          "vehicles"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful request (note that the 'data' field can be expanded)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/VehicleResponse"
+                        }
+                      }
+                    },
+                    {
+                      "$ref": "#/components/schemas/ApiResponse"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "500": {
+            "description": "Something went wrong"
+          },
+          "502": {
+            "description": "Bad gateway"
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VehicleRequest"
+              }
+            }
+          }
+        }
       }
     },
     "/vehicles/{id}": {
@@ -12501,6 +14248,119 @@
                       "$ref": "#/components/schemas/ApiResponse"
                     }
                   ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "500": {
+            "description": "Something went wrong"
+          },
+          "502": {
+            "description": "Bad gateway"
+          }
+        },
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "Numeric ID of the itemtype",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ]
+      },
+      "put": {
+        "summary": "Update Vehicle item.",
+        "operationId": "updateVehicle",
+        "description": "",
+        "tags": [
+          "vehicles"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful request (note that the 'data' field can be expanded)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/VehicleResponse"
+                        }
+                      }
+                    },
+                    {
+                      "$ref": "#/components/schemas/ApiResponse"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "500": {
+            "description": "Something went wrong"
+          },
+          "502": {
+            "description": "Bad gateway"
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VehicleRequest"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "Numeric ID of the itemtype",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ]
+      },
+      "delete": {
+        "summary": "Delete Vehicle item.",
+        "operationId": "deleteVehicle",
+        "description": "",
+        "tags": [
+          "vehicles"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful request (note that the 'data' field can be expanded)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "null"
                 }
               }
             }
@@ -12678,6 +14538,13 @@
           "offset": {
             "type": "integer",
             "description": "The amount of items skipped in data"
+          },
+          "next_page_url": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "URL to the next page of results when using cursor-based pagination. Includes all original query parameters with cursor_after updated. Null when there are no more results. Only present when using cursor_limit."
           }
         }
       },
@@ -12910,6 +14777,75 @@
           }
         }
       },
+      "AlternativeRequest": {
+        "type": "object",
+        "required": [
+          "alternative"
+        ],
+        "properties": {
+          "alternative": {
+            "type": "string",
+            "description": "",
+            "example": "/equipment/0"
+          }
+        }
+      },
+      "AlternativeResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "created",
+          "modified",
+          "creator",
+          "displayname",
+          "equipment",
+          "alternative"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": ""
+          },
+          "created": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "",
+            "format": "date-time"
+          },
+          "modified": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "",
+            "format": "date-time"
+          },
+          "creator": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "",
+            "example": "/crew/0"
+          },
+          "displayname": {
+            "type": "string",
+            "description": "GENERATED FIELD."
+          },
+          "equipment": {
+            "type": "string",
+            "description": "",
+            "example": "/equipment/0"
+          },
+          "alternative": {
+            "type": "string",
+            "description": "",
+            "example": "/equipment/0"
+          }
+        }
+      },
       "AppointmentCrewRequest": {
         "type": "object",
         "required": [
@@ -13052,20 +14988,12 @@
             "description": ""
           },
           "created": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "description": "",
-            "format": "date-time"
+            "type": "string",
+            "description": ""
           },
           "modified": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "description": "",
-            "format": "date-time"
+            "type": "string",
+            "description": ""
           },
           "creator": {
             "type": [
@@ -13909,6 +15837,10 @@
             "type": "string",
             "description": "External identifier used for integrations with accounting software."
           },
+          "vendor_accounting_code": {
+            "type": "string",
+            "description": "External identifier used for integrations with accounting software."
+          },
           "name": {
             "type": "string",
             "description": ""
@@ -13926,6 +15858,18 @@
             "description": ""
           },
           "mailing_number": {
+            "type": "string",
+            "description": ""
+          },
+          "mailing_unit_number": {
+            "type": "string",
+            "description": ""
+          },
+          "mailing_district": {
+            "type": "string",
+            "description": ""
+          },
+          "mailing_extra_address_line": {
             "type": "string",
             "description": ""
           },
@@ -14199,6 +16143,18 @@
             "type": "string",
             "description": ""
           },
+          "visit_unit_number": {
+            "type": "string",
+            "description": ""
+          },
+          "visit_district": {
+            "type": "string",
+            "description": ""
+          },
+          "visit_extra_address_line": {
+            "type": "string",
+            "description": ""
+          },
           "visit_postalcode": {
             "type": "string",
             "description": ""
@@ -14466,6 +16422,18 @@
             "description": ""
           },
           "invoice_number": {
+            "type": "string",
+            "description": ""
+          },
+          "invoice_unit_number": {
+            "type": "string",
+            "description": ""
+          },
+          "invoice_district": {
+            "type": "string",
+            "description": ""
+          },
+          "invoice_extra_address_line": {
             "type": "string",
             "description": ""
           },
@@ -14863,23 +16831,33 @@
           "latitude",
           "code",
           "accounting_code",
+          "vendor_accounting_code",
           "name",
           "gender",
           "mailing_city",
           "mailing_street",
           "mailing_number",
+          "mailing_unit_number",
+          "mailing_district",
+          "mailing_extra_address_line",
           "mailing_postalcode",
           "mailing_state",
           "mailing_country",
           "visit_city",
           "visit_street",
           "visit_number",
+          "visit_unit_number",
+          "visit_district",
+          "visit_extra_address_line",
           "visit_postalcode",
           "visit_state",
           "country",
           "invoice_city",
           "invoice_street",
           "invoice_number",
+          "invoice_unit_number",
+          "invoice_district",
+          "invoice_extra_address_line",
           "invoice_postalcode",
           "invoice_state",
           "invoice_country",
@@ -15001,6 +16979,10 @@
             "type": "string",
             "description": "External identifier used for integrations with accounting software."
           },
+          "vendor_accounting_code": {
+            "type": "string",
+            "description": "External identifier used for integrations with accounting software."
+          },
           "name": {
             "type": "string",
             "description": ""
@@ -15018,6 +17000,18 @@
             "description": ""
           },
           "mailing_number": {
+            "type": "string",
+            "description": ""
+          },
+          "mailing_unit_number": {
+            "type": "string",
+            "description": ""
+          },
+          "mailing_district": {
+            "type": "string",
+            "description": ""
+          },
+          "mailing_extra_address_line": {
             "type": "string",
             "description": ""
           },
@@ -15291,6 +17285,18 @@
             "type": "string",
             "description": ""
           },
+          "visit_unit_number": {
+            "type": "string",
+            "description": ""
+          },
+          "visit_district": {
+            "type": "string",
+            "description": ""
+          },
+          "visit_extra_address_line": {
+            "type": "string",
+            "description": ""
+          },
           "visit_postalcode": {
             "type": "string",
             "description": ""
@@ -15558,6 +17564,18 @@
             "description": ""
           },
           "invoice_number": {
+            "type": "string",
+            "description": ""
+          },
+          "invoice_unit_number": {
+            "type": "string",
+            "description": ""
+          },
+          "invoice_district": {
+            "type": "string",
+            "description": ""
+          },
+          "invoice_extra_address_line": {
             "type": "string",
             "description": ""
           },
@@ -16206,6 +18224,14 @@
             "description": "",
             "example": "/ledgercodes/0"
           },
+          "ledger_debit": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "",
+            "example": "/ledgercodes/0"
+          },
           "sale_price": {
             "type": "number",
             "description": ""
@@ -16242,6 +18268,7 @@
           "is_template",
           "taxclass",
           "ledger",
+          "ledger_debit",
           "sale_price",
           "purchase_price",
           "custom"
@@ -16329,6 +18356,14 @@
             "description": "",
             "example": "/ledgercodes/0"
           },
+          "ledger_debit": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "",
+            "example": "/ledgercodes/0"
+          },
           "sale_price": {
             "type": "number",
             "description": ""
@@ -16367,6 +18402,14 @@
             "type": "string",
             "description": ""
           },
+          "unit_number": {
+            "type": "string",
+            "description": ""
+          },
+          "district": {
+            "type": "string",
+            "description": ""
+          },
           "city": {
             "type": "string",
             "description": ""
@@ -16376,6 +18419,10 @@
             "description": ""
           },
           "addressline2": {
+            "type": "string",
+            "description": ""
+          },
+          "extraaddressline": {
             "type": "string",
             "description": ""
           },
@@ -16732,6 +18779,10 @@
             "type": "string",
             "description": "Can be used for the employee ID from your accounting software."
           },
+          "external": {
+            "type": "boolean",
+            "description": ""
+          },
           "custom": {
             "type": "object",
             "description": "The object containing all custom defined fields.",
@@ -16753,9 +18804,12 @@
           "folder",
           "street",
           "housenumber",
+          "unit_number",
+          "district",
           "city",
           "postal_code",
           "addressline2",
+          "extraaddressline",
           "state",
           "country",
           "birthdate",
@@ -16779,6 +18833,7 @@
           "vt_fullname",
           "default_warehouse",
           "external_reference",
+          "external",
           "tags",
           "custom"
         ],
@@ -16831,6 +18886,14 @@
             "type": "string",
             "description": ""
           },
+          "unit_number": {
+            "type": "string",
+            "description": ""
+          },
+          "district": {
+            "type": "string",
+            "description": ""
+          },
           "city": {
             "type": "string",
             "description": ""
@@ -16840,6 +18903,10 @@
             "description": ""
           },
           "addressline2": {
+            "type": "string",
+            "description": ""
+          },
+          "extraaddressline": {
             "type": "string",
             "description": ""
           },
@@ -17195,6 +19262,10 @@
           "external_reference": {
             "type": "string",
             "description": "Can be used for the employee ID from your accounting software."
+          },
+          "external": {
+            "type": "boolean",
+            "description": ""
           },
           "tags": {
             "type": "string",
@@ -17316,20 +19387,12 @@
             "description": ""
           },
           "created": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "description": "",
-            "format": "date-time"
+            "type": "string",
+            "description": ""
           },
           "modified": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "description": "",
-            "format": "date-time"
+            "type": "string",
+            "description": ""
           },
           "creator": {
             "type": [
@@ -17938,6 +20001,14 @@
             "description": "",
             "example": "/ledgercodes/0"
           },
+          "ledger_debit": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "",
+            "example": "/ledgercodes/0"
+          },
           "defaultgroup": {
             "type": "string",
             "description": "Enter an equipment group to automatically place the item in when planning."
@@ -17957,6 +20028,14 @@
           "can_edit_content_during_planning": {
             "type": "boolean",
             "description": "If 'No' is selected, equipment cannot be added to or removed from this combination. Also, quantities of the content cannot be adjusted."
+          },
+          "strict_container_content": {
+            "type": "boolean",
+            "description": "Determine whether the combination can contain actual content that is not part of the default content.",
+            "enum": [
+              "Unrestricted",
+              "Strict"
+            ]
           },
           "custom": {
             "type": "object",
@@ -18014,10 +20093,12 @@
           "country_of_origin",
           "image",
           "ledger",
+          "ledger_debit",
           "defaultgroup",
           "is_combination",
           "is_physical",
           "can_edit_content_during_planning",
+          "strict_container_content",
           "qrcodes",
           "qrcodes_of_serial_numbers",
           "tags",
@@ -18492,6 +20573,14 @@
             "description": "",
             "example": "/ledgercodes/0"
           },
+          "ledger_debit": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "",
+            "example": "/ledgercodes/0"
+          },
           "defaultgroup": {
             "type": "string",
             "description": "Enter an equipment group to automatically place the item in when planning."
@@ -18511,6 +20600,14 @@
           "can_edit_content_during_planning": {
             "type": "boolean",
             "description": "If 'No' is selected, equipment cannot be added to or removed from this combination. Also, quantities of the content cannot be adjusted."
+          },
+          "strict_container_content": {
+            "type": "boolean",
+            "description": "Determine whether the combination can contain actual content that is not part of the default content.",
+            "enum": [
+              "Unrestricted",
+              "Strict"
+            ]
           },
           "qrcodes": {
             "type": "string",
@@ -19406,6 +21503,280 @@
           }
         }
       },
+      "InvitationsRequest": {
+        "type": "object",
+        "required": [],
+        "properties": {
+          "type": {
+            "type": "string",
+            "description": "\n                    `availability`  -  After confirmation, the crew member is marked as available for the specified times. No function or project details are shared.   \n                    `reservation`  -  After confirmation, the crew member is marked as reserved for the function times or specified times. No function or project details are shared.  \n                    `final_planning`  -  After confirmation, the crew member is final planned on the function. The details of the function and project are shared. \n                    `draft_planning`  -  After confirmation, the crew member is draft planned on the function. The details of the function and project are shared.\n                    .",
+            "enum": [
+              "availability",
+              "reservation",
+              "final_planning",
+              "draft_planning"
+            ]
+          },
+          "accepted": {
+            "type": "boolean",
+            "description": ""
+          },
+          "responded_timestamp": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "",
+            "format": "date-time"
+          },
+          "expiration_date": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "",
+            "format": "date-time"
+          },
+          "start": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "",
+            "format": "date-time"
+          },
+          "end": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "",
+            "format": "date-time"
+          },
+          "function": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "",
+            "example": "/projectfunctions/0"
+          },
+          "projectcrew": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "",
+            "example": "/projectcrew/0"
+          },
+          "remark": {
+            "type": "string",
+            "description": ""
+          },
+          "emailstatus": {
+            "type": "string",
+            "description": "",
+            "enum": [
+              "pending",
+              "new",
+              "newremind",
+              "inprogress",
+              "processed"
+            ]
+          },
+          "last_reminder": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "",
+            "format": "date-time"
+          },
+          "location_details": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "GENERATED FIELD."
+          },
+          "auto_reminder_date": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "",
+            "format": "date-time"
+          }
+        }
+      },
+      "InvitationsResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "created",
+          "modified",
+          "creator",
+          "displayname",
+          "type",
+          "accepted",
+          "responded_timestamp",
+          "expiration_date",
+          "start",
+          "end",
+          "function",
+          "projectcrew",
+          "crewmember",
+          "remark",
+          "emailstatus",
+          "last_reminder",
+          "location_details",
+          "auto_reminder_date",
+          "auto_reminder_sent"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": ""
+          },
+          "created": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "",
+            "format": "date-time"
+          },
+          "modified": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "",
+            "format": "date-time"
+          },
+          "creator": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "",
+            "example": "/crew/0"
+          },
+          "displayname": {
+            "type": "string",
+            "description": "GENERATED FIELD."
+          },
+          "type": {
+            "type": "string",
+            "description": "\n                    `availability`  -  After confirmation, the crew member is marked as available for the specified times. No function or project details are shared.   \n                    `reservation`  -  After confirmation, the crew member is marked as reserved for the function times or specified times. No function or project details are shared.  \n                    `final_planning`  -  After confirmation, the crew member is final planned on the function. The details of the function and project are shared. \n                    `draft_planning`  -  After confirmation, the crew member is draft planned on the function. The details of the function and project are shared.\n                    .",
+            "enum": [
+              "availability",
+              "reservation",
+              "final_planning",
+              "draft_planning"
+            ]
+          },
+          "accepted": {
+            "type": "boolean",
+            "description": ""
+          },
+          "responded_timestamp": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "",
+            "format": "date-time"
+          },
+          "expiration_date": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "",
+            "format": "date-time"
+          },
+          "start": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "",
+            "format": "date-time"
+          },
+          "end": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "",
+            "format": "date-time"
+          },
+          "function": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "",
+            "example": "/projectfunctions/0"
+          },
+          "projectcrew": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "",
+            "example": "/projectcrew/0"
+          },
+          "crewmember": {
+            "type": "string",
+            "description": "",
+            "example": "/crew/0"
+          },
+          "remark": {
+            "type": "string",
+            "description": ""
+          },
+          "emailstatus": {
+            "type": "string",
+            "description": "",
+            "enum": [
+              "pending",
+              "new",
+              "newremind",
+              "inprogress",
+              "processed"
+            ]
+          },
+          "last_reminder": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "",
+            "format": "date-time"
+          },
+          "location_details": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "GENERATED FIELD."
+          },
+          "auto_reminder_date": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "",
+            "format": "date-time"
+          },
+          "auto_reminder_sent": {
+            "type": "integer",
+            "description": ""
+          }
+        }
+      },
       "InvoiceLineRequest": {
         "type": "object",
         "required": [],
@@ -19573,6 +21944,10 @@
             "type": "boolean",
             "description": ""
           },
+          "integration_reference_id": {
+            "type": "string",
+            "description": ""
+          },
           "project": {
             "type": [
               "string",
@@ -19605,6 +21980,7 @@
           "from_project",
           "subject",
           "finalized",
+          "integration_reference_id",
           "project",
           "filename",
           "project_total_price",
@@ -19719,6 +22095,10 @@
           },
           "finalized": {
             "type": "boolean",
+            "description": ""
+          },
+          "integration_reference_id": {
+            "type": "string",
             "description": ""
           },
           "project": {
@@ -20256,6 +22636,14 @@
           "code": {
             "type": "string",
             "description": ""
+          },
+          "is_credit": {
+            "type": "boolean",
+            "description": ""
+          },
+          "is_debit": {
+            "type": "boolean",
+            "description": ""
           }
         }
       },
@@ -20267,7 +22655,9 @@
           "modified",
           "creator",
           "displayname",
-          "code"
+          "code",
+          "is_credit",
+          "is_debit"
         ],
         "properties": {
           "id": {
@@ -20304,6 +22694,14 @@
           },
           "code": {
             "type": "string",
+            "description": ""
+          },
+          "is_credit": {
+            "type": "boolean",
+            "description": ""
+          },
+          "is_debit": {
+            "type": "boolean",
             "description": ""
           }
         }
@@ -20432,6 +22830,22 @@
             "description": "",
             "example": "/rates/0"
           },
+          "cost_accommodation": {
+            "type": "number",
+            "description": ""
+          },
+          "cost_catering": {
+            "type": "number",
+            "description": ""
+          },
+          "cost_travel": {
+            "type": "number",
+            "description": ""
+          },
+          "cost_other": {
+            "type": "number",
+            "description": ""
+          },
           "crewmember": {
             "type": "string",
             "description": "",
@@ -20506,6 +22920,10 @@
           "creator",
           "displayname",
           "cost_rate",
+          "cost_accommodation",
+          "cost_catering",
+          "cost_travel",
+          "cost_other",
           "function",
           "crewmember",
           "visible",
@@ -20567,6 +22985,22 @@
             ],
             "description": "",
             "example": "/rates/0"
+          },
+          "cost_accommodation": {
+            "type": "number",
+            "description": ""
+          },
+          "cost_catering": {
+            "type": "number",
+            "description": ""
+          },
+          "cost_travel": {
+            "type": "number",
+            "description": ""
+          },
+          "cost_other": {
+            "type": "number",
+            "description": ""
           },
           "function": {
             "type": "string",
@@ -20714,6 +23148,14 @@
             "description": "",
             "example": "/ledgercodes/0"
           },
+          "ledger_debit": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "",
+            "example": "/ledgercodes/0"
+          },
           "quantity": {
             "type": "string",
             "description": ""
@@ -20779,6 +23221,7 @@
           "equipment",
           "parent",
           "ledger",
+          "ledger_debit",
           "quantity",
           "quantity_total",
           "equipment_group",
@@ -20849,6 +23292,14 @@
             "example": "/projectequipment/0"
           },
           "ledger": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "",
+            "example": "/ledgercodes/0"
+          },
+          "ledger_debit": {
             "type": [
               "string",
               "null"
@@ -21390,10 +23841,42 @@
             "description": "",
             "example": "/rates/0"
           },
+          "cost_accommodation": {
+            "type": "number",
+            "description": ""
+          },
+          "cost_catering": {
+            "type": "number",
+            "description": ""
+          },
+          "cost_travel": {
+            "type": "number",
+            "description": ""
+          },
+          "cost_other": {
+            "type": "number",
+            "description": ""
+          },
           "price_rate": {
             "type": "string",
             "description": "",
             "example": "/rates/0"
+          },
+          "price_accommodation": {
+            "type": "number",
+            "description": ""
+          },
+          "price_catering": {
+            "type": "number",
+            "description": ""
+          },
+          "price_travel": {
+            "type": "number",
+            "description": ""
+          },
+          "price_other": {
+            "type": "number",
+            "description": ""
           },
           "subproject": {
             "type": "string",
@@ -21485,7 +23968,15 @@
           "creator",
           "displayname",
           "cost_rate",
+          "cost_accommodation",
+          "cost_catering",
+          "cost_travel",
+          "cost_other",
           "price_rate",
+          "price_accommodation",
+          "price_catering",
+          "price_travel",
+          "price_other",
           "project",
           "subproject",
           "is_template",
@@ -21494,6 +23985,8 @@
           "name",
           "travel_time_before",
           "travel_time_after",
+          "use_travel_time_from_location",
+          "use_distance_from_location",
           "usageperiod_start",
           "planperiod_start_schedule_is_start",
           "usageperiod_start_schedule_is_start",
@@ -21510,6 +24003,7 @@
           "twoway",
           "taxclass",
           "ledger",
+          "ledger_debit",
           "order",
           "remark_client",
           "remark_planner",
@@ -21537,20 +24031,12 @@
             "description": ""
           },
           "created": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "description": "",
-            "format": "date-time"
+            "type": "string",
+            "description": ""
           },
           "modified": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "description": "",
-            "format": "date-time"
+            "type": "string",
+            "description": ""
           },
           "creator": {
             "type": [
@@ -21569,10 +24055,42 @@
             "description": "",
             "example": "/rates/0"
           },
+          "cost_accommodation": {
+            "type": "number",
+            "description": ""
+          },
+          "cost_catering": {
+            "type": "number",
+            "description": ""
+          },
+          "cost_travel": {
+            "type": "number",
+            "description": ""
+          },
+          "cost_other": {
+            "type": "number",
+            "description": ""
+          },
           "price_rate": {
             "type": "string",
             "description": "",
             "example": "/rates/0"
+          },
+          "price_accommodation": {
+            "type": "number",
+            "description": ""
+          },
+          "price_catering": {
+            "type": "number",
+            "description": ""
+          },
+          "price_travel": {
+            "type": "number",
+            "description": ""
+          },
+          "price_other": {
+            "type": "number",
+            "description": ""
           },
           "project": {
             "type": "string",
@@ -21616,6 +24134,14 @@
               "number",
               "null"
             ],
+            "description": ""
+          },
+          "use_travel_time_from_location": {
+            "type": "boolean",
+            "description": ""
+          },
+          "use_distance_from_location": {
+            "type": "boolean",
             "description": ""
           },
           "usageperiod_start": {
@@ -21727,6 +24253,14 @@
             "example": "/taxclasses/0"
           },
           "ledger": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "",
+            "example": "/ledgercodes/0"
+          },
+          "ledger_debit": {
             "type": [
               "string",
               "null"
@@ -22045,6 +24579,10 @@
             "type": "string",
             "description": ""
           },
+          "contact_phone": {
+            "type": "string",
+            "description": ""
+          },
           "contact_mailing_city": {
             "type": "string",
             "description": ""
@@ -22085,6 +24623,10 @@
             ],
             "description": "",
             "format": "date-time"
+          },
+          "is_paid": {
+            "type": "boolean",
+            "description": ""
           },
           "language": {
             "type": "string",
@@ -22130,6 +24672,10 @@
             "type": "string",
             "description": ""
           },
+          "location_phone": {
+            "type": "string",
+            "description": ""
+          },
           "name": {
             "type": "string",
             "description": ""
@@ -22171,6 +24717,7 @@
           "contact_mailing_country",
           "contact_name",
           "contact_mailing_postalcode",
+          "contact_phone",
           "contact_mailing_city",
           "contact_mailing_street",
           "linked_contact_person",
@@ -22180,6 +24727,7 @@
           "contact_person_first_name",
           "usageperiod_end",
           "usageperiod_start",
+          "is_paid",
           "language",
           "in",
           "out",
@@ -22190,6 +24738,7 @@
           "location_mailing_postalcode",
           "location_mailing_city",
           "location_mailing_street",
+          "location_phone",
           "name",
           "external_reference",
           "remark",
@@ -22257,6 +24806,10 @@
             "type": "string",
             "description": ""
           },
+          "contact_phone": {
+            "type": "string",
+            "description": ""
+          },
           "contact_mailing_city": {
             "type": "string",
             "description": ""
@@ -22305,6 +24858,10 @@
             ],
             "description": "",
             "format": "date-time"
+          },
+          "is_paid": {
+            "type": "boolean",
+            "description": ""
           },
           "language": {
             "type": "string",
@@ -22355,6 +24912,10 @@
             "description": ""
           },
           "location_mailing_street": {
+            "type": "string",
+            "description": ""
+          },
+          "location_phone": {
             "type": "string",
             "description": ""
           },
@@ -23519,6 +26080,23 @@
             "description": "",
             "example": "/stocklocations/0"
           },
+          "repair_status": {
+            "type": "string",
+            "description": "",
+            "enum": [
+              "in-progress",
+              "completed",
+              "unrepairable"
+            ]
+          },
+          "unrepairable_of": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "",
+            "example": "/repairs/0"
+          },
           "custom": {
             "type": "object",
             "description": "The object containing all custom defined fields.",
@@ -23553,6 +26131,8 @@
           "costs_charged_to_customer",
           "subproject",
           "stock_location",
+          "repair_status",
+          "unrepairable_of",
           "tags",
           "custom"
         ],
@@ -23693,6 +26273,23 @@
             ],
             "description": "",
             "example": "/stocklocations/0"
+          },
+          "repair_status": {
+            "type": "string",
+            "description": "",
+            "enum": [
+              "in-progress",
+              "completed",
+              "unrepairable"
+            ]
+          },
+          "unrepairable_of": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "",
+            "example": "/repairs/0"
           },
           "tags": {
             "type": "string",
@@ -24782,7 +27379,9 @@
               "countjob_correction",
               "serial_transferred",
               "case_transfer",
-              "bulk_transfer"
+              "bulk_transfer",
+              "unrepairable",
+              "unrepairable_undo"
             ]
           },
           "stock_location": {
@@ -25853,6 +28452,110 @@
               "custom_1": "string",
               "custom_2": 2
             }
+          }
+        }
+      },
+      "SupplierRequest": {
+        "type": "object",
+        "required": [
+          "contact"
+        ],
+        "properties": {
+          "contact": {
+            "type": "string",
+            "description": "",
+            "example": "/contacts/0"
+          },
+          "contactperson": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "",
+            "example": "/contactpersons/0"
+          },
+          "price": {
+            "type": "number",
+            "description": ""
+          },
+          "details": {
+            "type": "string",
+            "description": ""
+          }
+        }
+      },
+      "SupplierResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "created",
+          "modified",
+          "creator",
+          "displayname",
+          "equipment",
+          "contact",
+          "contactperson",
+          "price",
+          "details"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": ""
+          },
+          "created": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "",
+            "format": "date-time"
+          },
+          "modified": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "",
+            "format": "date-time"
+          },
+          "creator": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "",
+            "example": "/crew/0"
+          },
+          "displayname": {
+            "type": "string",
+            "description": "GENERATED FIELD."
+          },
+          "equipment": {
+            "type": "string",
+            "description": "",
+            "example": "/equipment/0"
+          },
+          "contact": {
+            "type": "string",
+            "description": "",
+            "example": "/contacts/0"
+          },
+          "contactperson": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "",
+            "example": "/contactpersons/0"
+          },
+          "price": {
+            "type": "number",
+            "description": ""
+          },
+          "details": {
+            "type": "string",
+            "description": ""
           }
         }
       },
