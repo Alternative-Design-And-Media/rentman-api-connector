@@ -5,6 +5,10 @@ on:
     - cron: '0 6 * * 1'  # Every Monday at 06:00 UTC
   workflow_dispatch:       # Allow manual trigger
 
+permissions:
+  contents: write
+  pull-requests: write
+
 jobs:
   check-oas:
     runs-on: ubuntu-latest
@@ -33,7 +37,8 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git checkout -b oas/sync-${{ steps.compare.outputs.latest }}
-          git commit -am "chore: update OAS from ${{ steps.compare.outputs.current }} to ${{ steps.compare.outputs.latest }}"
+          git add oas.json
+          git commit -m "chore: update OAS from ${{ steps.compare.outputs.current }} to ${{ steps.compare.outputs.latest }}"
           git push origin oas/sync-${{ steps.compare.outputs.latest }}
           gh pr create \
             --title "chore: sync OAS to v${{ steps.compare.outputs.latest }}" \

@@ -33,16 +33,20 @@ const endpointsTs = readFileSync(join(root, 'src/endpoints.ts'), 'utf8');
 
 const oasVersion = oas.info.version;
 
-const deployMatch = oas.info.description.match(/Last deployment is \*\*(\d{4}-\d{2}-\d{2})/);
+// The OAS description uses markdown bold (`**date**`) around the deployment date.
+// Pattern matches "Last deployment is **YYYY-MM-DD" to extract the date portion.
+const deployMatch = oas.info.description.match(/Last deployment is \*{1,2}(\d{4}-\d{2}-\d{2})/);
 const deployDate = deployMatch ? deployMatch[1] : '';
 
 // Parse the ENDPOINTS object from endpoints.ts (key -> path).
+// Assumption: endpoint paths are written with single quotes (e.g. key: '/path').
+// If the source file formatting changes, update the regex below accordingly.
 const endpointsBlockMatch = endpointsTs.match(/export const ENDPOINTS = \{([\s\S]*?)\} as const/);
 if (!endpointsBlockMatch) {
   throw new Error('Could not find ENDPOINTS object in src/endpoints.ts');
 }
 const endpointMap = Object.fromEntries(
-  [...endpointsBlockMatch[1].matchAll(/^\s+(\w+):\s+'([^']+)'/gm)].map(([, key, path]) => [key, path]),
+  [...endpointsBlockMatch[1].matchAll(/^\s+(\w+):\s+['"]([^'"]+)['"]/gm)].map(([, key, path]) => [key, path]),
 );
 
 // ---------------------------------------------------------------------------
