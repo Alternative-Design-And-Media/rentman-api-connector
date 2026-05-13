@@ -1,0 +1,43 @@
+name: OAS Sync Check
+
+on:
+  schedule:
+    - cron: '0 6 * * 1'  # Every Monday at 06:00 UTC
+  workflow_dispatch:       # Allow manual trigger
+
+jobs:
+  check-oas:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch latest Rentman OAS
+        run: |
+          curl -fsSL https://api.rentman.net/oas.json -o oas-latest.json
+
+      - name: Compare versions
+        id: compare
+        run: |
+          CURRENT=$(jq -r '.info.version' oas.json)
+          LATEST=$(jq -r '.info.version' oas-latest.json)
+          echo "current=$CURRENT" >> $GITHUB_OUTPUT
+          echo "latest=$LATEST" >> $GITHUB_OUTPUT
+          if [ "$CURRENT" != "$LATEST" ]; then
+            echo "outdated=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Open PR if outdated
+        if: steps.compare.outputs.outdated == 'true'
+        run: |
+          cp oas-latest.json oas.json
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b oas/sync-${{ steps.compare.outputs.latest }}
+          git commit -am "chore: update OAS from ${{ steps.compare.outputs.current }} to ${{ steps.compare.outputs.latest }}"
+          git push origin oas/sync-${{ steps.compare.outputs.latest }}
+          gh pr create \
+            --title "chore: sync OAS to v${{ steps.compare.outputs.latest }}" \
+            --body "Automated OAS sync. Review type and endpoint changes before merging." \
+            --label "maintenance"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
