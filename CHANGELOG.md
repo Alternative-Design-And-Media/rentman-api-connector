@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.1.0] — 2026-05-18
+
+### Added
+- `scanAll`
+- Resource path utilities: `parseResourcePath`, `resourceId`, `buildResourcePath`
+- Lookup cache helpers: `fetchLookupMap`, `fetchStatusCache`, `fetchFolderNameCache`
+- Query helpers: `buildQueryParams`, `buildQueryString`
+- Helper utilities: `normalizeToken`, `listEquipmentSetContents`, `normalizeEquipmentItem`
+
+---
+
 ## [0.2.1] — 2026-05-12
 
 ### Fixed
