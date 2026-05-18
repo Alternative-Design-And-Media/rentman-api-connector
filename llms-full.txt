@@ -297,8 +297,8 @@ npm run generate:custom-fields
 - Output file: `src/generated/custom-fields.generated.ts` (gitignored; regenerate locally when config changes).
 - Validation:
   - unknown `type`, unknown `belongs_to`, or invalid `linked_item_type` (`contact`/`crew` only) => error
-  - `dropdown` without `options` => warning, falls back to `string`
-  - `linked_item` without `linked_item_type` => warning, falls back to `string`
+  - `dropdown` without `options` => error (requires non-empty options array)
+  - `linked_item` without `linked_item_type` => error (must be `contact` or `crew`)
 
 Existing entity generics still work for account-specific `custom_<number>` fields:
 

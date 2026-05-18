@@ -300,9 +300,8 @@ function validateEntry(
   let options: RentmanDropdownOption[] | undefined;
   if (type === 'dropdown') {
     if (!Array.isArray(rawEntry.options) || rawEntry.options.length === 0) {
-      warnings.push(
-        `${rowLabel}: type=dropdown but options missing/empty. Falling back to string type for code generation.`,
-      );
+      errors.push(`${rowLabel}: type=dropdown requires non-empty options array.`);
+      return undefined;
     } else {
       const parsedOptions: RentmanDropdownOption[] = [];
       for (let index = 0; index < rawEntry.options.length; index += 1) {
@@ -341,9 +340,10 @@ function validateEntry(
   let linked_item_type: RentmanLinkedItemType | undefined;
   if (type === 'linked_item') {
     if (rawEntry.linked_item_type === undefined) {
-      warnings.push(
-        `${rowLabel}: type=linked_item but linked_item_type missing. Falling back to generic string documentation.`,
+      errors.push(
+        `${rowLabel}: type=linked_item requires linked_item_type ('contact' | 'crew').`,
       );
+      return undefined;
     } else if (typeof rawEntry.linked_item_type !== 'string') {
       errors.push(`${rowLabel}.linked_item_type must be a string.`);
     } else if (!LINKED_ITEM_TYPES.includes(rawEntry.linked_item_type as RentmanLinkedItemType)) {
