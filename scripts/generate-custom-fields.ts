@@ -7,6 +7,7 @@ const root = join(__dirname, '..');
 
 const CONFIG_PATH = join(root, 'custom-fields.config.json');
 const OUTPUT_PATH = join(root, 'src', 'generated', 'custom-fields.generated.ts');
+const SECTION_HEADER_WIDTH = 74;
 
 type Primitive = string | number | boolean | null;
 
@@ -149,14 +150,14 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function isValidIdentifier(value: string): boolean {
-  return /^[$A-Z_][0-9A-Z_$]*$/i.test(value);
+  return /^[$A-Za-z_][$0-9A-Za-z_]*$/.test(value);
 }
 
 function toPascalCase(value: string): string {
   return value
     .split(/[^a-zA-Z0-9]+/)
     .filter(Boolean)
-    .map(part => part[0].toUpperCase() + part.slice(1))
+    .map(part => part.charAt(0).toUpperCase() + part.slice(1))
     .join('');
 }
 
@@ -170,8 +171,16 @@ function toUpperSnake(value: string): string {
 }
 
 function renderStringLiteral(value: string): string {
-  const jsonEscaped = JSON.stringify(value).slice(1, -1);
-  return `'${jsonEscaped.replace(/'/g, "\\'")}'`;
+  return `'${value
+    .replace(/\\/g, '\\\\')
+    .replace(/'/g, "\\'")
+    .replace(/`/g, '\\`')
+    .replace(/\$\{/g, '\\${')
+    .replace(/\r/g, '\\r')
+    .replace(/\n/g, '\\n')
+    .replace(/\t/g, '\\t')
+    .replace(/\u2028/g, '\\u2028')
+    .replace(/\u2029/g, '\\u2029')}'`;
 }
 
 function assertInteger(
@@ -428,14 +437,14 @@ function renderDropdownHelpers(
     `/** Converts API integer ID → string name for ${model}.${field.name} */`,
     `export function ${parseFn}(id: number): ${fieldType} {`,
     `  const opt = ${constantName}.find(o => o.id === id);`,
-    `  if (!opt) throw new Error(${renderStringLiteral(`Unknown ${model}.${field.name} id: `)} + id);`,
+    `  if (!opt) throw new Error(\`Unknown ${model}.${field.name} id: \${id}\`);`,
     '  return opt.name;',
     '}',
     '',
     `/** Converts string name → API integer ID for ${model}.${field.name} */`,
     `export function ${serializeFn}(name: ${fieldType}): number {`,
     `  const opt = ${constantName}.find(o => o.name === name);`,
-    `  if (!opt) throw new Error(${renderStringLiteral(`Unknown ${model}.${field.name} name: `)} + name);`,
+    `  if (!opt) throw new Error(\`Unknown ${model}.${field.name} name: \${name}\`);`,
     '  return opt.id;',
     '}',
   ].join('\n');
@@ -479,7 +488,7 @@ function generateFile(definitions: RentmanCustomFieldDefinition[]): string {
       .filter(Boolean)
       .join('\n\n');
 
-    const sectionHeader = `// ─── ${model} ${'─'.repeat(Math.max(1, 74 - model.length))}`;
+    const sectionHeader = `// ─── ${model} ${'─'.repeat(Math.max(1, SECTION_HEADER_WIDTH - model.length))}`;
     const sectionLines = [
       sectionHeader,
       '',

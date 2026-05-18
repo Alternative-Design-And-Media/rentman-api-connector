@@ -67,16 +67,20 @@ export interface RentmanCustomFieldDefinition<
   linked_item_type?: RentmanLinkedItemType;
 }
 
+type RentmanCustomFieldValue =
+  RentmanCustomFieldTypeMap[keyof RentmanCustomFieldTypeMap];
+
 export type RentmanCustomRecord = {
-  custom?: Record<
-    string,
-    RentmanCustomFieldTypeMap[keyof RentmanCustomFieldTypeMap]
-  >;
+  custom?: Record<string, RentmanCustomFieldValue>;
+};
+
+type ValidatedCustomFields<TCustom extends object> = {
+  [K in keyof TCustom]: TCustom[K] extends RentmanCustomFieldValue | undefined
+    ? TCustom[K]
+    : never;
 };
 
 export type WithCustomFields<
   TBase,
-  TCustom extends {
-    [K in keyof TCustom]: RentmanCustomFieldTypeMap[keyof RentmanCustomFieldTypeMap];
-  } = Record<string, never>,
-> = TBase & { custom?: TCustom };
+  TCustom extends object = Record<string, never>,
+> = TBase & { custom?: ValidatedCustomFields<TCustom> };
