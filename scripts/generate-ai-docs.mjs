@@ -333,6 +333,21 @@ type Project = WithCustomFields<
 >;
 \`\`\`
 
+Generated account-specific custom field types:
+
+- Maintain a flat array config in \`custom-fields.config.json\` (one row per custom field export line).
+- Grouping key is \`belongs_to\` (model), not nested JSON structure.
+- Generate typed interfaces/helpers with:
+
+\`\`\`bash
+npx generate-rentman-custom-fields
+# or inside this repository:
+npm run generate:custom-fields
+\`\`\`
+
+- Use \`--config ./path/to/custom-fields.config.json\` when the config file is not in the current working directory.
+- Output file: \`src/generated/custom-fields.generated.ts\` (regenerate locally when config changes).
+
 Existing entity generics still work for account-specific \`custom_<number>\` fields:
 
 \`\`\`ts
@@ -682,6 +697,21 @@ const { data: projects } = await rentman.list<Project>(ENDPOINTS.projects);
 projects[0]?.custom?.budget;
 projects[0]?.custom?.is_vip;
 \`\`\`
+
+Generated account-specific custom field types:
+
+- Maintain a flat array config in \`custom-fields.config.json\` (one row per custom field export line).
+- Grouping key is \`belongs_to\` (model), not nested JSON structure.
+- Generate typed interfaces/helpers with:
+
+\`\`\`bash
+npx generate-rentman-custom-fields
+# or inside this repository:
+npm run generate:custom-fields
+\`\`\`
+
+- Use \`--config ./path/to/custom-fields.config.json\` when the config file is not in the current working directory.
+- Output file: \`src/generated/custom-fields.generated.ts\` (regenerate locally when config changes).
 
 Existing entity generics still work for account-specific \`custom_<number>\` fields:
 
