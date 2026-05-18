@@ -33,6 +33,7 @@
  */
 
 export * from './types.js';
+export * from './custom-fields.js';
 export * from './query.js';
 export * from './client.js';
 export { ENDPOINTS } from './endpoints.js';

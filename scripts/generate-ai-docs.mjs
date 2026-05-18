@@ -228,6 +228,7 @@ npm install ${pkg.name}
 - \`RentmanApiError\`
 - \`ENDPOINTS\`
 - helpers: \`normalizeToken\`, \`listEquipmentSetContents\`, \`normalizeEquipmentItem\`, \`NormalizedEquipmentItem\`
+- custom field helpers: \`RentmanCustomFieldType\`, \`RentmanCustomFieldTypeMap\`, \`RentmanCustomFieldDefinition\`, \`RentmanCustomRecord\`, \`WithCustomFields\`
 - query helpers: \`buildQueryParams\`, \`buildQueryString\`, \`buildRentmanQuery\`, \`rel\`, \`notNull\`, \`isNull\`
 - scan helper: \`scanAll\`, \`ScanOptions\`, \`ScanResult<T>\`
 - lookup cache helpers: \`fetchLookupMap\`, \`fetchStatusCache\`, \`fetchFolderNameCache\`
@@ -304,9 +305,35 @@ const params = buildRentmanQuery({
 - \`notNull(field)\` serializes to \`field[isnull]=false\`
 - \`isNull(field)\` serializes to \`field[isnull]=true\`
 
-## Custom field typing pattern
+## Custom field helpers
 
-Default type is open (\`custom_<number>\` keys). For account-specific autocomplete, narrow with \`TCustom\`:
+Use the custom field helper exports when you want typed names and values for the \`custom\` object:
+
+\`\`\`ts
+import {
+  type RentmanCustomFieldDefinition,
+  type WithCustomFields,
+} from '${pkg.name}';
+
+const projectCustomFields: RentmanCustomFieldDefinition[] = [
+  { id: 11, name: 'budget', type: 'price' },
+  { id: 12, name: 'category', type: 'dropdown' },
+  { id: 13, name: 'is_vip', type: 'yes_no' },
+];
+
+type ProjectCustom = {
+  budget: number;
+  category: string;
+  is_vip: boolean;
+};
+
+type Project = WithCustomFields<
+  { id: number; name: string; displayname: string },
+  ProjectCustom
+>;
+\`\`\`
+
+Existing entity generics still work for account-specific \`custom_<number>\` fields:
 
 \`\`\`ts
 import { type RentmanEquipmentItem } from '${pkg.name}';
@@ -393,6 +420,7 @@ npm install ${pkg.name}
 
  - Client API: \`createRentmanClient\`, \`RentmanClient\`, \`RentmanApiError\`, \`scanAll\`
  - Helper utilities: \`normalizeToken\`, \`listEquipmentSetContents\`, \`normalizeEquipmentItem\`, \`NormalizedEquipmentItem\`
+ - Custom field helpers: \`RentmanCustomFieldType\`, \`RentmanCustomFieldTypeMap\`, \`RentmanCustomFieldDefinition\`, \`RentmanCustomRecord\`, \`WithCustomFields\`
 - Endpoint constants: \`ENDPOINTS\`, \`RentmanEndpoint\`
 - Query API: \`buildQueryParams\`, \`buildQueryString\`, \`buildRentmanQuery\`, \`rel\`, \`notNull\`, \`isNull\`
 - Lookup cache helpers: \`fetchLookupMap\`, \`fetchStatusCache\`, \`fetchFolderNameCache\`
@@ -568,15 +596,94 @@ Caveats:
 - With pagination (\`limit\`/\`offset\`), Rentman applies only the first sort field.
 - Generated fields cannot be used for filtering/sorting when paginating.
 
-## Custom fields typing pattern
+## Custom field helpers
 
-Default custom field type is open:
+Type exports:
 
 \`\`\`ts
-Partial<Record<\`custom_\${number}\`, string | number | boolean | null>>
+type RentmanCustomFieldType =
+  | 'text'
+  | 'formatted_text'
+  | 'linked_item'
+  | 'link'
+  | 'phone'
+  | 'yes_no'
+  | 'color'
+  | 'date'
+  | 'datetime'
+  | 'decimal'
+  | 'dropdown'
+  | 'integer'
+  | 'long_text'
+  | 'price';
+
+interface RentmanCustomFieldTypeMap {
+  text: string;
+  formatted_text: string;
+  linked_item: string;
+  link: string;
+  phone: string;
+  yes_no: boolean;
+  color: string;
+  date: string;
+  datetime: string;
+  decimal: number;
+  dropdown: string;
+  integer: number;
+  long_text: string;
+  price: number;
+}
+
+interface RentmanCustomFieldDefinition<T extends RentmanCustomFieldType = RentmanCustomFieldType> {
+  id: number;
+  name: string;
+  type: T;
+}
+
+type RentmanCustomRecord = {
+  custom?: Record<string, RentmanCustomFieldTypeMap[keyof RentmanCustomFieldTypeMap]>;
+};
+
+type WithCustomFields<
+  TBase,
+  TCustom extends Record<string, RentmanCustomFieldTypeMap[keyof RentmanCustomFieldTypeMap]> = Record<string, never>
+> = TBase & { custom?: TCustom };
 \`\`\`
 
-For stronger typing/autocomplete, pass account-specific custom field map:
+Usage:
+
+\`\`\`ts
+import {
+  createRentmanClient,
+  ENDPOINTS,
+  type WithCustomFields,
+  type RentmanCustomFieldDefinition,
+} from '${pkg.name}';
+
+const projectCustomFields: RentmanCustomFieldDefinition[] = [
+  { id: 11, name: 'budget', type: 'price' },
+  { id: 12, name: 'category', type: 'dropdown' },
+  { id: 13, name: 'is_vip', type: 'yes_no' },
+];
+
+type ProjectCustom = {
+  budget: number;
+  category: string;
+  is_vip: boolean;
+};
+
+type Project = WithCustomFields<
+  { id: number; name: string; displayname: string },
+  ProjectCustom
+>;
+
+const rentman = createRentmanClient({ token: process.env.RENTMAN_TOKEN! });
+const { data: projects } = await rentman.list<Project>(ENDPOINTS.projects);
+projects[0]?.custom?.budget;
+projects[0]?.custom?.is_vip;
+\`\`\`
+
+Existing entity generics still work for account-specific \`custom_<number>\` fields:
 
 \`\`\`ts
 import { type RentmanEquipmentItem } from '${pkg.name}';
@@ -588,23 +695,6 @@ interface EquipmentCustom {
 }
 
 type MyEquipment = RentmanEquipmentItem<EquipmentCustom>;
-\`\`\`
-
-Example:
-
-\`\`\`ts
-import { createRentmanClient, ENDPOINTS, type RentmanProject } from '${pkg.name}';
-
-interface ProjectCustom {
-  custom_3?: string;
-  custom_11?: boolean;
-  custom_24?: number;
-}
-
-type MyProject = RentmanProject<ProjectCustom>;
-
-const rentman = createRentmanClient({ token: process.env.RENTMAN_TOKEN! });
-const { data: project } = await rentman.get<MyProject>(ENDPOINTS.projects, 500);
 \`\`\`
 
 ## Typical usage patterns
