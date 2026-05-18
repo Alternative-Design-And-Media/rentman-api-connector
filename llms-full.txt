@@ -22,6 +22,7 @@ npm install @alternative-design-and-media/rentman-api-connector
 - Client API: `createRentmanClient`, `RentmanClient`, `RentmanApiError`
 - Endpoint constants: `ENDPOINTS`, `RentmanEndpoint`
 - Query API: `buildRentmanQuery`, `rel`, `notNull`, `isNull`
+- Resource path helpers: `parseResourcePath`, `resourceId`, `buildResourcePath`
 - Types: all resource/entity and response types from package root
 
 ## Client creation
@@ -339,6 +340,41 @@ try {
 - `briefpapier` -> `/briefpapier` -> `RentmanBriefpapier`
 - `numberSeries` -> `/numberseries` -> `RentmanNumberSeries`
 - `templates` -> `/templates` -> `RentmanTemplate`
+
+## Resource path helper reference
+
+Signatures:
+
+```ts
+parseResourcePath(path: string | null | undefined): { entity: string; id: number } | null
+resourceId(path: string | null | undefined): number | null
+buildResourcePath(endpoint: RentmanEndpoint, id: number): string
+```
+
+Behavior:
+
+- `parseResourcePath` matches `/<entity>/<id>` exactly; returns `null` for any other shape including trailing slashes, extra segments, or non-numeric IDs.
+- `resourceId` extracts the trailing numeric segment; equivalent to `parseResourcePath(path)?.id ?? null` but marginally cheaper.
+- `buildResourcePath` is a type-safe template literal; `endpoint` must be a value from `ENDPOINTS`.
+- All three are null-safe: `null` / `undefined` / empty string all return `null`.
+
+Examples:
+
+```ts
+import { parseResourcePath, resourceId, buildResourcePath, ENDPOINTS } from '@alternative-design-and-media/rentman-api-connector';
+
+parseResourcePath('/contacts/123')   // → { entity: 'contacts', id: 123 }
+parseResourcePath('/contacts')       // → null
+parseResourcePath('/contacts/abc')   // → null
+parseResourcePath(null)              // → null
+
+resourceId('/folders/42')            // → 42
+resourceId('/contacts/0')            // → 0  (id=0 is valid)
+resourceId(null)                     // → null
+
+buildResourcePath(ENDPOINTS.contacts, 123)  // → '/contacts/123'
+buildResourcePath(ENDPOINTS.equipment, 42)  // → '/equipment/42'
+```
 
 ## Constraints and caveats
 

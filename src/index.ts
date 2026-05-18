@@ -37,3 +37,4 @@ export * from './query.js';
 export * from './client.js';
 export { ENDPOINTS } from './endpoints.js';
 export type { RentmanEndpoint } from './endpoints.js';
+export * from './paths.js';

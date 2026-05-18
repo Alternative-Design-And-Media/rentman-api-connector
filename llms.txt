@@ -28,6 +28,7 @@ npm install @alternative-design-and-media/rentman-api-connector
 - `RentmanApiError`
 - `ENDPOINTS`
 - query helpers: `buildRentmanQuery`, `rel`, `notNull`, `isNull`
+- resource path helpers: `parseResourcePath`, `resourceId`, `buildResourcePath`
 - resource types from `src/types.ts` (e.g. `RentmanEquipmentItem`, `RentmanProject`, `RentmanContact`)
 
 ## `createRentmanClient()`
@@ -168,3 +169,21 @@ try {
 - `templates` -> `/templates` -> `RentmanTemplate`
 
 For fuller signatures, examples, and caveats, see `llms-full.txt` and `README.md`.
+
+## Resource path helpers
+
+```ts
+import { parseResourcePath, resourceId, buildResourcePath, ENDPOINTS } from '@alternative-design-and-media/rentman-api-connector';
+
+parseResourcePath('/contacts/123') // → { entity: 'contacts', id: 123 }
+parseResourcePath(null)            // → null
+
+resourceId('/folders/42')          // → 42
+resourceId(null)                   // → null
+
+buildResourcePath(ENDPOINTS.contacts, 123) // → '/contacts/123'
+```
+
+- `parseResourcePath(path)` — returns `{ entity: string; id: number } | null`
+- `resourceId(path)` — returns `number | null`
+- `buildResourcePath(endpoint, id)` — type-safe; `endpoint` must be a `RentmanEndpoint`
