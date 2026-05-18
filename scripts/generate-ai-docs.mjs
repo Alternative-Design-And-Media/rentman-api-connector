@@ -678,9 +678,9 @@ type Project = WithCustomFields<
 >;
 
 const rentman = createRentmanClient({ token: process.env.RENTMAN_TOKEN! });
-const projects = await rentman.get<Project[]>(ENDPOINTS.projects);
-projects[0].custom?.budget;
-projects[0].custom?.is_vip;
+const { data: projects } = await rentman.list<Project>(ENDPOINTS.projects);
+projects[0]?.custom?.budget;
+projects[0]?.custom?.is_vip;
 \`\`\`
 
 Existing entity generics still work for account-specific \`custom_<number>\` fields:
