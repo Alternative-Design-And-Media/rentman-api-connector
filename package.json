@@ -28,7 +28,8 @@
     "test:watch": "vitest",
     "lint": "eslint src --ext .ts",
     "docs:ai": "node scripts/generate-ai-docs.mjs",
-    "prepublishOnly": "npm run typecheck && npm run build"
+    "prepublishOnly": "npm run typecheck && npm run build",
+    "generate:custom-fields": "tsx scripts/generate-custom-fields.ts"
   },
   "keywords": [
     "rentman",
@@ -48,9 +49,9 @@
     "url": "https://github.com/Alternative-Design-And-Media/rentman-api-connector/issues"
   },
   "homepage": "https://github.com/Alternative-Design-And-Media/rentman-api-connector#readme",
-  "peerDependencies": {},
   "devDependencies": {
     "tsup": "^8.0.0",
+    "tsx": "^4.22.2",
     "typescript": "^5.4.0",
     "vitest": "^1.6.0"
   }

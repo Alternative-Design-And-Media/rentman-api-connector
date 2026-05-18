@@ -15,7 +15,9 @@ import type {
 } from '../types.js';
 import type {
   RentmanCustomFieldDefinition,
+  RentmanCustomFieldModel,
   RentmanCustomFieldTypeMap,
+  RentmanLinkedItemType,
   RentmanCustomRecord,
   WithCustomFields,
 } from '../custom-fields.js';
@@ -336,6 +338,25 @@ describe('custom field helpers', () => {
     };
 
     expectTypeOf(definition.type).toEqualTypeOf<'yes_no'>();
+  });
+
+  it('supports model and linked-item metadata on custom field definitions', () => {
+    const definition: RentmanCustomFieldDefinition<'linked_item'> = {
+      id: 56,
+      name: 'lead_technician',
+      belongs_to: 'project',
+      type: 'linked_item',
+      input_fields_group: 'Technical',
+      required: false,
+      linked_item_type: 'crew',
+    };
+
+    expectTypeOf(definition.belongs_to).toEqualTypeOf<
+      RentmanCustomFieldModel | undefined
+    >();
+    expectTypeOf(definition.linked_item_type).toEqualTypeOf<
+      RentmanLinkedItemType | undefined
+    >();
   });
 
   it('lets consumers compose strongly typed custom field records', () => {

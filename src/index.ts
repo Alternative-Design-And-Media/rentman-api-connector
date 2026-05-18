@@ -34,6 +34,8 @@
 
 export * from './types.js';
 export * from './custom-fields.js';
+// Account-specific custom field interfaces/helpers are generated to:
+// `src/generated/custom-fields.generated.ts` via `npm run generate:custom-fields`.
 export * from './query.js';
 export * from './client.js';
 export { ENDPOINTS } from './endpoints.js';
