@@ -22,7 +22,7 @@ npm install @alternative-design-and-media/rentman-api-connector
 - Client API: `createRentmanClient`, `RentmanClient`, `RentmanApiError`
 - Endpoint constants: `ENDPOINTS`, `RentmanEndpoint`
 - Query API: `buildRentmanQuery`, `rel`, `notNull`, `isNull`
-- Resource path helpers: `parseResourcePath`, `resourceId`, `buildResourcePath`
+- Lookup cache helpers: `fetchLookupMap`, `fetchStatusCache`, `fetchFolderNameCache`
 - Types: all resource/entity and response types from package root
 
 ## Client creation
@@ -340,6 +340,53 @@ try {
 - `briefpapier` -> `/briefpapier` -> `RentmanBriefpapier`
 - `numberSeries` -> `/numberseries` -> `RentmanNumberSeries`
 - `templates` -> `/templates` -> `RentmanTemplate`
+
+## Lookup cache helpers
+
+Signatures:
+
+```ts
+fetchLookupMap<T, V>(
+  client: RentmanClient,
+  endpoint: RentmanEndpoint,
+  query: Omit<RentmanQueryOptions, 'limit' | 'offset'>,
+  toEntry: (item: T) => [string, V],
+): Promise<Map<string, V>>
+
+fetchStatusCache(
+  client: RentmanClient,
+): Promise<{ byName: Map<string, string>; byPath: Map<string, string> }>
+
+fetchFolderNameCache(
+  client: RentmanClient,
+): Promise<Map<string, string>>
+```
+
+Behavior:
+
+- `fetchLookupMap` calls `client.listAll()` and maps each item to a `[key, value]` tuple via `toEntry`. First-wins on duplicate keys.
+- `fetchStatusCache` builds two Maps: `byName` (lowercase name → path) and `byPath` (path → display name).
+- `fetchFolderNameCache` builds a Map of folder resource path → folder name.
+
+Examples:
+
+```ts
+import { createRentmanClient, ENDPOINTS, fetchLookupMap, fetchStatusCache, fetchFolderNameCache } from '@alternative-design-and-media/rentman-api-connector';
+
+const rentman = createRentmanClient({ token: process.env.RENTMAN_TOKEN! });
+
+// Generic lookup
+const taxMap = await fetchLookupMap(rentman, ENDPOINTS.taxClasses, {}, (tc) => [String(tc.id), tc.name]);
+
+// Status bidirectional lookup
+const { byName, byPath } = await fetchStatusCache(rentman);
+const path  = byName.get('confirmed');    // "/statuses/3"
+const label = byPath.get('/statuses/3'); // "Confirmed"
+
+// Folder name lookup
+const folderNames = await fetchFolderNameCache(rentman);
+const name = folderNames.get('/folders/116'); // "Lighting"
+```
 
 ## Resource path helper reference
 

@@ -21,6 +21,7 @@ v1.0.1
 - ✅ Token rotation via callback — no need to recreate the client on token refresh
 - ✅ Typed custom fields — narrow `custom_<number>` keys per entity at compile time
 - ✅ Resource path utilities — `parseResourcePath`, `resourceId`, `buildResourcePath`
+- ✅ Lookup cache helpers — `fetchLookupMap`, `fetchStatusCache`, `fetchFolderNameCache`
 
 ---
 
@@ -493,6 +494,76 @@ await rentman.create(ENDPOINTS.stockMovements, {
   quantity: 10,
   type: 'manual',
 });
+```
+
+---
+
+## Lookup Cache Helpers
+
+These helpers fetch an entire reference endpoint and build a `Map` for fast lookups.
+They are useful for resolving Rentman resource paths (e.g. `"/statuses/3"`) to display names without repeated API calls.
+
+### `fetchLookupMap<T, V>(client, endpoint, query, toEntry)`
+
+Generic helper that fetches **all pages** of any endpoint and builds a `Map` using a caller-supplied key/value extractor. First-wins when `toEntry` returns duplicate keys.
+
+```ts
+import {
+  createRentmanClient,
+  ENDPOINTS,
+  fetchLookupMap,
+  type RentmanTaxClass,
+} from '@alternative-design-and-media/rentman-api-connector';
+
+const rentman = createRentmanClient({ token: process.env.RENTMAN_TOKEN! });
+
+// Build an id → name map for tax classes
+const taxMap = await fetchLookupMap<RentmanTaxClass, string>(
+  rentman,
+  ENDPOINTS.taxClasses,
+  {},
+  (tc) => [String(tc.id), tc.name],
+);
+
+console.log(taxMap.get('1')); // e.g. "21%"
+```
+
+### `fetchStatusCache(client)`
+
+Fetches all Rentman statuses and returns **two** Maps for bidirectional lookups:
+
+- `byName` — lowercase status name → resource path (e.g. `"confirmed"` → `"/statuses/3"`)
+- `byPath` — resource path → display name (e.g. `"/statuses/3"` → `"Confirmed"`)
+
+```ts
+import {
+  createRentmanClient,
+  fetchStatusCache,
+} from '@alternative-design-and-media/rentman-api-connector';
+
+const rentman = createRentmanClient({ token: process.env.RENTMAN_TOKEN! });
+
+const { byName, byPath } = await fetchStatusCache(rentman);
+
+const path  = byName.get('confirmed');     // "/statuses/3"
+const label = byPath.get('/statuses/3');   // "Confirmed"
+```
+
+### `fetchFolderNameCache(client)`
+
+Fetches all equipment folders and returns a `Map` of resource path → folder name.
+
+```ts
+import {
+  createRentmanClient,
+  fetchFolderNameCache,
+} from '@alternative-design-and-media/rentman-api-connector';
+
+const rentman = createRentmanClient({ token: process.env.RENTMAN_TOKEN! });
+
+const folderNames = await fetchFolderNameCache(rentman);
+
+console.log(folderNames.get('/folders/116')); // "Lighting"
 ```
 
 ---
