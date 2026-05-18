@@ -463,6 +463,22 @@ Fetch a collection. Returns `RentmanCollectionResponse<T>` with `data`, `itemCou
 
 Auto-paginate through all items. `pageSize` defaults to `300` (the API hard cap).
 
+### `client.listSub<T>(parentPath, parentId, subPath, query?)`
+
+Fetch a sub-resource collection via path-level URL generation (`${parentPath}/${parentId}${subPath}`).
+
+```ts
+const { data } = await rentman.listSub(
+  ENDPOINTS.equipment,
+  3473,
+  '/equipmentsetscontent',
+);
+```
+
+### `client.listAllSub<T>(parentPath, parentId, subPath, query?, pageSize?)`
+
+Auto-paginate through all items for a path-level sub-resource collection.
+
 ### `client.get<T>(path, id, query?)`
 
 Fetch a single item by numeric ID.

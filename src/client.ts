@@ -131,6 +131,37 @@ export class RentmanClient {
   }
 
   /**
+   * Fetch a sub-resource collection under a specific parent item.
+   * Generates path-level URLs like `/equipment/3473/equipmentsetscontent`.
+   *
+   * @param parentPath - Parent resource path (prefer `ENDPOINTS.<key>` constants).
+   * @param parentId - Numeric ID of the parent resource.
+   * @param subPath - Sub-resource path segment, must start with `/` (e.g. `'/equipmentsetscontent'`).
+   * @param query - Optional query options.
+   * @returns A collection response with `data` plus pagination metadata.
+   * @throws {RentmanApiError} When the API returns a non-2xx response.
+   *
+   * @example
+   * // GET /equipment/3473/equipmentsetscontent
+   * const res = await client.listSub(
+   *   ENDPOINTS.equipment,
+   *   3473,
+   *   '/equipmentsetscontent',
+   * );
+   */
+  listSub<T>(
+    parentPath: RentmanEndpoint,
+    parentId: number,
+    subPath: string,
+    query?: RentmanQueryOptions,
+  ): Promise<RentmanCollectionResponse<T>> {
+    const qs = query ? `?${buildRentmanQuery(query).toString()}` : '';
+    return this.request<RentmanCollectionResponse<T>>(
+      `${parentPath}/${parentId}${subPath}${qs}`,
+    );
+  }
+
+  /**
    * Fetch all pages of a collection, handling the 300-item-per-page API limit
    * automatically. Uses `itemCount` from the first response to avoid
    * unnecessary extra requests. Use with caution — this may issue many HTTP requests.
@@ -158,6 +189,42 @@ export class RentmanClient {
       offset += page.data.length;
 
       // Stop when we have collected all items or the page was empty.
+      if (offset >= page.itemCount || page.data.length === 0) break;
+    }
+
+    return results;
+  }
+
+  /**
+   * Fetch all pages of a sub-resource collection under a specific parent item.
+   *
+   * @param parentPath - Parent resource path (prefer `ENDPOINTS.<key>` constants).
+   * @param parentId - Numeric ID of the parent resource.
+   * @param subPath - Sub-resource path segment, must start with `/`.
+   * @param query - Optional query options excluding `limit`/`offset`; pagination is managed internally.
+   * @param pageSize - Page size per request. Defaults to `300` (Rentman API hard cap).
+   * @returns A flattened array containing items from all fetched pages.
+   * @throws {RentmanApiError} When any page request returns a non-2xx response.
+   */
+  async listAllSub<T>(
+    parentPath: RentmanEndpoint,
+    parentId: number,
+    subPath: string,
+    query?: Omit<RentmanQueryOptions, 'limit' | 'offset'>,
+    pageSize = 300,
+  ): Promise<T[]> {
+    const results: T[] = [];
+    let offset = 0;
+
+    while (true) {
+      const page = await this.listSub<T>(parentPath, parentId, subPath, {
+        ...query,
+        limit: pageSize,
+        offset,
+      });
+      results.push(...page.data);
+      offset += page.data.length;
+
       if (offset >= page.itemCount || page.data.length === 0) break;
     }
 
