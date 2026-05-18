@@ -14,6 +14,23 @@ export type RentmanCustomFieldType =
   | 'long_text'
   | 'price';
 
+export type RentmanLinkedItemType = 'contact' | 'crew';
+
+export type RentmanCustomFieldModel =
+  | 'project'
+  | 'subproject'
+  | 'projectfunction'
+  | 'projectcrew'
+  | 'projectequipment'
+  | 'projectvehicle'
+  | 'equipment'
+  | 'serialnumber'
+  | 'subrental'
+  | 'contact'
+  | 'contactperson'
+  | 'crew'
+  | 'repair';
+
 export interface RentmanCustomFieldTypeMap {
   text: string;
   formatted_text: string;
@@ -31,25 +48,39 @@ export interface RentmanCustomFieldTypeMap {
   price: number;
 }
 
+export interface RentmanDropdownOption {
+  id: number;
+  name: string;
+}
+
 export interface RentmanCustomFieldDefinition<
   T extends RentmanCustomFieldType = RentmanCustomFieldType,
 > {
   id: number;
   name: string;
   type: T;
+  belongs_to?: RentmanCustomFieldModel;
+  input_fields_group?: string;
+  required?: boolean;
+  default_value?: string | number | boolean | null;
+  options?: RentmanDropdownOption[];
+  linked_item_type?: RentmanLinkedItemType;
 }
 
+type RentmanCustomFieldValue =
+  RentmanCustomFieldTypeMap[keyof RentmanCustomFieldTypeMap];
+
 export type RentmanCustomRecord = {
-  custom?: Record<
-    string,
-    RentmanCustomFieldTypeMap[keyof RentmanCustomFieldTypeMap]
-  >;
+  custom?: Record<string, RentmanCustomFieldValue>;
+};
+
+type ValidatedCustomFields<TCustom extends object> = {
+  [K in keyof TCustom]: TCustom[K] extends RentmanCustomFieldValue | undefined
+    ? TCustom[K]
+    : never;
 };
 
 export type WithCustomFields<
   TBase,
-  TCustom extends Record<
-    string,
-    RentmanCustomFieldTypeMap[keyof RentmanCustomFieldTypeMap]
-  > = Record<string, never>,
-> = TBase & { custom?: TCustom };
+  TCustom extends object = Record<string, never>,
+> = TBase & { custom?: ValidatedCustomFields<TCustom> };

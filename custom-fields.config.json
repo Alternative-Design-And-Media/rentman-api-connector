@@ -1,0 +1,139 @@
+[
+  {
+    "id": 1001,
+    "name": "category",
+    "belongs_to": "project",
+    "type": "dropdown",
+    "input_fields_group": "General",
+    "required": true,
+    "default_value": null,
+    "options": [
+      { "id": 1, "name": "Conference" },
+      { "id": 2, "name": "Wedding" },
+      { "id": 3, "name": "Corporate" }
+    ]
+  },
+  {
+    "id": 1002,
+    "name": "lead_technician",
+    "belongs_to": "project",
+    "type": "linked_item",
+    "input_fields_group": "Technical",
+    "required": false,
+    "default_value": null,
+    "linked_item_type": "crew"
+  },
+  {
+    "id": 1003,
+    "name": "note",
+    "belongs_to": "subproject",
+    "type": "text",
+    "input_fields_group": "Extra input fields",
+    "required": false,
+    "default_value": null
+  },
+  {
+    "id": 1004,
+    "name": "note",
+    "belongs_to": "projectfunction",
+    "type": "long_text",
+    "input_fields_group": "Extra input fields",
+    "required": false,
+    "default_value": null
+  },
+  {
+    "id": 1005,
+    "name": "reference",
+    "belongs_to": "projectcrew",
+    "type": "text",
+    "input_fields_group": "Extra input fields",
+    "required": false,
+    "default_value": null
+  },
+  {
+    "id": 1006,
+    "name": "reference",
+    "belongs_to": "projectequipment",
+    "type": "text",
+    "input_fields_group": "Extra input fields",
+    "required": false,
+    "default_value": null
+  },
+  {
+    "id": 1007,
+    "name": "reference",
+    "belongs_to": "projectvehicle",
+    "type": "text",
+    "input_fields_group": "Extra input fields",
+    "required": false,
+    "default_value": null
+  },
+  {
+    "id": 1008,
+    "name": "replacement_value",
+    "belongs_to": "equipment",
+    "type": "price",
+    "input_fields_group": "Finance",
+    "required": false,
+    "default_value": null
+  },
+  {
+    "id": 1009,
+    "name": "tracking",
+    "belongs_to": "serialnumber",
+    "type": "yes_no",
+    "input_fields_group": "General",
+    "required": false,
+    "default_value": false
+  },
+  {
+    "id": 1010,
+    "name": "supplier_code",
+    "belongs_to": "subrental",
+    "type": "text",
+    "input_fields_group": "General",
+    "required": false,
+    "default_value": null
+  },
+  {
+    "id": 1011,
+    "name": "registry_number",
+    "belongs_to": "contact",
+    "type": "text",
+    "input_fields_group": "Extra input fields",
+    "required": false,
+    "default_value": null
+  },
+  {
+    "id": 1012,
+    "name": "preferred_language",
+    "belongs_to": "contactperson",
+    "type": "text",
+    "input_fields_group": "General",
+    "required": false,
+    "default_value": null
+  },
+  {
+    "id": 1013,
+    "name": "shirt_size",
+    "belongs_to": "crew",
+    "type": "dropdown",
+    "input_fields_group": "General",
+    "required": false,
+    "default_value": null,
+    "options": [
+      { "id": 1, "name": "S" },
+      { "id": 2, "name": "M" },
+      { "id": 3, "name": "L" }
+    ]
+  },
+  {
+    "id": 1014,
+    "name": "cost_estimate",
+    "belongs_to": "repair",
+    "type": "price",
+    "input_fields_group": "Finance",
+    "required": false,
+    "default_value": null
+  }
+]
