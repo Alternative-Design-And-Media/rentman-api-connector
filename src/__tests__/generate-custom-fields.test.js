@@ -70,4 +70,12 @@ describe('generate-custom-fields CLI', () => {
     expect(generated).toContain('// Run `npx generate-rentman-custom-fields` to regenerate.');
     expect(generated).not.toContain("from '../custom-fields.js'");
   });
+
+  it('rejects --config when the value is missing', () => {
+    expect(() =>
+      execFileSync(process.execPath, [tsxCliPath, scriptPath, '--config', '--help'], {
+        encoding: 'utf8',
+      }),
+    ).toThrowError(/Missing value for --config/);
+  });
 });

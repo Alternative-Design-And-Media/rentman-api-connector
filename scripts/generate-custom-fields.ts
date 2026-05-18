@@ -280,7 +280,7 @@ function parseCliOptions(argv: string[]): CliOptions {
 
     if (arg === '--config') {
       const nextArg = argv[index + 1];
-      if (!nextArg) {
+      if (!nextArg || nextArg.startsWith('-')) {
         throw new Error('Missing value for --config.');
       }
 
