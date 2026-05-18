@@ -1,5 +1,59 @@
 import { describe, it, expect, vi } from 'vitest';
-import { buildRentmanQuery, rel, notNull, isNull } from '../query.js';
+import {
+  buildQueryParams,
+  buildQueryString,
+  buildRentmanQuery,
+  rel,
+  notNull,
+  isNull,
+} from '../query.js';
+
+describe('buildQueryParams', () => {
+  it('serializes fields, sort, filters, rel/null filters, and pagination', () => {
+    expect(buildQueryParams({
+      fields: ['id', 'name'],
+      sort: ['+name', '-created'],
+      filters: { country: 'gb' },
+      relFilters: [rel('distance', 'lte', 300)],
+      nullFilters: [notNull('folder')],
+      limit: 50,
+      offset: 100,
+      suppressWarnings: true,
+    })).toEqual({
+      fields: 'id,name',
+      sort: '+name,-created',
+      country: 'gb',
+      'distance[lte]': '300',
+      'folder[isnull]': 'false',
+      limit: '50',
+      offset: '100',
+    });
+  });
+
+  it('coerces boolean filter values to Rentman-compatible numbers', () => {
+    expect(buildQueryParams({
+      filters: { 'in_archive[eq]': false, archived: true },
+    })).toEqual({
+      'in_archive[eq]': '0',
+      archived: '1',
+    });
+  });
+});
+
+describe('buildQueryString', () => {
+  it('encodes slashes in filter values by default', () => {
+    expect(buildQueryString({
+      filters: { 'status[eq]': '/statuses/3' },
+    })).toBe('?status%5Beq%5D=%2Fstatuses%2F3');
+  });
+
+  it('preserves slashes in filter values when requested', () => {
+    expect(buildQueryString(
+      { filters: { 'status[eq]': '/statuses/3' } },
+      { preserveSlashes: true },
+    )).toBe('?status%5Beq%5D=/statuses/3');
+  });
+});
 
 describe('buildRentmanQuery', () => {
   it('builds empty params for empty options', () => {
@@ -31,6 +85,11 @@ describe('buildRentmanQuery', () => {
     const p = buildRentmanQuery({ filters: { country: 'gb', status: 'active' } });
     expect(p.get('country')).toBe('gb');
     expect(p.get('status')).toBe('active');
+  });
+
+  it('coerces boolean equality filters to Rentman-compatible numbers', () => {
+    const p = buildRentmanQuery({ filters: { 'in_archive[eq]': false } });
+    expect(p.get('in_archive[eq]')).toBe('0');
   });
 
   it('formats relational filters correctly', () => {

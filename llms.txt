@@ -27,7 +27,7 @@ npm install @alternative-design-and-media/rentman-api-connector
 - `RentmanClient`
 - `RentmanApiError`
 - `ENDPOINTS`
-- query helpers: `buildRentmanQuery`, `rel`, `notNull`, `isNull`
+- query helpers: `buildQueryParams`, `buildQueryString`, `buildRentmanQuery`, `rel`, `notNull`, `isNull`
 - scan helper: `scanAll`, `ScanOptions`, `ScanResult<T>`
 - lookup cache helpers: `fetchLookupMap`, `fetchStatusCache`, `fetchFolderNameCache`
 - resource types from `src/types.ts` (e.g. `RentmanEquipmentItem`, `RentmanProject`, `RentmanContact`)
@@ -64,7 +64,25 @@ All methods throw `RentmanApiError` for non-2xx API responses.
 ## Query helpers
 
 ```ts
-import { buildRentmanQuery, rel, notNull, isNull } from '@alternative-design-and-media/rentman-api-connector';
+import {
+  buildQueryParams,
+  buildQueryString,
+  buildRentmanQuery,
+  rel,
+  notNull,
+  isNull,
+} from '@alternative-design-and-media/rentman-api-connector';
+
+const queryParams = buildQueryParams({
+  filters: { 'in_archive[eq]': false },
+});
+// -> { 'in_archive[eq]': '0' }
+
+const queryString = buildQueryString(
+  { filters: { 'status[eq]': '/statuses/3' } },
+  { preserveSlashes: true },
+);
+// -> ?status%5Beq%5D=/statuses/3
 
 const params = buildRentmanQuery({
   fields: ['id', 'name'],

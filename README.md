@@ -636,7 +636,14 @@ DELETE an item by ID.
 ### Query builder helpers
 
 ```ts
-import { rel, notNull, isNull, buildRentmanQuery } from '@alternative-design-and-media/rentman-api-connector';
+import {
+  rel,
+  notNull,
+  isNull,
+  buildQueryParams,
+  buildQueryString,
+  buildRentmanQuery,
+} from '@alternative-design-and-media/rentman-api-connector';
 
 // rel(field, op, value) — relational filter
 rel('distance', 'lte', 300)    // → distance[lte]=300
@@ -644,6 +651,19 @@ rel('distance', 'lte', 300)    // → distance[lte]=300
 // notNull(field) / isNull(field) — null-check filter
 notNull('folder')              // → folder[isnull]=false
 isNull('archive')              // → archive[isnull]=true
+
+// buildQueryParams(options) — returns a plain Record<string, string>
+const queryParams = buildQueryParams({
+  filters: { 'in_archive[eq]': false },
+});
+// → { 'in_archive[eq]': '0' }
+
+// buildQueryString(options, { preserveSlashes: true }) — keeps path filter slashes readable
+const queryString = buildQueryString(
+  { filters: { 'status[eq]': '/statuses/3' } },
+  { preserveSlashes: true },
+);
+// → ?status%5Beq%5D=/statuses/3
 
 // buildRentmanQuery(options) — returns URLSearchParams
 const params = buildRentmanQuery({

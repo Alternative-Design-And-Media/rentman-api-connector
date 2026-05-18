@@ -227,7 +227,8 @@ npm install ${pkg.name}
 - \`RentmanClient\`
 - \`RentmanApiError\`
 - \`ENDPOINTS\`
-- query helpers: \`buildRentmanQuery\`, \`rel\`, \`notNull\`, \`isNull\`
+- query helpers: \`buildQueryParams\`, \`buildQueryString\`, \`buildRentmanQuery\`, \`rel\`, \`notNull\`, \`isNull\`
+- scan helper: \`scanAll\`, \`ScanOptions\`, \`ScanResult<T>\`
 - lookup cache helpers: \`fetchLookupMap\`, \`fetchStatusCache\`, \`fetchFolderNameCache\`
 - resource types from \`src/types.ts\` (e.g. \`RentmanEquipmentItem\`, \`RentmanProject\`, \`RentmanContact\`)
 
@@ -250,6 +251,7 @@ const rentman = createRentmanClient({
 
 - \`list<T>(path, query?)\` → \`Promise<RentmanCollectionResponse<T>>\`
 - \`listAll<T>(path, query?, pageSize = 300)\` → \`Promise<T[]>\` (auto-paginates)
+- \`scanAll<T>(client, endpoint, query, options?)\` → \`Promise<{ items: T[]; totalCount: number; limitReached: boolean }>\`
 - \`listSub<T>(parentPath, parentId, subPath, query?)\` → \`Promise<RentmanCollectionResponse<T>>\`
 - \`listAllSub<T>(parentPath, parentId, subPath, query?, pageSize = 300)\` → \`Promise<T[]>\` (auto-paginates)
 - \`get<T>(path, id, query?)\` → \`Promise<RentmanItemResponse<T>>\`
@@ -262,7 +264,25 @@ All methods throw \`RentmanApiError\` for non-2xx API responses.
 ## Query helpers
 
 \`\`\`ts
-import { buildRentmanQuery, rel, notNull, isNull } from '${pkg.name}';
+import {
+  buildQueryParams,
+  buildQueryString,
+  buildRentmanQuery,
+  rel,
+  notNull,
+  isNull,
+} from '${pkg.name}';
+
+const queryParams = buildQueryParams({
+  filters: { 'in_archive[eq]': false },
+});
+// -> { 'in_archive[eq]': '0' }
+
+const queryString = buildQueryString(
+  { filters: { 'status[eq]': '/statuses/3' } },
+  { preserveSlashes: true },
+);
+// -> ?status%5Beq%5D=/statuses/3
 
 const params = buildRentmanQuery({
   fields: ['id', 'name'],
@@ -366,9 +386,9 @@ npm install ${pkg.name}
 
 ## Main exports
 
-- Client API: \`createRentmanClient\`, \`RentmanClient\`, \`RentmanApiError\`
+- Client API: \`createRentmanClient\`, \`RentmanClient\`, \`RentmanApiError\`, \`scanAll\`
 - Endpoint constants: \`ENDPOINTS\`, \`RentmanEndpoint\`
-- Query API: \`buildRentmanQuery\`, \`rel\`, \`notNull\`, \`isNull\`
+- Query API: \`buildQueryParams\`, \`buildQueryString\`, \`buildRentmanQuery\`, \`rel\`, \`notNull\`, \`isNull\`
 - Lookup cache helpers: \`fetchLookupMap\`, \`fetchStatusCache\`, \`fetchFolderNameCache\`
 - Types: all resource/entity and response types from package root
 
@@ -413,6 +433,12 @@ const rentman = createRentmanClient({
 \`\`\`ts
 list<T>(path: RentmanEndpoint, query?: RentmanQueryOptions): Promise<RentmanCollectionResponse<T>>
 listAll<T>(path: RentmanEndpoint, query?: Omit<RentmanQueryOptions, 'limit' | 'offset'>, pageSize?: number): Promise<T[]>
+scanAll<T>(
+  client: RentmanClient,
+  endpoint: RentmanEndpoint,
+  query: Omit<RentmanQueryOptions, 'limit' | 'offset'>,
+  options?: { pageSize?: number; scanLimit?: number },
+): Promise<{ items: T[]; totalCount: number; limitReached: boolean }>
 listSub<T>(parentPath: RentmanEndpoint, parentId: number, subPath: string, query?: RentmanQueryOptions): Promise<RentmanCollectionResponse<T>>
 listAllSub<T>(parentPath: RentmanEndpoint, parentId: number, subPath: string, query?: Omit<RentmanQueryOptions, 'limit' | 'offset'>, pageSize?: number): Promise<T[]>
 get<T>(path: RentmanEndpoint, id: number, query?: Pick<RentmanQueryOptions, 'fields'>): Promise<RentmanItemResponse<T>>
@@ -425,6 +451,7 @@ Behavior notes:
 
 - \`list\` returns \`{ data, itemCount, limit, offset }\`
 - \`listAll\` auto-paginates and concatenates all pages
+- \`scanAll\` auto-paginates with optional \`scanLimit\`; returns \`{ items, totalCount, limitReached }\`
 - \`listSub\` builds path-level sub-resource URLs: \`\${parentPath}/\${parentId}\${subPath}\`
 - \`listAllSub\` auto-paginates and concatenates all sub-resource pages
 - \`listAll\` default \`pageSize\` is \`300\` (Rentman API hard cap)
@@ -460,26 +487,33 @@ interface RentmanNullFilter {
 interface RentmanQueryOptions {
   fields?: string | string[];
   sort?: string | string[];
-  filters?: Record<string, string | number>;
+  filters?: Record<string, string | number | boolean>;
   relFilters?: RentmanRelFilter[];
   nullFilters?: RentmanNullFilter[];
   limit?: number;
   offset?: number;
 }
+
+interface BuildQueryOptions {
+  preserveSlashes?: boolean;
+}
 \`\`\`
 
-Serialization rules in \`buildRentmanQuery\`:
+Serialization rules in \`buildQueryParams()\` / \`buildQueryString()\`:
 
 - \`fields\`: array joins with commas
 - \`sort\`: array joins with commas
-- \`filters\`: key/value as direct query params
+- \`filters\`: key/value as direct query params; boolean values become \`1\` / \`0\`
 - \`relFilters\`: \`field[op]=value\`
 - \`nullFilters\`: \`field[isnull]=true|false\`
 - \`limit\` and \`offset\` emitted if defined
+- \`buildQueryString(..., { preserveSlashes: true })\` keeps \`/\` unescaped in values
 
 Helper signatures:
 
 \`\`\`ts
+buildQueryParams(opts: RentmanQueryOptions): Record<string, string>
+buildQueryString(opts: RentmanQueryOptions, options?: BuildQueryOptions): string
 buildRentmanQuery(opts: RentmanQueryOptions): URLSearchParams
 rel(field: string, op: RentmanRelOp, value: string | number): RentmanRelFilter
 notNull(field: string): RentmanNullFilter
@@ -489,7 +523,23 @@ isNull(field: string): RentmanNullFilter
 Helper examples:
 
 \`\`\`ts
-import { buildRentmanQuery, rel, notNull, isNull } from '${pkg.name}';
+import {
+  buildQueryParams,
+  buildQueryString,
+  buildRentmanQuery,
+  rel,
+  notNull,
+  isNull,
+} from '${pkg.name}';
+
+const queryParams = buildQueryParams({
+  filters: { 'in_archive[eq]': false },
+});
+
+const queryString = buildQueryString(
+  { filters: { 'status[eq]': '/statuses/3' } },
+  { preserveSlashes: true },
+);
 
 const params = buildRentmanQuery({
   fields: ['id', 'name'],

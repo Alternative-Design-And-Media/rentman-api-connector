@@ -12,6 +12,7 @@
 
 /** The six relational filter operators the Rentman API supports. */
 export type RentmanRelOp = 'lt' | 'lte' | 'gt' | 'gte' | 'neq';
+export type RentmanFilterValue = string | number | boolean;
 
 /** A single relational filter, e.g. `distance[lte]=300`. */
 export interface RentmanRelFilter {
@@ -37,8 +38,8 @@ export interface RentmanQueryOptions {
    * `limit`/`offset` are set.
    */
   sort?: string | string[];
-  /** Simple equality filters: `{ country: 'gb', status: 'active' }`. */
-  filters?: Record<string, string | number>;
+  /** Simple equality filters: `{ country: 'gb', status: 'active', in_archive: false }`. */
+  filters?: Record<string, RentmanFilterValue>;
   /** Relational filters, e.g. `[{ field: 'distance', op: 'lte', value: 300 }]`. */
   relFilters?: RentmanRelFilter[];
   /** Null-check filters, e.g. `[{ field: 'folder', isNull: false }]`. */
@@ -51,41 +52,15 @@ export interface RentmanQueryOptions {
   suppressWarnings?: boolean;
 }
 
-/**
- * Build a `URLSearchParams` object from `RentmanQueryOptions`.
- *
- * Serialization rules:
- * - `fields`: `string[]` becomes comma-separated (`fields=id,name`), `string` is used as-is.
- * - `sort`: `string[]` becomes comma-separated (`sort=+name,-created`), `string` is used as-is.
- * - `filters`: each key/value is emitted as `key=value`.
- * - `relFilters`: each filter is emitted as `field[op]=value` where `op` is `lt|lte|gt|gte|neq`.
- * - `nullFilters`: each filter is emitted as `field[isnull]=true|false`.
- * - `limit` / `offset`: emitted as numeric query params when defined.
- *
- * Caveats:
- * - With pagination (`limit`/`offset`), Rentman applies only the first sort field.
- *   This helper emits a warning when multiple sort fields are provided, unless
- *   `suppressWarnings` is set to `true`.
- * - Generated fields cannot be used as filter or sort keys when paginating.
- *
- * @param opts - Query options to serialize into Rentman-compatible URL parameters.
- * @returns A `URLSearchParams` instance ready to append to collection/list requests.
- *
- * @example
- * const params = buildRentmanQuery({
- *   fields: ['id', 'name', 'price'],
- *   sort: ['+name', '-created'],
- *   filters: { country: 'gb' },
- *   relFilters: [{ field: 'distance', op: 'lte', value: 300 }],
- *   nullFilters: [{ field: 'folder', isNull: false }],
- *   limit: 50,
- *   offset: 0,
- * });
- * // → fields=id,name,price&sort=%2Bname,-created&country=gb&distance[lte]=300&folder[isnull]=false&limit=50&offset=0
- */
-export function buildRentmanQuery(opts: RentmanQueryOptions): URLSearchParams {
-  const p = new URLSearchParams();
+export interface BuildQueryOptions {
+  /**
+   * When true, forward-slashes in values are left unescaped.
+   * Useful for Rentman resource-path filter values like `/statuses/3`.
+   */
+  preserveSlashes?: boolean;
+}
 
+function warnForPaginatedMultiSort(opts: RentmanQueryOptions): void {
   if (
     !opts.suppressWarnings &&
     Array.isArray(opts.sort) &&
@@ -98,39 +73,124 @@ export function buildRentmanQuery(opts: RentmanQueryOptions): URLSearchParams {
       + `Received: sort=[${opts.sort.join(', ')}]`,
     );
   }
+}
+
+function stringifyFilterValue(value: RentmanFilterValue): string {
+  if (typeof value === 'boolean') return value ? '1' : '0';
+  return String(value);
+}
+
+/**
+ * Build a plain query-parameter record from `RentmanQueryOptions`.
+ *
+ * Serialization rules:
+ * - `fields`: `string[]` becomes comma-separated (`fields=id,name`), `string` is used as-is.
+ * - `sort`: `string[]` becomes comma-separated (`sort=+name,-created`), `string` is used as-is.
+ * - `filters`: each key/value is emitted as `key=value`; boolean values become `1` / `0`.
+ * - `relFilters`: each filter is emitted as `field[op]=value` where `op` is `lt|lte|gt|gte|neq`.
+ * - `nullFilters`: each filter is emitted as `field[isnull]=true|false`.
+ * - `limit` / `offset`: emitted as numeric query params when defined.
+ *
+ * Caveats:
+ * - With pagination (`limit`/`offset`), Rentman applies only the first sort field.
+ *   This helper emits a warning when multiple sort fields are provided, unless
+ *   `suppressWarnings` is set to `true`.
+ * - Generated fields cannot be used as filter or sort keys when paginating.
+ *
+ * @param opts - Query options to serialize into Rentman-compatible URL parameters.
+ * @returns A plain object of serialized query parameters.
+ *
+ * @example
+ * const params = buildQueryParams({
+ *   fields: ['id', 'name', 'price'],
+ *   sort: ['+name', '-created'],
+ *   filters: { country: 'gb', in_archive: false },
+ *   relFilters: [{ field: 'distance', op: 'lte', value: 300 }],
+ *   nullFilters: [{ field: 'folder', isNull: false }],
+ *   limit: 50,
+ *   offset: 0,
+ * });
+ * // → {
+ * //   fields: 'id,name,price',
+ * //   sort: '+name,-created',
+ * //   country: 'gb',
+ * //   in_archive: '0',
+ * //   'distance[lte]': '300',
+ * //   'folder[isnull]': 'false',
+ * //   limit: '50',
+ * //   offset: '0',
+ * // }
+ */
+export function buildQueryParams(opts: RentmanQueryOptions): Record<string, string> {
+  warnForPaginatedMultiSort(opts);
+  const params: Record<string, string> = {};
 
   if (opts.fields) {
     const f = Array.isArray(opts.fields) ? opts.fields.join(',') : opts.fields;
-    if (f) p.set('fields', f);
+    if (f) params.fields = f;
   }
 
   if (opts.sort) {
     const s = Array.isArray(opts.sort) ? opts.sort.join(',') : opts.sort;
-    if (s) p.set('sort', s);
+    if (s) params.sort = s;
   }
 
   if (opts.filters) {
     for (const [key, val] of Object.entries(opts.filters)) {
-      p.set(key, String(val));
+      params[key] = stringifyFilterValue(val);
     }
   }
 
   if (opts.relFilters) {
     for (const { field, op, value } of opts.relFilters) {
-      p.set(`${field}[${op}]`, String(value));
+      params[`${field}[${op}]`] = String(value);
     }
   }
 
   if (opts.nullFilters) {
     for (const { field, isNull } of opts.nullFilters) {
-      p.set(`${field}[isnull]`, isNull ? 'true' : 'false');
+      params[`${field}[isnull]`] = isNull ? 'true' : 'false';
     }
   }
 
-  if (opts.limit !== undefined) p.set('limit', String(opts.limit));
-  if (opts.offset !== undefined) p.set('offset', String(opts.offset));
+  if (opts.limit !== undefined) params.limit = String(opts.limit);
+  if (opts.offset !== undefined) params.offset = String(opts.offset);
 
-  return p;
+  return params;
+}
+
+/**
+ * Build a URL query string from `RentmanQueryOptions`.
+ *
+ * @param opts - Query options to serialize.
+ * @param options - Serialization tweaks for Rentman-specific encoding behavior.
+ * @returns A `?`-prefixed query string, or an empty string when no params are present.
+ */
+export function buildQueryString(
+  opts: RentmanQueryOptions,
+  options: BuildQueryOptions = {},
+): string {
+  const params = buildQueryParams(opts);
+  const query = Object.entries(params)
+    .map(([key, value]) => {
+      const encodedValue = encodeURIComponent(value);
+      return `${encodeURIComponent(key)}=${options.preserveSlashes
+        ? encodedValue.replace(/%2F/gi, '/')
+        : encodedValue}`;
+    })
+    .join('&');
+
+  return query ? `?${query}` : '';
+}
+
+/**
+ * Backward-compatible `URLSearchParams` wrapper around `buildQueryParams()`.
+ *
+ * @param opts - Query options to serialize into Rentman-compatible URL parameters.
+ * @returns A `URLSearchParams` instance ready to append to collection/list requests.
+ */
+export function buildRentmanQuery(opts: RentmanQueryOptions): URLSearchParams {
+  return new URLSearchParams(buildQueryParams(opts));
 }
 
 // ---------------------------------------------------------------------------
