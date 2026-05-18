@@ -1,12 +1,9 @@
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { basename, dirname, join, relative, resolve } from 'node:path';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const root = join(__dirname, '..');
-
-const CONFIG_PATH = join(root, 'custom-fields.config.json');
-const OUTPUT_PATH = join(root, 'src', 'generated', 'custom-fields.generated.ts');
+const PACKAGE_NAME = '@alternative-design-and-media/rentman-api-connector';
+const DEFAULT_CONFIG_PATH = 'custom-fields.config.json';
+const OUTPUT_PATH = join('src', 'generated', 'custom-fields.generated.ts');
 const SECTION_HEADER_WIDTH = 74;
 
 type Primitive = string | number | boolean | null;
@@ -59,6 +56,20 @@ interface RentmanCustomFieldDefinition {
   default_value?: Primitive;
   options?: RentmanDropdownOption[];
   linked_item_type?: RentmanLinkedItemType;
+}
+
+interface CliOptions {
+  configPath: string;
+  configLabel: string;
+  outputPath: string;
+  usePackageImports: boolean;
+}
+
+interface GeneratedFileOptions {
+  configLabel: string;
+  regenerationCommand: string;
+  withCustomFieldsImportSource: string;
+  modelTypesImportSource: string;
 }
 
 const CUSTOM_FIELD_TYPES: readonly RentmanCustomFieldType[] = [
@@ -225,13 +236,87 @@ function assertBoolean(
   return value;
 }
 
+function isRepositoryLocalGeneration(cwd: string): boolean {
+  const packageJsonPath = join(cwd, 'package.json');
+
+  if (!existsSync(packageJsonPath)) {
+    return false;
+  }
+
+  try {
+    const pkg = JSON.parse(readFileSync(packageJsonPath, 'utf8')) as { name?: unknown };
+    return (
+      pkg.name === PACKAGE_NAME &&
+      existsSync(join(cwd, 'src', 'custom-fields.ts')) &&
+      existsSync(join(cwd, 'src', 'types.ts'))
+    );
+  } catch {
+    return false;
+  }
+}
+
+function printHelp(): void {
+  console.log(`Usage: generate-rentman-custom-fields [--config path]
+
+Generates typed custom field helpers into src/generated/custom-fields.generated.ts.
+
+Options:
+  --config <path>  Use a custom config file instead of ./custom-fields.config.json
+  -h, --help       Show this help message`);
+}
+
+function parseCliOptions(argv: string[]): CliOptions {
+  const cwd = process.cwd();
+  let configArg: string | undefined;
+  let index = 0;
+
+  while (index < argv.length) {
+    const arg = argv[index];
+
+    if (arg === '-h' || arg === '--help') {
+      printHelp();
+      process.exit(0);
+    }
+
+    if (arg === '--config') {
+      const nextArg = argv[index + 1];
+      if (!nextArg || nextArg.startsWith('-')) {
+        throw new Error('Missing value for --config.');
+      }
+
+      configArg = nextArg;
+      index += 1;
+    } else if (arg.startsWith('--config=')) {
+      configArg = arg.slice('--config='.length);
+      if (!configArg) {
+        throw new Error('Missing value for --config.');
+      }
+    } else {
+      throw new Error(`Unknown argument: ${arg}`);
+    }
+
+    index += 1;
+  }
+
+  const configPath = configArg ? resolve(cwd, configArg) : join(cwd, DEFAULT_CONFIG_PATH);
+  const configLabel = relative(cwd, configPath) || basename(configPath);
+
+  return {
+    configPath,
+    configLabel,
+    outputPath: join(cwd, OUTPUT_PATH),
+    usePackageImports: !isRepositoryLocalGeneration(cwd),
+  };
+}
+
 function validateEntry(
   rawEntry: unknown,
   row: number,
+  configLabel: string,
   warnings: string[],
   errors: string[],
 ): RentmanCustomFieldDefinition | undefined {
-  const rowLabel = `custom-fields.config.json row ${row}`;
+  const rowLabel = `${configLabel} row ${row}`;
 
   if (!isRecord(rawEntry)) {
     errors.push(`${rowLabel} must be an object.`);
@@ -450,7 +535,10 @@ function renderDropdownHelpers(
   ].join('\n');
 }
 
-function generateFile(definitions: RentmanCustomFieldDefinition[]): string {
+function generateFile(
+  definitions: RentmanCustomFieldDefinition[],
+  options: GeneratedFileOptions,
+): string {
   const byModel = new Map<RentmanCustomFieldModel, RentmanCustomFieldDefinition[]>();
   const modelOrder: RentmanCustomFieldModel[] = [];
 
@@ -505,16 +593,26 @@ function generateFile(definitions: RentmanCustomFieldDefinition[]): string {
     sections.push(sectionLines.join('\n'));
   }
 
-  const headerLines = [
-    '// AUTO-GENERATED — do not edit manually.',
-    '// Source: custom-fields.config.json',
-    '// Run `npm run generate:custom-fields` to regenerate.',
-    '',
-    "import type { WithCustomFields } from '../custom-fields.js';",
-  ];
+  const importsBySource = new Map<string, string[]>([
+    [options.withCustomFieldsImportSource, ['WithCustomFields']],
+  ]);
 
   if (usedTypeImports.length > 0) {
-    headerLines.push(`import type { ${usedTypeImports.join(', ')} } from '../types.js';`);
+    const existingImports = importsBySource.get(options.modelTypesImportSource) ?? [];
+    importsBySource.set(options.modelTypesImportSource, [...existingImports, ...usedTypeImports]);
+  }
+
+  const headerLines = [
+    '// AUTO-GENERATED — do not edit manually.',
+    `// Source: ${options.configLabel}`,
+    `// Run \`${options.regenerationCommand}\` to regenerate.`,
+    '',
+  ];
+
+  for (const [source, imports] of importsBySource) {
+    headerLines.push(
+      `import type { ${Array.from(new Set(imports)).join(', ')} } from ${renderStringLiteral(source)};`,
+    );
   }
 
   headerLines.push('', '');
@@ -524,15 +622,24 @@ function generateFile(definitions: RentmanCustomFieldDefinition[]): string {
 }
 
 function main(): void {
+  let cliOptions: CliOptions;
+  try {
+    cliOptions = parseCliOptions(process.argv.slice(2));
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(`[generate:custom-fields] ${message}`);
+    process.exit(1);
+  }
+
   const warnings: string[] = [];
   const errors: string[] = [];
 
   let parsed: unknown;
   try {
-    parsed = JSON.parse(readFileSync(CONFIG_PATH, 'utf8'));
+    parsed = JSON.parse(readFileSync(cliOptions.configPath, 'utf8'));
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    console.error(`[generate:custom-fields] Failed to read ${CONFIG_PATH}: ${message}`);
+    console.error(`[generate:custom-fields] Failed to read ${cliOptions.configPath}: ${message}`);
     process.exit(1);
   }
 
@@ -542,7 +649,7 @@ function main(): void {
   }
 
   const definitions = parsed
-    .map((entry, index) => validateEntry(entry, index + 1, warnings, errors))
+    .map((entry, index) => validateEntry(entry, index + 1, cliOptions.configLabel, warnings, errors))
     .filter((entry): entry is RentmanCustomFieldDefinition => entry !== undefined);
 
   if (errors.length > 0) {
@@ -556,12 +663,21 @@ function main(): void {
     console.warn(`[generate:custom-fields] WARNING: ${warning}`);
   }
 
-  const output = generateFile(definitions);
-  mkdirSync(dirname(OUTPUT_PATH), { recursive: true });
-  writeFileSync(OUTPUT_PATH, output, 'utf8');
+  const output = generateFile(definitions, {
+    configLabel: cliOptions.configLabel,
+    regenerationCommand: cliOptions.usePackageImports
+      ? 'npx generate-rentman-custom-fields'
+      : 'npm run generate:custom-fields',
+    withCustomFieldsImportSource: cliOptions.usePackageImports
+      ? PACKAGE_NAME
+      : '../custom-fields.js',
+    modelTypesImportSource: cliOptions.usePackageImports ? PACKAGE_NAME : '../types.js',
+  });
+  mkdirSync(dirname(cliOptions.outputPath), { recursive: true });
+  writeFileSync(cliOptions.outputPath, output, 'utf8');
 
   console.log(
-    `[generate:custom-fields] Generated ${OUTPUT_PATH} from ${definitions.length} custom field definitions.`,
+    `[generate:custom-fields] Generated ${cliOptions.outputPath} from ${definitions.length} custom field definition${definitions.length === 1 ? '' : 's'}.`,
   );
 }
 
