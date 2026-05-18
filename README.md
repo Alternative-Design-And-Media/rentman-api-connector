@@ -586,6 +586,21 @@ Fetch a collection. Returns `RentmanCollectionResponse<T>` with `data`, `itemCou
 
 Auto-paginate through all items. `pageSize` defaults to `300` (the API hard cap).
 
+### `scanAll<T>(client, endpoint, query, options?)`
+
+Paginated scan helper that returns `{ items, totalCount, limitReached }`.
+
+```ts
+import { ENDPOINTS, scanAll } from '@alternative-design-and-media/rentman-api-connector';
+
+const { items, limitReached, totalCount } = await scanAll(rentman, ENDPOINTS.subProjects, {
+  sort: ['modified'],
+}, {
+  pageSize: 300,
+  scanLimit: 1500,
+});
+```
+
 ### `client.listSub<T>(parentPath, parentId, subPath, query?)`
 
 Fetch a sub-resource collection via path-level URL generation (`${parentPath}/${parentId}${subPath}`).

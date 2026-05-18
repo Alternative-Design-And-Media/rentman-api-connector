@@ -19,7 +19,7 @@ npm install @alternative-design-and-media/rentman-api-connector
 
 ## Main exports
 
-- Client API: `createRentmanClient`, `RentmanClient`, `RentmanApiError`
+- Client API: `createRentmanClient`, `RentmanClient`, `RentmanApiError`, `scanAll`
 - Endpoint constants: `ENDPOINTS`, `RentmanEndpoint`
 - Query API: `buildRentmanQuery`, `rel`, `notNull`, `isNull`
 - Lookup cache helpers: `fetchLookupMap`, `fetchStatusCache`, `fetchFolderNameCache`
@@ -66,6 +66,12 @@ const rentman = createRentmanClient({
 ```ts
 list<T>(path: RentmanEndpoint, query?: RentmanQueryOptions): Promise<RentmanCollectionResponse<T>>
 listAll<T>(path: RentmanEndpoint, query?: Omit<RentmanQueryOptions, 'limit' | 'offset'>, pageSize?: number): Promise<T[]>
+scanAll<T>(
+  client: RentmanClient,
+  endpoint: RentmanEndpoint,
+  query: Omit<RentmanQueryOptions, 'limit' | 'offset'>,
+  options?: { pageSize?: number; scanLimit?: number },
+): Promise<{ items: T[]; totalCount: number; limitReached: boolean }>
 listSub<T>(parentPath: RentmanEndpoint, parentId: number, subPath: string, query?: RentmanQueryOptions): Promise<RentmanCollectionResponse<T>>
 listAllSub<T>(parentPath: RentmanEndpoint, parentId: number, subPath: string, query?: Omit<RentmanQueryOptions, 'limit' | 'offset'>, pageSize?: number): Promise<T[]>
 get<T>(path: RentmanEndpoint, id: number, query?: Pick<RentmanQueryOptions, 'fields'>): Promise<RentmanItemResponse<T>>
@@ -78,6 +84,7 @@ Behavior notes:
 
 - `list` returns `{ data, itemCount, limit, offset }`
 - `listAll` auto-paginates and concatenates all pages
+- `scanAll` auto-paginates with optional `scanLimit`; returns `{ items, totalCount, limitReached }`
 - `listSub` builds path-level sub-resource URLs: `${parentPath}/${parentId}${subPath}`
 - `listAllSub` auto-paginates and concatenates all sub-resource pages
 - `listAll` default `pageSize` is `300` (Rentman API hard cap)

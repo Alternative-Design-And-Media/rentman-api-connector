@@ -50,6 +50,21 @@ export interface RentmanClientOptions {
   fetch?: typeof globalThis.fetch;
 }
 
+export interface ScanOptions {
+  /** Max page size for each request. Default: 300 (Rentman OAS default). */
+  pageSize?: number;
+  /** Maximum total items to collect before stopping. Default: Infinity. */
+  scanLimit?: number;
+}
+
+export interface ScanResult<T> {
+  items: T[];
+  /** True when scanLimit was reached before the full collection was read. */
+  limitReached: boolean;
+  /** Total item count reported by the Rentman API (from first page response). */
+  totalCount: number;
+}
+
 // ---------------------------------------------------------------------------
 // Client
 // ---------------------------------------------------------------------------
@@ -314,6 +329,51 @@ export class RentmanClient {
   delete(path: RentmanEndpoint, id: number): Promise<void> {
     return this.request<void>(`${path}/${id}`, { method: 'DELETE' });
   }
+}
+
+/**
+ * Fetches items from a Rentman endpoint page by page until all items
+ * are collected, the scanLimit is reached, or no more pages are available.
+ */
+export async function scanAll<T>(
+  client: RentmanClient,
+  endpoint: RentmanEndpoint,
+  query: Omit<RentmanQueryOptions, 'limit' | 'offset'>,
+  options: ScanOptions = {},
+): Promise<ScanResult<T>> {
+  const pageSize = options.pageSize ?? 300;
+  const scanLimit = options.scanLimit ?? Number.POSITIVE_INFINITY;
+
+  const items: T[] = [];
+  let totalCount = 0;
+  let offset = 0;
+
+  while (items.length < scanLimit) {
+    const page = await client.list<T>(endpoint, { ...query, limit: pageSize, offset });
+
+    if (offset === 0) {
+      totalCount = page.itemCount;
+    }
+
+    if (page.data.length === 0) break;
+
+    const remaining = scanLimit - items.length;
+    if (page.data.length > remaining) {
+      items.push(...page.data.slice(0, remaining));
+      break;
+    }
+
+    items.push(...page.data);
+    offset += page.data.length;
+
+    if (items.length >= totalCount) break;
+  }
+
+  return {
+    items,
+    totalCount,
+    limitReached: items.length >= scanLimit && items.length < totalCount,
+  };
 }
 
 /**
