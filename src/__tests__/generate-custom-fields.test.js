@@ -62,7 +62,7 @@ describe('generate-custom-fields CLI', () => {
 
     const generated = readFileSync(generatedPath, 'utf8');
 
-    expect(stdout).toContain(`Generated ${generatedPath} from 1 custom field definitions.`);
+    expect(stdout).toContain(`Generated ${generatedPath} from 1 custom field definition.`);
     expect(generated).toContain(
       "import type { WithCustomFields, RentmanProject } from '@alternative-design-and-media/rentman-api-connector';",
     );

@@ -268,8 +268,9 @@ Options:
 function parseCliOptions(argv: string[]): CliOptions {
   const cwd = process.cwd();
   let configArg: string | undefined;
+  let index = 0;
 
-  for (let index = 0; index < argv.length; index += 1) {
+  while (index < argv.length) {
     const arg = argv[index];
 
     if (arg === '-h' || arg === '--help') {
@@ -285,18 +286,16 @@ function parseCliOptions(argv: string[]): CliOptions {
 
       configArg = nextArg;
       index += 1;
-      continue;
-    }
-
-    if (arg.startsWith('--config=')) {
+    } else if (arg.startsWith('--config=')) {
       configArg = arg.slice('--config='.length);
       if (!configArg) {
         throw new Error('Missing value for --config.');
       }
-      continue;
+    } else {
+      throw new Error(`Unknown argument: ${arg}`);
     }
 
-    throw new Error(`Unknown argument: ${arg}`);
+    index += 1;
   }
 
   const configPath = configArg ? resolve(cwd, configArg) : join(cwd, DEFAULT_CONFIG_PATH);
@@ -678,7 +677,7 @@ function main(): void {
   writeFileSync(cliOptions.outputPath, output, 'utf8');
 
   console.log(
-    `[generate:custom-fields] Generated ${cliOptions.outputPath} from ${definitions.length} custom field definitions.`,
+    `[generate:custom-fields] Generated ${cliOptions.outputPath} from ${definitions.length} custom field definition${definitions.length === 1 ? '' : 's'}.`,
   );
 }
 
