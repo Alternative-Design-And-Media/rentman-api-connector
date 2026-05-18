@@ -1,6 +1,6 @@
 # @alternative-design-and-media/rentman-api-connector
 
-v1.0.1
+v1.1.0
 
 > Type-safe Rentman REST API connector for Node.js and edge runtimes (Cloudflare Workers).
 > Synced to **OAS v1.7.0** (deployment 2025-11-13).
