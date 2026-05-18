@@ -13,6 +13,12 @@ import type {
   RentmanTemplate,
   WithUnknownFields,
 } from '../types.js';
+import type {
+  RentmanCustomFieldDefinition,
+  RentmanCustomFieldTypeMap,
+  RentmanCustomRecord,
+  WithCustomFields,
+} from '../custom-fields.js';
 
 describe('RentmanEquipmentSetContent', () => {
   it('accepts a valid OAS sample payload', () => {
@@ -312,5 +318,45 @@ describe('WithUnknownFields escape hatch', () => {
     const item = {} as unknown as WithUnknownFields<RentmanEquipmentItem>;
     const v = item.arbitraryField; // must NOT error
     expectTypeOf(v).toBeUnknown();
+  });
+});
+
+describe('custom field helpers', () => {
+  it('maps Rentman custom field kinds to TypeScript value types', () => {
+    expectTypeOf<RentmanCustomFieldTypeMap['text']>().toEqualTypeOf<string>();
+    expectTypeOf<RentmanCustomFieldTypeMap['yes_no']>().toEqualTypeOf<boolean>();
+    expectTypeOf<RentmanCustomFieldTypeMap['price']>().toEqualTypeOf<number>();
+  });
+
+  it('supports typed custom field definitions', () => {
+    const definition: RentmanCustomFieldDefinition<'yes_no'> = {
+      id: 11,
+      name: 'is_vip',
+      type: 'yes_no',
+    };
+
+    expectTypeOf(definition.type).toEqualTypeOf<'yes_no'>();
+  });
+
+  it('lets consumers compose strongly typed custom field records', () => {
+    type Project = WithCustomFields<
+      { id: number; name: string; displayname: string },
+      { budget: number; category: string; is_vip: boolean }
+    >;
+
+    const project = {} as Project;
+
+    expectTypeOf(project.custom?.budget).toEqualTypeOf<number | undefined>();
+    expectTypeOf(project.custom?.category).toEqualTypeOf<string | undefined>();
+    expectTypeOf(project.custom?.is_vip).toEqualTypeOf<boolean | undefined>();
+  });
+
+  it('provides an open base type for generic custom objects', () => {
+    const record = {} as RentmanCustomRecord;
+    const value = record.custom?.budget;
+
+    expectTypeOf(value).toEqualTypeOf<
+      string | number | boolean | undefined
+    >();
   });
 });
