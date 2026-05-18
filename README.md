@@ -20,6 +20,7 @@ v1.0.1
 - ✅ Edge-runtime compatible — uses native `fetch` only (Node.js 18+, Cloudflare Workers)
 - ✅ Token rotation via callback — no need to recreate the client on token refresh
 - ✅ Typed custom fields — narrow `custom_<number>` keys per entity at compile time
+- ✅ Resource path utilities — `parseResourcePath`, `resourceId`, `buildResourcePath`
 
 ---
 
@@ -441,6 +442,57 @@ import { type WithUnknownFields, type RentmanEquipmentItem } from '@alternative-
 
 const { data: raw } = await rentman.get<WithUnknownFields<RentmanEquipmentItem>>(ENDPOINTS.equipment, 42);
 console.log(raw.someNewUnmappedField); // typed as `unknown`, no compile error
+```
+
+---
+
+## Resource Path Utilities
+
+Rentman resource references are path strings like `"/contacts/123"`. These helpers let you parse, extract, and build those paths in a null-safe, type-safe way.
+
+### `parseResourcePath(path)`
+
+Parses a path into its entity name and numeric ID. Returns `null` for any invalid or missing input.
+
+```ts
+import { parseResourcePath } from '@alternative-design-and-media/rentman-api-connector';
+
+parseResourcePath('/contacts/123') // → { entity: 'contacts', id: 123 }
+parseResourcePath('/equipment/42') // → { entity: 'equipment', id: 42 }
+parseResourcePath(null)            // → null
+parseResourcePath('/contacts')     // → null  (no ID segment)
+parseResourcePath('/contacts/abc') // → null  (non-numeric ID)
+```
+
+### `resourceId(path)`
+
+Extracts only the numeric ID from a path. Returns `null` for any invalid or missing input.
+
+```ts
+import { resourceId } from '@alternative-design-and-media/rentman-api-connector';
+
+resourceId('/folders/42')  // → 42
+resourceId('/contacts/0')  // → 0
+resourceId(null)           // → null
+resourceId('/contacts')    // → null
+```
+
+### `buildResourcePath(endpoint, id)`
+
+Builds a canonical Rentman resource path from a typed `ENDPOINTS` constant and a numeric ID.
+
+```ts
+import { buildResourcePath, ENDPOINTS } from '@alternative-design-and-media/rentman-api-connector';
+
+buildResourcePath(ENDPOINTS.contacts, 123)  // → '/contacts/123'
+buildResourcePath(ENDPOINTS.equipment, 42)  // → '/equipment/42'
+
+// Use the result directly as a field value in create/update payloads:
+await rentman.create(ENDPOINTS.stockMovements, {
+  equipment: buildResourcePath(ENDPOINTS.equipment, 42),
+  quantity: 10,
+  type: 'manual',
+});
 ```
 
 ---
