@@ -3,6 +3,15 @@
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.2.0] — 2026-05-18
+
+### Added
+- **Custom-fields codegen pipeline** (`npm run generate:custom-fields`) — reads a flat `custom-fields.config.json`, validates entries, and generates `src/generated/custom-fields.generated.ts` with per-model `*CustomFields` interfaces, `*WithCustom` aliases, dropdown string-literal unions, `UPPER_MODEL_FIELD_OPTIONS` constants, and `parse`/`serialize` helpers.
+- **`generate-rentman-custom-fields` CLI** — the custom-fields generator is now shipped as a packaged `bin` entry so consumer projects can run `npx generate-rentman-custom-fields` (or `npx generate-rentman-custom-fields --config ./path/to/custom-fields.config.json`) without needing the source repository.
+- **`--config` flag** for the CLI — resolves the config file and output path relative to the invoking project, enabling non-root config locations.
+
+---
+
 ## [1.1.0] — 2026-05-18
 
 ### Added
