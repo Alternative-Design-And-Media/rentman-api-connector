@@ -157,6 +157,8 @@ export interface RentmanEquipmentItem<TCustom = DefaultCustomFields>
   folder?: string | null;
   type?: string | null;
   in_quantity?: number | null;
+  internal_remark?: string | null;
+  external_remark?: string | null;
   critical_stock_level?: number | null;
   unit?: string | null;
   surface_article?: boolean;
@@ -178,6 +180,7 @@ export interface RentmanEquipmentItem<TCustom = DefaultCustomFields>
   /** GENERATED FIELD */
   quantity_expected?: number | null;
   weight?: number | null;
+  volume?: number | null;
   length?: number | null;
   width?: number | null;
   height?: number | null;
@@ -185,6 +188,8 @@ export interface RentmanEquipmentItem<TCustom = DefaultCustomFields>
   serial?: boolean;
   bulk?: boolean;
   archive?: boolean;
+  in_archive?: boolean;
+  stock_management?: boolean;
 }
 
 // ---------------------------------------------------------------------------
