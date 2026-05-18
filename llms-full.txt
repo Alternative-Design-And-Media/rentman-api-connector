@@ -21,7 +21,7 @@ npm install @alternative-design-and-media/rentman-api-connector
 
 - Client API: `createRentmanClient`, `RentmanClient`, `RentmanApiError`, `scanAll`
 - Endpoint constants: `ENDPOINTS`, `RentmanEndpoint`
-- Query API: `buildRentmanQuery`, `rel`, `notNull`, `isNull`
+- Query API: `buildQueryParams`, `buildQueryString`, `buildRentmanQuery`, `rel`, `notNull`, `isNull`
 - Lookup cache helpers: `fetchLookupMap`, `fetchStatusCache`, `fetchFolderNameCache`
 - Types: all resource/entity and response types from package root
 
@@ -120,26 +120,33 @@ interface RentmanNullFilter {
 interface RentmanQueryOptions {
   fields?: string | string[];
   sort?: string | string[];
-  filters?: Record<string, string | number>;
+  filters?: Record<string, string | number | boolean>;
   relFilters?: RentmanRelFilter[];
   nullFilters?: RentmanNullFilter[];
   limit?: number;
   offset?: number;
 }
+
+interface BuildQueryOptions {
+  preserveSlashes?: boolean;
+}
 ```
 
-Serialization rules in `buildRentmanQuery`:
+Serialization rules in `buildQueryParams()` / `buildQueryString()`:
 
 - `fields`: array joins with commas
 - `sort`: array joins with commas
-- `filters`: key/value as direct query params
+- `filters`: key/value as direct query params; boolean values become `1` / `0`
 - `relFilters`: `field[op]=value`
 - `nullFilters`: `field[isnull]=true|false`
 - `limit` and `offset` emitted if defined
+- `buildQueryString(..., { preserveSlashes: true })` keeps `/` unescaped in values
 
 Helper signatures:
 
 ```ts
+buildQueryParams(opts: RentmanQueryOptions): Record<string, string>
+buildQueryString(opts: RentmanQueryOptions, options?: BuildQueryOptions): string
 buildRentmanQuery(opts: RentmanQueryOptions): URLSearchParams
 rel(field: string, op: RentmanRelOp, value: string | number): RentmanRelFilter
 notNull(field: string): RentmanNullFilter
@@ -149,7 +156,23 @@ isNull(field: string): RentmanNullFilter
 Helper examples:
 
 ```ts
-import { buildRentmanQuery, rel, notNull, isNull } from '@alternative-design-and-media/rentman-api-connector';
+import {
+  buildQueryParams,
+  buildQueryString,
+  buildRentmanQuery,
+  rel,
+  notNull,
+  isNull,
+} from '@alternative-design-and-media/rentman-api-connector';
+
+const queryParams = buildQueryParams({
+  filters: { 'in_archive[eq]': false },
+});
+
+const queryString = buildQueryString(
+  { filters: { 'status[eq]': '/statuses/3' } },
+  { preserveSlashes: true },
+);
 
 const params = buildRentmanQuery({
   fields: ['id', 'name'],
