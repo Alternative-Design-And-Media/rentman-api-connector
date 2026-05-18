@@ -17,8 +17,11 @@ v1.0.1
 - ✅ Explicit `updateHash` on every entity for change tracking
 - ✅ Type-safe query builder — `fields`, `sort`, relational operators, `isnull` filters
 - ✅ Auto-pagination helper (`listAll`) for collections larger than 300 items
+- ✅ Token normalization helper (`normalizeToken`) — accepts bare JWTs and `"Bearer ..."` tokens
 - ✅ Edge-runtime compatible — uses native `fetch` only (Node.js 18+, Cloudflare Workers)
 - ✅ Token rotation via callback — no need to recreate the client on token refresh
+- ✅ Kit/set content helper (`listEquipmentSetContents`) for `/equipment/{id}/equipmentsetscontent`
+- ✅ Equipment field normalizer (`normalizeEquipmentItem`) for mixed OAS/legacy payloads
 - ✅ Typed custom fields — narrow `custom_<number>` keys per entity at compile time
 - ✅ Resource path utilities — `parseResourcePath`, `resourceId`, `buildResourcePath`
 - ✅ Lookup cache helpers — `fetchLookupMap`, `fetchStatusCache`, `fetchFolderNameCache`
@@ -56,7 +59,8 @@ import {
 
 // Create a client once; reuse everywhere.
 const rentman = createRentmanClient({
-  token: process.env.RENTMAN_TOKEN!, // or an async function: token: () => getTokenFromVault()
+  token: process.env.RENTMAN_TOKEN!, // bare JWT or "Bearer ..." also accepted
+  // or an async function: token: () => getTokenFromVault()
 });
 
 // --- List with pagination metadata ---
@@ -578,6 +582,8 @@ console.log(folderNames.get('/folders/116')); // "Lighting"
 | `baseUrl` | `string` | — | Override the API base URL (default: `https://api.rentman.net`). Useful for testing. |
 | `fetch` | `typeof fetch` | — | Custom fetch implementation. Defaults to `globalThis.fetch`. |
 
+Static `token` values may be provided either as a bare JWT or as a `"Bearer ..."` string. The client normalizes the prefix internally.
+
 ### `client.list<T>(path, query?)`
 
 Fetch a collection. Returns `RentmanCollectionResponse<T>` with `data`, `itemCount`, `limit`, `offset`.
@@ -601,6 +607,16 @@ const { items, limitReached, totalCount } = await scanAll(rentman, ENDPOINTS.sub
 });
 ```
 
+### `normalizeToken(token)`
+
+Strips an optional `"Bearer "` prefix from a token string.
+
+```ts
+import { normalizeToken } from '@alternative-design-and-media/rentman-api-connector';
+
+const token = normalizeToken('Bearer eyJhbGciOi...');
+```
+
 ### `client.listSub<T>(parentPath, parentId, subPath, query?)`
 
 Fetch a sub-resource collection via path-level URL generation (`${parentPath}/${parentId}${subPath}`).
@@ -617,6 +633,19 @@ const { data } = await rentman.listSub(
 
 Auto-paginate through all items for a path-level sub-resource collection.
 
+### `listEquipmentSetContents(client, kitId)`
+
+Convenience wrapper around `client.listAllSub()` for kit/set components.
+
+```ts
+import {
+  listEquipmentSetContents,
+  type RentmanEquipmentSetContent,
+} from '@alternative-design-and-media/rentman-api-connector';
+
+const contents: RentmanEquipmentSetContent[] = await listEquipmentSetContents(rentman, 3473);
+```
+
 ### `client.get<T>(path, id, query?)`
 
 Fetch a single item by numeric ID.
@@ -632,6 +661,22 @@ PUT an updated item.
 ### `client.delete(path, id)`
 
 DELETE an item by ID.
+
+### `normalizeEquipmentItem(item)`
+
+Normalizes mixed Rentman equipment payloads into a single predictable shape. It merges OAS fields (for example `current_quantity`) with legacy aliases (for example `currentquantity`), and also keeps the raw item in `_raw`.
+
+```ts
+import {
+  normalizeEquipmentItem,
+  type RentmanEquipmentItem,
+} from '@alternative-design-and-media/rentman-api-connector';
+
+const { data: rawItem } = await rentman.get<RentmanEquipmentItem>(ENDPOINTS.equipment, 42);
+const normalized = normalizeEquipmentItem(rawItem);
+
+console.log(normalized.currentQuantity, normalized.locationInWarehouse);
+```
 
 ### Query builder helpers
 

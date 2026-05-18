@@ -12,10 +12,13 @@
 
 import type {
   RentmanCollectionResponse,
+  DefaultCustomFields,
+  RentmanEquipmentItem,
+  RentmanEquipmentSetContent,
   RentmanItemResponse,
 } from './types.js';
 import { buildRentmanQuery, type RentmanQueryOptions } from './query.js';
-import type { RentmanEndpoint } from './endpoints.js';
+import { ENDPOINTS, type RentmanEndpoint } from './endpoints.js';
 
 export const RENTMAN_BASE_URL = 'https://api.rentman.net';
 
@@ -34,13 +37,21 @@ export class RentmanApiError extends Error {
   }
 }
 
+/**
+ * Strips an optional "Bearer " prefix from a Rentman API token.
+ * `createRentmanClient()` also accepts this format directly.
+ */
+export function normalizeToken(token: string): string {
+  return token.trim().replace(/^Bearer\s+/i, '');
+}
+
 // ---------------------------------------------------------------------------
 // Client options
 // ---------------------------------------------------------------------------
 
 export interface RentmanClientOptions {
   /**
-   * JWT token **or** an async function that returns one.
+   * JWT token (bare or `"Bearer ..."` form) **or** an async function that returns one.
    * Using a function allows token rotation without recreating the client.
    */
   token: string | (() => string | Promise<string>);
@@ -65,6 +76,79 @@ export interface ScanResult<T> {
   totalCount: number;
 }
 
+export interface NormalizedEquipmentItem<TCustom = DefaultCustomFields> {
+  id: number;
+  name: string;
+  code: string | null;
+  currentQuantity: number | null;
+  criticalStockLevel: number | null;
+  isArchived: boolean;
+  locationInWarehouse: string | null;
+  internalRemark: string | null;
+  externalRemark: string | null;
+  folder: string | null;
+  tags: string[];
+  price: number | null;
+  weight: number | null;
+  volume: number | null;
+  stockManagement: boolean;
+  /** Original raw item, unmodified. */
+  _raw: RentmanEquipmentItem<TCustom>;
+}
+
+function getFirstValue(record: Record<string, unknown>, keys: string[]): unknown {
+  for (const key of keys) {
+    if (key in record) {
+      return record[key];
+    }
+  }
+  return undefined;
+}
+
+function toNullableString(value: unknown): string | null {
+  return typeof value === 'string' ? value : null;
+}
+
+function toNullableNumber(value: unknown): number | null {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value;
+  }
+  if (typeof value === 'string' && value.trim() !== '') {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
+}
+
+function toBoolean(value: unknown, defaultValue = false): boolean {
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'number') return value !== 0;
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === 'true' || normalized === '1') return true;
+    if (normalized === 'false' || normalized === '0' || normalized === '') return false;
+  }
+  return defaultValue;
+}
+
+function toTags(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value
+      .filter((tag): tag is string => typeof tag === 'string')
+      .map((tag) => tag.trim())
+      .filter(Boolean);
+  }
+
+  if (typeof value === 'string') {
+    return value
+      .split(',')
+      .map((tag) => tag.trim())
+      .filter(Boolean);
+  }
+
+  return [];
+}
+
 // ---------------------------------------------------------------------------
 // Client
 // ---------------------------------------------------------------------------
@@ -84,9 +168,9 @@ export class RentmanClient {
   }
 
   private async resolveToken(): Promise<string> {
-    return typeof this.opts.token === 'function'
+    return normalizeToken(typeof this.opts.token === 'function'
       ? await this.opts.token()
-      : this.opts.token;
+      : this.opts.token);
   }
 
   private async request<T>(path: string, init: RequestInit = {}): Promise<T> {
@@ -373,6 +457,49 @@ export async function scanAll<T>(
     items,
     totalCount,
     limitReached: items.length >= scanLimit && items.length < totalCount,
+  };
+}
+
+/**
+ * Fetches all equipment set content rows for a kit item.
+ * Calls `/equipment/{kitId}/equipmentsetscontent` with full pagination.
+ */
+export function listEquipmentSetContents(
+  client: RentmanClient,
+  kitId: number,
+): Promise<RentmanEquipmentSetContent[]> {
+  return client.listAllSub<RentmanEquipmentSetContent>(
+    ENDPOINTS.equipment,
+    kitId,
+    ENDPOINTS.equipmentSetsContent,
+  );
+}
+
+/**
+ * Normalizes a raw Rentman equipment item, merging OAS and legacy field variants.
+ */
+export function normalizeEquipmentItem<TCustom = DefaultCustomFields>(
+  item: RentmanEquipmentItem<TCustom>,
+): NormalizedEquipmentItem<TCustom> {
+  const record = item as RentmanEquipmentItem<TCustom> & Record<string, unknown>;
+
+  return {
+    id: item.id,
+    name: toNullableString(getFirstValue(record, ['displayname', 'name'])) ?? item.name,
+    code: toNullableString(getFirstValue(record, ['code'])),
+    currentQuantity: toNullableNumber(getFirstValue(record, ['currentQuantity', 'currentquantity', 'current_quantity'])),
+    criticalStockLevel: toNullableNumber(getFirstValue(record, ['criticalStockLevel', 'criticalstocklevel', 'critical_stock_level'])),
+    isArchived: toBoolean(getFirstValue(record, ['isArchived', 'inArchive', 'inarchive', 'in_archive', 'archive'])),
+    locationInWarehouse: toNullableString(getFirstValue(record, ['locationInWarehouse', 'locationinwarehouse', 'location_in_warehouse', 'location'])),
+    internalRemark: toNullableString(getFirstValue(record, ['internalRemark', 'internalremark', 'internal_remark'])),
+    externalRemark: toNullableString(getFirstValue(record, ['externalRemark', 'externalremark', 'external_remark'])),
+    folder: toNullableString(getFirstValue(record, ['folder'])),
+    tags: toTags(getFirstValue(record, ['tags'])),
+    price: toNullableNumber(getFirstValue(record, ['price'])),
+    weight: toNullableNumber(getFirstValue(record, ['weight'])),
+    volume: toNullableNumber(getFirstValue(record, ['volume'])),
+    stockManagement: toBoolean(getFirstValue(record, ['stockManagement', 'stockmanagement', 'stock_management'])),
+    _raw: item,
   };
 }
 

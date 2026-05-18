@@ -227,6 +227,7 @@ npm install ${pkg.name}
 - \`RentmanClient\`
 - \`RentmanApiError\`
 - \`ENDPOINTS\`
+- helpers: \`normalizeToken\`, \`listEquipmentSetContents\`, \`normalizeEquipmentItem\`, \`NormalizedEquipmentItem\`
 - query helpers: \`buildQueryParams\`, \`buildQueryString\`, \`buildRentmanQuery\`, \`rel\`, \`notNull\`, \`isNull\`
 - scan helper: \`scanAll\`, \`ScanOptions\`, \`ScanResult<T>\`
 - lookup cache helpers: \`fetchLookupMap\`, \`fetchStatusCache\`, \`fetchFolderNameCache\`
@@ -245,6 +246,7 @@ const rentman = createRentmanClient({
 
 \`token\` supports either:
 - a static string JWT
+- a static \`"Bearer ..."\` string (normalized automatically)
 - a function \`() => string | Promise<string>\` for token rotation
 
 ## Client methods
@@ -252,6 +254,9 @@ const rentman = createRentmanClient({
 - \`list<T>(path, query?)\` → \`Promise<RentmanCollectionResponse<T>>\`
 - \`listAll<T>(path, query?, pageSize = 300)\` → \`Promise<T[]>\` (auto-paginates)
 - \`scanAll<T>(client, endpoint, query, options?)\` → \`Promise<{ items: T[]; totalCount: number; limitReached: boolean }>\`
+- \`normalizeToken(token)\` → \`string\`
+- \`listEquipmentSetContents(client, kitId)\` → \`Promise<RentmanEquipmentSetContent[]>\`
+- \`normalizeEquipmentItem(item)\` → \`NormalizedEquipmentItem\`
 - \`listSub<T>(parentPath, parentId, subPath, query?)\` → \`Promise<RentmanCollectionResponse<T>>\`
 - \`listAllSub<T>(parentPath, parentId, subPath, query?, pageSize = 300)\` → \`Promise<T[]>\` (auto-paginates)
 - \`get<T>(path, id, query?)\` → \`Promise<RentmanItemResponse<T>>\`
@@ -386,7 +391,8 @@ npm install ${pkg.name}
 
 ## Main exports
 
-- Client API: \`createRentmanClient\`, \`RentmanClient\`, \`RentmanApiError\`, \`scanAll\`
+ - Client API: \`createRentmanClient\`, \`RentmanClient\`, \`RentmanApiError\`, \`scanAll\`
+ - Helper utilities: \`normalizeToken\`, \`listEquipmentSetContents\`, \`normalizeEquipmentItem\`, \`NormalizedEquipmentItem\`
 - Endpoint constants: \`ENDPOINTS\`, \`RentmanEndpoint\`
 - Query API: \`buildQueryParams\`, \`buildQueryString\`, \`buildRentmanQuery\`, \`rel\`, \`notNull\`, \`isNull\`
 - Lookup cache helpers: \`fetchLookupMap\`, \`fetchStatusCache\`, \`fetchFolderNameCache\`
@@ -420,6 +426,8 @@ const rentman = createRentmanClient({
 });
 \`\`\`
 
+The client also accepts \`"Bearer ..."\` token strings directly and normalizes them internally.
+
 Token rotation usage:
 
 \`\`\`ts
@@ -439,6 +447,9 @@ scanAll<T>(
   query: Omit<RentmanQueryOptions, 'limit' | 'offset'>,
   options?: { pageSize?: number; scanLimit?: number },
 ): Promise<{ items: T[]; totalCount: number; limitReached: boolean }>
+normalizeToken(token: string): string
+listEquipmentSetContents(client: RentmanClient, kitId: number): Promise<RentmanEquipmentSetContent[]>
+normalizeEquipmentItem(item: RentmanEquipmentItem): NormalizedEquipmentItem
 listSub<T>(parentPath: RentmanEndpoint, parentId: number, subPath: string, query?: RentmanQueryOptions): Promise<RentmanCollectionResponse<T>>
 listAllSub<T>(parentPath: RentmanEndpoint, parentId: number, subPath: string, query?: Omit<RentmanQueryOptions, 'limit' | 'offset'>, pageSize?: number): Promise<T[]>
 get<T>(path: RentmanEndpoint, id: number, query?: Pick<RentmanQueryOptions, 'fields'>): Promise<RentmanItemResponse<T>>
@@ -636,6 +647,20 @@ await rentman.update(ENDPOINTS.equipment, 42, {
 });
 
 await rentman.delete(ENDPOINTS.equipment, 99);
+\`\`\`
+
+Helper examples:
+
+\`\`\`ts
+import {
+  listEquipmentSetContents,
+  normalizeEquipmentItem,
+  normalizeToken,
+} from '${pkg.name}';
+
+const token = normalizeToken(process.env.RENTMAN_TOKEN!);
+const contents = await listEquipmentSetContents(rentman, 3473);
+const normalized = normalizeEquipmentItem((await rentman.get(ENDPOINTS.equipment, 42)).data);
 \`\`\`
 
 Error handling:
