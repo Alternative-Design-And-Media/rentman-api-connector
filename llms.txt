@@ -28,6 +28,7 @@ npm install @alternative-design-and-media/rentman-api-connector
 - `RentmanApiError`
 - `ENDPOINTS`
 - query helpers: `buildRentmanQuery`, `rel`, `notNull`, `isNull`
+- scan helper: `scanAll`, `ScanOptions`, `ScanResult<T>`
 - lookup cache helpers: `fetchLookupMap`, `fetchStatusCache`, `fetchFolderNameCache`
 - resource types from `src/types.ts` (e.g. `RentmanEquipmentItem`, `RentmanProject`, `RentmanContact`)
 
@@ -50,6 +51,7 @@ const rentman = createRentmanClient({
 
 - `list<T>(path, query?)` → `Promise<RentmanCollectionResponse<T>>`
 - `listAll<T>(path, query?, pageSize = 300)` → `Promise<T[]>` (auto-paginates)
+- `scanAll<T>(client, endpoint, query, options?)` → `Promise<{ items: T[]; totalCount: number; limitReached: boolean }>`
 - `listSub<T>(parentPath, parentId, subPath, query?)` → `Promise<RentmanCollectionResponse<T>>`
 - `listAllSub<T>(parentPath, parentId, subPath, query?, pageSize = 300)` → `Promise<T[]>` (auto-paginates)
 - `get<T>(path, id, query?)` → `Promise<RentmanItemResponse<T>>`

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { createRentmanClient, RentmanApiError } from '../client.js';
+import { createRentmanClient, RentmanApiError, scanAll } from '../client.js';
 import type { RentmanCollectionResponse } from '../types.js';
 
 const mockEquipment = { id: 1, name: 'Cable reel', updateHash: 'abc123', created: '', modified: '' };
@@ -151,6 +151,80 @@ describe('RentmanClient', () => {
     expect(all[1]?.name).toBe('Truss');
     // Exactly 2 requests — no extra page fetched after itemCount is reached
     expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('scanAll collects full collection when scanLimit is not provided', async () => {
+    const page1: RentmanCollectionResponse<typeof mockEquipment> = {
+      data: [mockEquipment],
+      itemCount: 2,
+      limit: 1,
+      offset: 0,
+    };
+    const page2: RentmanCollectionResponse<typeof mockEquipment> = {
+      data: [{ ...mockEquipment, id: 2, name: 'Truss' }],
+      itemCount: 2,
+      limit: 1,
+      offset: 1,
+    };
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve(page1) })
+      .mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve(page2) });
+    const client = createRentmanClient({ token: 't', fetch: fetchMock as unknown as typeof fetch });
+
+    const result = await scanAll<typeof mockEquipment>(client, '/equipment', {}, { pageSize: 1 });
+
+    expect(result.items).toHaveLength(2);
+    expect(result.totalCount).toBe(2);
+    expect(result.limitReached).toBe(false);
+  });
+
+  it('scanAll stops at scanLimit and sets limitReached', async () => {
+    const page1: RentmanCollectionResponse<typeof mockEquipment> = {
+      data: [
+        mockEquipment,
+        { ...mockEquipment, id: 2, name: 'Truss' },
+      ],
+      itemCount: 5,
+      limit: 2,
+      offset: 0,
+    };
+    const page2: RentmanCollectionResponse<typeof mockEquipment> = {
+      data: [
+        { ...mockEquipment, id: 3, name: 'Case' },
+        { ...mockEquipment, id: 4, name: 'Stand' },
+      ],
+      itemCount: 5,
+      limit: 2,
+      offset: 2,
+    };
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve(page1) })
+      .mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve(page2) });
+    const client = createRentmanClient({ token: 't', fetch: fetchMock as unknown as typeof fetch });
+
+    const result = await scanAll<typeof mockEquipment>(client, '/equipment', {}, {
+      pageSize: 2,
+      scanLimit: 3,
+    });
+
+    expect(result.items).toHaveLength(3);
+    expect(result.totalCount).toBe(5);
+    expect(result.limitReached).toBe(true);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('scanAll handles empty endpoint', async () => {
+    const fetchMock = makeFetch(200, { data: [], itemCount: 0, limit: 300, offset: 0 });
+    const client = createRentmanClient({ token: 't', fetch: fetchMock as unknown as typeof fetch });
+
+    const result = await scanAll<typeof mockEquipment>(client, '/equipment', {});
+
+    expect(result).toEqual({
+      items: [],
+      totalCount: 0,
+      limitReached: false,
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
   it('gets a single item by id from /path/id', async () => {
