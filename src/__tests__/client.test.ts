@@ -296,4 +296,68 @@ describe('RentmanClient', () => {
     expect(parsed.searchParams.get('limit')).toBe('50');
     expect(parsed.searchParams.get('offset')).toBe('0');
   });
+
+  it('listSub builds path-level sub-resource URL', async () => {
+    const fetchMock = makeFetch(200, { data: [], itemCount: 0, limit: 300, offset: 0 });
+    const client = createRentmanClient({ token: 't', fetch: fetchMock as unknown as typeof fetch });
+
+    await client.listSub('/equipment', 3473, '/equipmentsetscontent');
+
+    const [url] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe('https://api.rentman.net/equipment/3473/equipmentsetscontent');
+  });
+
+  it('listSub serializes query options for sub-resource URL', async () => {
+    const fetchMock = makeFetch(200, { data: [], itemCount: 0, limit: 300, offset: 0 });
+    const client = createRentmanClient({ token: 't', fetch: fetchMock as unknown as typeof fetch });
+
+    await client.listSub('/equipment', 3473, '/equipmentsetscontent', {
+      fields: ['id', 'quantity'],
+    });
+
+    const [url] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe('https://api.rentman.net/equipment/3473/equipmentsetscontent?fields=id%2Cquantity');
+  });
+
+  it('listSub throws when subPath does not start with "/"', async () => {
+    const fetchMock = makeFetch(200, { data: [], itemCount: 0, limit: 300, offset: 0 });
+    const client = createRentmanClient({ token: 't', fetch: fetchMock as unknown as typeof fetch });
+
+    expect(() => client.listSub('/equipment', 3473, 'equipmentsetscontent')).toThrow(
+      'subPath must start with "/"',
+    );
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('auto-paginates in listAllSub', async () => {
+    const page1: RentmanCollectionResponse<typeof mockEquipment> = {
+      data: [mockEquipment],
+      itemCount: 2,
+      limit: 1,
+      offset: 0,
+    };
+    const page2: RentmanCollectionResponse<typeof mockEquipment> = {
+      data: [{ ...mockEquipment, id: 2, name: 'Truss' }],
+      itemCount: 2,
+      limit: 1,
+      offset: 1,
+    };
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve(page1) })
+      .mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve(page2) });
+    const client = createRentmanClient({ token: 't', fetch: fetchMock as unknown as typeof fetch });
+
+    const all = await client.listAllSub<typeof mockEquipment>(
+      '/equipment',
+      3473,
+      '/equipmentsetscontent',
+      {},
+      1,
+    );
+
+    expect(all).toHaveLength(2);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    const firstCallUrl = fetchMock.mock.calls[0]?.[0] as string;
+    expect(firstCallUrl).toContain('/equipment/3473/equipmentsetscontent?limit=1&offset=0');
+  });
 });

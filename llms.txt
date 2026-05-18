@@ -49,6 +49,8 @@ const rentman = createRentmanClient({
 
 - `list<T>(path, query?)` → `Promise<RentmanCollectionResponse<T>>`
 - `listAll<T>(path, query?, pageSize = 300)` → `Promise<T[]>` (auto-paginates)
+- `listSub<T>(parentPath, parentId, subPath, query?)` → `Promise<RentmanCollectionResponse<T>>`
+- `listAllSub<T>(parentPath, parentId, subPath, query?, pageSize = 300)` → `Promise<T[]>` (auto-paginates)
 - `get<T>(path, id, query?)` → `Promise<RentmanItemResponse<T>>`
 - `create<TIn, TOut>(path, body)` → `Promise<RentmanItemResponse<TOut>>`
 - `update<TIn, TOut>(path, id, body)` → `Promise<RentmanItemResponse<TOut>>`

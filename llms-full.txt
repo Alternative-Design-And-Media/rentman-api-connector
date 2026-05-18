@@ -65,6 +65,8 @@ const rentman = createRentmanClient({
 ```ts
 list<T>(path: RentmanEndpoint, query?: RentmanQueryOptions): Promise<RentmanCollectionResponse<T>>
 listAll<T>(path: RentmanEndpoint, query?: Omit<RentmanQueryOptions, 'limit' | 'offset'>, pageSize?: number): Promise<T[]>
+listSub<T>(parentPath: RentmanEndpoint, parentId: number, subPath: string, query?: RentmanQueryOptions): Promise<RentmanCollectionResponse<T>>
+listAllSub<T>(parentPath: RentmanEndpoint, parentId: number, subPath: string, query?: Omit<RentmanQueryOptions, 'limit' | 'offset'>, pageSize?: number): Promise<T[]>
 get<T>(path: RentmanEndpoint, id: number, query?: Pick<RentmanQueryOptions, 'fields'>): Promise<RentmanItemResponse<T>>
 create<TInput, TOutput = TInput>(path: RentmanEndpoint, body: TInput): Promise<RentmanItemResponse<TOutput>>
 update<TInput, TOutput = TInput>(path: RentmanEndpoint, id: number, body: TInput): Promise<RentmanItemResponse<TOutput>>
@@ -75,6 +77,8 @@ Behavior notes:
 
 - `list` returns `{ data, itemCount, limit, offset }`
 - `listAll` auto-paginates and concatenates all pages
+- `listSub` builds path-level sub-resource URLs: `${parentPath}/${parentId}${subPath}`
+- `listAllSub` auto-paginates and concatenates all sub-resource pages
 - `listAll` default `pageSize` is `300` (Rentman API hard cap)
 - `get` supports optional `fields` projection
 - `create` and `update` JSON-encode `body`
