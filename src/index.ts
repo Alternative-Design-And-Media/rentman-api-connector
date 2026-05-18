@@ -38,3 +38,4 @@ export * from './client.js';
 export { ENDPOINTS } from './endpoints.js';
 export type { RentmanEndpoint } from './endpoints.js';
 export * from './paths.js';
+export * from './cache.js';

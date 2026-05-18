@@ -228,6 +228,7 @@ npm install ${pkg.name}
 - \`RentmanApiError\`
 - \`ENDPOINTS\`
 - query helpers: \`buildRentmanQuery\`, \`rel\`, \`notNull\`, \`isNull\`
+- lookup cache helpers: \`fetchLookupMap\`, \`fetchStatusCache\`, \`fetchFolderNameCache\`
 - resource types from \`src/types.ts\` (e.g. \`RentmanEquipmentItem\`, \`RentmanProject\`, \`RentmanContact\`)
 
 ## \`createRentmanClient()\`
@@ -311,7 +312,31 @@ try {
 
 ${flatEndpointList()}
 
+## Lookup cache helpers
+
+- \`fetchLookupMap<T, V>(client, endpoint, query, toEntry)\` → \`Promise<Map<string, V>>\` — generic; builds a Map from all pages, first-wins on duplicate keys
+- \`fetchStatusCache(client)\` → \`Promise<{ byName: Map<string, string>; byPath: Map<string, string> }>\` — bidirectional status lookup
+- \`fetchFolderNameCache(client)\` → \`Promise<Map<string, string>>\` — folder path → name
+
 For fuller signatures, examples, and caveats, see \`llms-full.txt\` and \`README.md\`.
+
+## Resource path helpers
+
+\`\`\`ts
+import { parseResourcePath, resourceId, buildResourcePath, ENDPOINTS } from '${pkg.name}';
+
+parseResourcePath('/contacts/123') // → { entity: 'contacts', id: 123 }
+parseResourcePath(null)            // → null
+
+resourceId('/folders/42')          // → 42
+resourceId(null)                   // → null
+
+buildResourcePath(ENDPOINTS.contacts, 123) // → '/contacts/123'
+\`\`\`
+
+- \`parseResourcePath(path)\` — returns \`{ entity: string; id: number } | null\`
+- \`resourceId(path)\` — returns \`number | null\`
+- \`buildResourcePath(endpoint, id)\` — type-safe; \`endpoint\` must be a \`RentmanEndpoint\`
 `;
 }
 
@@ -344,6 +369,7 @@ npm install ${pkg.name}
 - Client API: \`createRentmanClient\`, \`RentmanClient\`, \`RentmanApiError\`
 - Endpoint constants: \`ENDPOINTS\`, \`RentmanEndpoint\`
 - Query API: \`buildRentmanQuery\`, \`rel\`, \`notNull\`, \`isNull\`
+- Lookup cache helpers: \`fetchLookupMap\`, \`fetchStatusCache\`, \`fetchFolderNameCache\`
 - Types: all resource/entity and response types from package root
 
 ## Client creation
@@ -579,6 +605,88 @@ try {
 ## Endpoint -> path -> type mapping
 
 ${groupedEndpointList()}
+
+## Lookup cache helpers
+
+Signatures:
+
+\`\`\`ts
+fetchLookupMap<T, V>(
+  client: RentmanClient,
+  endpoint: RentmanEndpoint,
+  query: Omit<RentmanQueryOptions, 'limit' | 'offset'>,
+  toEntry: (item: T) => [string, V],
+): Promise<Map<string, V>>
+
+fetchStatusCache(
+  client: RentmanClient,
+): Promise<{ byName: Map<string, string>; byPath: Map<string, string> }>
+
+fetchFolderNameCache(
+  client: RentmanClient,
+): Promise<Map<string, string>>
+\`\`\`
+
+Behavior:
+
+- \`fetchLookupMap\` calls \`client.listAll()\` and maps each item to a \`[key, value]\` tuple via \`toEntry\`. First-wins on duplicate keys.
+- \`fetchStatusCache\` builds two Maps: \`byName\` (lowercase name → path) and \`byPath\` (path → display name).
+- \`fetchFolderNameCache\` builds a Map of folder resource path → folder name.
+
+Examples:
+
+\`\`\`ts
+import { createRentmanClient, ENDPOINTS, fetchLookupMap, fetchStatusCache, fetchFolderNameCache } from '${pkg.name}';
+
+const rentman = createRentmanClient({ token: process.env.RENTMAN_TOKEN! });
+
+// Generic lookup
+const taxMap = await fetchLookupMap(rentman, ENDPOINTS.taxClasses, {}, (tc) => [String(tc.id), tc.name]);
+
+// Status bidirectional lookup
+const { byName, byPath } = await fetchStatusCache(rentman);
+const path  = byName.get('confirmed');    // "/statuses/3"
+const label = byPath.get('/statuses/3'); // "Confirmed"
+
+// Folder name lookup
+const folderNames = await fetchFolderNameCache(rentman);
+const name = folderNames.get('/folders/116'); // "Lighting"
+\`\`\`
+
+## Resource path helper reference
+
+Signatures:
+
+\`\`\`ts
+parseResourcePath(path: string | null | undefined): { entity: string; id: number } | null
+resourceId(path: string | null | undefined): number | null
+buildResourcePath(endpoint: RentmanEndpoint, id: number): string
+\`\`\`
+
+Behavior:
+
+- \`parseResourcePath\` matches \`/<entity>/<id>\` exactly; returns \`null\` for any other shape including trailing slashes, extra segments, or non-numeric IDs.
+- \`resourceId\` extracts the trailing numeric segment; equivalent to \`parseResourcePath(path)?.id ?? null\` but marginally cheaper.
+- \`buildResourcePath\` is a type-safe template literal; \`endpoint\` must be a value from \`ENDPOINTS\`.
+- All three are null-safe: \`null\` / \`undefined\` / empty string all return \`null\`.
+
+Examples:
+
+\`\`\`ts
+import { parseResourcePath, resourceId, buildResourcePath, ENDPOINTS } from '${pkg.name}';
+
+parseResourcePath('/contacts/123')   // → { entity: 'contacts', id: 123 }
+parseResourcePath('/contacts')       // → null
+parseResourcePath('/contacts/abc')   // → null
+parseResourcePath(null)              // → null
+
+resourceId('/folders/42')            // → 42
+resourceId('/contacts/0')            // → 0  (id=0 is valid)
+resourceId(null)                     // → null
+
+buildResourcePath(ENDPOINTS.contacts, 123)  // → '/contacts/123'
+buildResourcePath(ENDPOINTS.equipment, 42)  // → '/equipment/42'
+\`\`\`
 
 ## Constraints and caveats
 

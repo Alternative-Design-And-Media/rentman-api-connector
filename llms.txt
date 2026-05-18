@@ -28,7 +28,7 @@ npm install @alternative-design-and-media/rentman-api-connector
 - `RentmanApiError`
 - `ENDPOINTS`
 - query helpers: `buildRentmanQuery`, `rel`, `notNull`, `isNull`
-- resource path helpers: `parseResourcePath`, `resourceId`, `buildResourcePath`
+- lookup cache helpers: `fetchLookupMap`, `fetchStatusCache`, `fetchFolderNameCache`
 - resource types from `src/types.ts` (e.g. `RentmanEquipmentItem`, `RentmanProject`, `RentmanContact`)
 
 ## `createRentmanClient()`
@@ -167,6 +167,12 @@ try {
 - `briefpapier` -> `/briefpapier` -> `RentmanBriefpapier`
 - `numberSeries` -> `/numberseries` -> `RentmanNumberSeries`
 - `templates` -> `/templates` -> `RentmanTemplate`
+
+## Lookup cache helpers
+
+- `fetchLookupMap<T, V>(client, endpoint, query, toEntry)` → `Promise<Map<string, V>>` — generic; builds a Map from all pages, first-wins on duplicate keys
+- `fetchStatusCache(client)` → `Promise<{ byName: Map<string, string>; byPath: Map<string, string> }>` — bidirectional status lookup
+- `fetchFolderNameCache(client)` → `Promise<Map<string, string>>` — folder path → name
 
 For fuller signatures, examples, and caveats, see `llms-full.txt` and `README.md`.
 
