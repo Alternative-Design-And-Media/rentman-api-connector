@@ -155,6 +155,9 @@ export class RentmanClient {
     subPath: string,
     query?: RentmanQueryOptions,
   ): Promise<RentmanCollectionResponse<T>> {
+    if (!subPath.startsWith('/')) {
+      throw new TypeError('subPath must start with "/"');
+    }
     const qs = query ? `?${buildRentmanQuery(query).toString()}` : '';
     return this.request<RentmanCollectionResponse<T>>(
       `${parentPath}/${parentId}${subPath}${qs}`,

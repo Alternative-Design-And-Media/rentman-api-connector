@@ -319,6 +319,16 @@ describe('RentmanClient', () => {
     expect(url).toBe('https://api.rentman.net/equipment/3473/equipmentsetscontent?fields=id%2Cquantity');
   });
 
+  it('listSub throws when subPath does not start with "/"', async () => {
+    const fetchMock = makeFetch(200, { data: [], itemCount: 0, limit: 300, offset: 0 });
+    const client = createRentmanClient({ token: 't', fetch: fetchMock as unknown as typeof fetch });
+
+    expect(() => client.listSub('/equipment', 3473, 'equipmentsetscontent')).toThrow(
+      'subPath must start with "/"',
+    );
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it('auto-paginates in listAllSub', async () => {
     const page1: RentmanCollectionResponse<typeof mockEquipment> = {
       data: [mockEquipment],
