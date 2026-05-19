@@ -1,0 +1,436 @@
+[
+  // ─── project ──────────────────────────────────────────────────────────────
+  {
+    "id": 2001,
+    "name": "category",
+    "belongs_to": "project",
+    "type": "dropdown",
+    "input_fields_group": "General",
+    "required": true,
+    "default_value": null,
+    "options": [
+      { "id": 1, "name": "Conference" },
+      { "id": 2, "name": "Wedding" },
+      { "id": 3, "name": "Corporate Event" }
+    ]
+  },
+  {
+    "id": 2002,
+    "name": "lead_technician",
+    "belongs_to": "project",
+    "type": "linked_item",
+    "input_fields_group": "Technical",
+    "required": false,
+    "default_value": null,
+    "linked_item_type": "crew"
+  },
+  {
+    "id": 2003,
+    "name": "client_contact",
+    "belongs_to": "project",
+    "type": "linked_item",
+    "input_fields_group": "General",
+    "required": false,
+    "default_value": null,
+    "linked_item_type": "contact"
+  },
+  {
+    "id": 2004,
+    "name": "budget",
+    "belongs_to": "project",
+    "type": "price",
+    "input_fields_group": "Finance",
+    "required": false,
+    "default_value": null
+  },
+  {
+    "id": 2005,
+    "name": "is_vip",
+    "belongs_to": "project",
+    "type": "yes_no",
+    "input_fields_group": "General",
+    "required": true,
+    "default_value": false
+  },
+  {
+    "id": 2006,
+    "name": "internal_note",
+    "belongs_to": "project",
+    "type": "long_text",
+    "input_fields_group": "Notes",
+    "required": false,
+    "default_value": null
+  },
+  {
+    "id": 2007,
+    "name": "po_number",
+    "belongs_to": "project",
+    "type": "text",
+    "input_fields_group": "Finance",
+    "required": false,
+    "default_value": null
+  },
+  {
+    "id": 2008,
+    "name": "accent_color",
+    "belongs_to": "project",
+    "type": "color",
+    "input_fields_group": "Branding",
+    "required": false,
+    "default_value": null
+  },
+  {
+    "id": 2009,
+    "name": "start_confirmed",
+    "belongs_to": "project",
+    "type": "date",
+    "input_fields_group": "Schedule",
+    "required": false,
+    "default_value": null
+  },
+  {
+    "id": 2010,
+    "name": "briefing_at",
+    "belongs_to": "project",
+    "type": "datetime",
+    "input_fields_group": "Schedule",
+    "required": false,
+    "default_value": null
+  },
+  {
+    "id": 2011,
+    "name": "crew_count",
+    "belongs_to": "project",
+    "type": "integer",
+    "input_fields_group": "Technical",
+    "required": false,
+    "default_value": 0
+  },
+  {
+    "id": 2012,
+    "name": "risk_factor",
+    "belongs_to": "project",
+    "type": "decimal",
+    "input_fields_group": "Technical",
+    "required": false,
+    "default_value": 1.0
+  },
+  {
+    "id": 2013,
+    "name": "website_url",
+    "belongs_to": "project",
+    "type": "link",
+    "input_fields_group": "General",
+    "required": false,
+    "default_value": null
+  },
+  {
+    "id": 2014,
+    "name": "phone_onsite",
+    "belongs_to": "project",
+    "type": "phone",
+    "input_fields_group": "General",
+    "required": false,
+    "default_value": null
+  },
+  {
+    "id": 2015,
+    "name": "formatted_brief",
+    "belongs_to": "project",
+    "type": "formatted_text",
+    "input_fields_group": "Notes",
+    "required": false,
+    "default_value": null
+  },
+
+  // ─── subproject ───────────────────────────────────────────────────────────
+  {
+    "id": 2020,
+    "name": "note",
+    "belongs_to": "subproject",
+    "type": "text",
+    "input_fields_group": "Extra input fields",
+    "required": false,
+    "default_value": null
+  },
+  {
+    "id": 2021,
+    "name": "stage",
+    "belongs_to": "subproject",
+    "type": "dropdown",
+    "input_fields_group": "General",
+    "required": false,
+    "default_value": "Preparation",
+    "options": [
+      { "id": 1, "name": "Preparation" },
+      { "id": 2, "name": "Setup" },
+      { "id": 3, "name": "Show" },
+      { "id": 4, "name": "Breakdown" }
+    ]
+  },
+
+  // ─── projectfunction ──────────────────────────────────────────────────────
+  {
+    "id": 2030,
+    "name": "note",
+    "belongs_to": "projectfunction",
+    "type": "long_text",
+    "input_fields_group": "Extra input fields",
+    "required": false,
+    "default_value": null
+  },
+
+  // ─── projectcrew ──────────────────────────────────────────────────────────
+  {
+    "id": 2040,
+    "name": "reference",
+    "belongs_to": "projectcrew",
+    "type": "text",
+    "input_fields_group": "Extra input fields",
+    "required": false,
+    "default_value": null
+  },
+
+  // ─── projectequipment ─────────────────────────────────────────────────────
+  {
+    "id": 2050,
+    "name": "reference",
+    "belongs_to": "projectequipment",
+    "type": "text",
+    "input_fields_group": "Extra input fields",
+    "required": false,
+    "default_value": null
+  },
+
+  // ─── projectvehicle ───────────────────────────────────────────────────────
+  {
+    "id": 2060,
+    "name": "reference",
+    "belongs_to": "projectvehicle",
+    "type": "text",
+    "input_fields_group": "Extra input fields",
+    "required": false,
+    "default_value": null
+  },
+
+  // ─── equipment ────────────────────────────────────────────────────────────
+  {
+    "id": 2070,
+    "name": "replacement_value",
+    "belongs_to": "equipment",
+    "type": "price",
+    "input_fields_group": "Finance",
+    "required": false,
+    "default_value": null
+  },
+  {
+    "id": 2071,
+    "name": "condition",
+    "belongs_to": "equipment",
+    "type": "dropdown",
+    "input_fields_group": "General",
+    "required": true,
+    "default_value": null,
+    "options": [
+      { "id": 1, "name": "New" },
+      { "id": 2, "name": "Good" },
+      { "id": 3, "name": "Fair" },
+      { "id": 4, "name": "Poor" }
+    ]
+  },
+  {
+    "id": 2072,
+    "name": "warehouse_location",
+    "belongs_to": "equipment",
+    "type": "text",
+    "input_fields_group": "Logistics",
+    "required": false,
+    "default_value": null
+  },
+  {
+    "id": 2073,
+    "name": "weight_kg",
+    "belongs_to": "equipment",
+    "type": "decimal",
+    "input_fields_group": "Technical",
+    "required": false,
+    "default_value": null
+  },
+
+  // ─── serialnumber ─────────────────────────────────────────────────────────
+  {
+    "id": 2080,
+    "name": "tracking",
+    "belongs_to": "serialnumber",
+    "type": "yes_no",
+    "input_fields_group": "General",
+    "required": false,
+    "default_value": false
+  },
+  {
+    "id": 2081,
+    "name": "last_service_date",
+    "belongs_to": "serialnumber",
+    "type": "date",
+    "input_fields_group": "Maintenance",
+    "required": false,
+    "default_value": null
+  },
+
+  // ─── subrental ────────────────────────────────────────────────────────────
+  {
+    "id": 2090,
+    "name": "supplier_code",
+    "belongs_to": "subrental",
+    "type": "text",
+    "input_fields_group": "General",
+    "required": false,
+    "default_value": null
+  },
+
+  // ─── contact ──────────────────────────────────────────────────────────────
+  {
+    "id": 2100,
+    "name": "registry_number",
+    "belongs_to": "contact",
+    "type": "text",
+    "input_fields_group": "Extra input fields",
+    "required": false,
+    "default_value": null
+  },
+  {
+    "id": 2101,
+    "name": "vat_number",
+    "belongs_to": "contact",
+    "type": "text",
+    "input_fields_group": "Finance",
+    "required": true,
+    "default_value": null
+  },
+  {
+    "id": 2102,
+    "name": "customer_type",
+    "belongs_to": "contact",
+    "type": "dropdown",
+    "input_fields_group": "General",
+    "required": true,
+    "default_value": null,
+    "options": [
+      { "id": 1, "name": "Individual" },
+      { "id": 2, "name": "Company" },
+      { "id": 3, "name": "Non-profit" }
+    ]
+  },
+  {
+    "id": 2103,
+    "name": "account_manager",
+    "belongs_to": "contact",
+    "type": "linked_item",
+    "input_fields_group": "General",
+    "required": false,
+    "default_value": null,
+    "linked_item_type": "crew"
+  },
+
+  // ─── contactperson ────────────────────────────────────────────────────────
+  {
+    "id": 2110,
+    "name": "preferred_language",
+    "belongs_to": "contactperson",
+    "type": "text",
+    "input_fields_group": "General",
+    "required": false,
+    "default_value": null
+  },
+  {
+    "id": 2111,
+    "name": "receives_newsletter",
+    "belongs_to": "contactperson",
+    "type": "yes_no",
+    "input_fields_group": "Marketing",
+    "required": false,
+    "default_value": true
+  },
+
+  // ─── crew ─────────────────────────────────────────────────────────────────
+  {
+    "id": 2120,
+    "name": "shirt_size",
+    "belongs_to": "crew",
+    "type": "dropdown",
+    "input_fields_group": "General",
+    "required": false,
+    "default_value": null,
+    "options": [
+      { "id": 1, "name": "XS" },
+      { "id": 2, "name": "S" },
+      { "id": 3, "name": "M" },
+      { "id": 4, "name": "L" },
+      { "id": 5, "name": "XL" },
+      { "id": 6, "name": "XXL" }
+    ]
+  },
+  {
+    "id": 2121,
+    "name": "driving_license",
+    "belongs_to": "crew",
+    "type": "yes_no",
+    "input_fields_group": "Qualifications",
+    "required": false,
+    "default_value": false
+  },
+  {
+    "id": 2122,
+    "name": "hourly_rate",
+    "belongs_to": "crew",
+    "type": "price",
+    "input_fields_group": "Finance",
+    "required": false,
+    "default_value": null
+  },
+  {
+    "id": 2123,
+    "name": "certifications",
+    "belongs_to": "crew",
+    "type": "formatted_text",
+    "input_fields_group": "Qualifications",
+    "required": false,
+    "default_value": null
+  },
+
+  // ─── repair ───────────────────────────────────────────────────────────────
+  {
+    "id": 2130,
+    "name": "repair_priority",
+    "belongs_to": "repair",
+    "type": "dropdown",
+    "input_fields_group": "General",
+    "required": true,
+    "default_value": null,
+    "options": [
+      { "id": 1, "name": "Low" },
+      { "id": 2, "name": "Normal" },
+      { "id": 3, "name": "High" },
+      { "id": 4, "name": "Critical" }
+    ]
+  },
+  {
+    "id": 2131,
+    "name": "estimated_cost",
+    "belongs_to": "repair",
+    "type": "price",
+    "input_fields_group": "Finance",
+    "required": false,
+    "default_value": null
+  },
+  {
+    "id": 2132,
+    "name": "technician",
+    "belongs_to": "repair",
+    "type": "linked_item",
+    "input_fields_group": "General",
+    "required": false,
+    "default_value": null,
+    "linked_item_type": "crew"
+  }
+]
