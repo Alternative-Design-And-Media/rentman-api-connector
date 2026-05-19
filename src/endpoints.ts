@@ -24,6 +24,7 @@ export const ENDPOINTS = {
   invoiceLines: '/invoicelines',
   invoiceMoments: '/invoicemoments',
   quotes: '/quotes',
+  quoteLines: '/quotelines',
   payments: '/payments',
   planning: '/planning',
   activities: '/activities',

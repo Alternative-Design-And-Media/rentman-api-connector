@@ -420,6 +420,17 @@ export interface RentmanQuote extends RentmanBaseEntity {
   remark?: string | null;
 }
 
+export interface RentmanQuoteLine extends RentmanBaseEntity {
+  quote: string;
+  name?: string | null;
+  quantity?: number | null;
+  price?: number | null;
+  discount?: number | null;
+  ledgercode?: string | null;
+  taxclass?: string | null;
+  order?: number | null;
+}
+
 export interface RentmanPayment extends RentmanBaseEntity {
   invoice: string;
   date?: string | null;
