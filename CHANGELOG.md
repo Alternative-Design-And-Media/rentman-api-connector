@@ -6,7 +6,7 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 ## [1.3.0] — 2026-05-19
 
 ### Changed
-- Published a new minor release.
+- Added npm publish automation in CI via a dedicated `publish` job that runs on pushes to `main` when the commit message starts with `release:`, and publishes with `NPM_TOKEN`.
 
 ---
 
