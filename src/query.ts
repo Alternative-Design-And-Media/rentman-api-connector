@@ -60,6 +60,143 @@ export interface BuildQueryOptions {
   preserveSlashes?: boolean;
 }
 
+export type QuerySortDirection = 'asc' | 'desc';
+
+/**
+ * Base fluent query builder that accumulates `RentmanQueryOptions`.
+ */
+export class BaseQueryBuilder {
+  protected readonly options: RentmanQueryOptions = {};
+
+  fields(value: string | string[]): this {
+    this.options.fields = value;
+    return this;
+  }
+
+  sort(value: string | string[]): this {
+    this.options.sort = value;
+    return this;
+  }
+
+  limit(value: number): this {
+    this.options.limit = value;
+    return this;
+  }
+
+  offset(value: number): this {
+    this.options.offset = value;
+    return this;
+  }
+
+  build(): RentmanQueryOptions {
+    const result: RentmanQueryOptions = { ...this.options };
+    if (this.options.filters) result.filters = { ...this.options.filters };
+    if (this.options.relFilters) result.relFilters = [...this.options.relFilters];
+    if (this.options.nullFilters) result.nullFilters = [...this.options.nullFilters];
+    return result;
+  }
+
+  protected setFilter(field: string, value: RentmanFilterValue): this {
+    if (!this.options.filters) this.options.filters = {};
+    this.options.filters[field] = value;
+    return this;
+  }
+
+  protected addRelFilter(field: string, op: RentmanRelOp, value: string | number): this {
+    if (!this.options.relFilters) this.options.relFilters = [];
+    this.options.relFilters.push(rel(field, op, value));
+    return this;
+  }
+
+  protected addNullFilter(field: string, isNullValue: boolean): this {
+    if (!this.options.nullFilters) this.options.nullFilters = [];
+    this.options.nullFilters.push({ field, isNull: isNullValue });
+    return this;
+  }
+
+  protected sortByField(field: string, dir: QuerySortDirection = 'asc'): this {
+    this.options.sort = `${dir === 'desc' ? '-' : '+'}${field}`;
+    return this;
+  }
+}
+
+export class ProjectQueryBuilder extends BaseQueryBuilder {
+  withStatus(path: string): this {
+    return this.setFilter('status[eq]', path);
+  }
+
+  startingAfter(date: string): this {
+    return this.addRelFilter('planperiod_start', 'gte', date);
+  }
+
+  startingBefore(date: string): this {
+    return this.addRelFilter('planperiod_start', 'lte', date);
+  }
+
+  notArchived(): this {
+    return this.setFilter('in_archive[eq]', false);
+  }
+
+  inFolder(path: string): this {
+    return this.setFilter('folder[eq]', path);
+  }
+
+  sortByStartDate(dir: QuerySortDirection = 'asc'): this {
+    return this.sortByField('planperiod_start', dir);
+  }
+
+  sortByName(dir: QuerySortDirection = 'asc'): this {
+    return this.sortByField('name', dir);
+  }
+}
+
+export class EquipmentQueryBuilder extends BaseQueryBuilder {
+  notArchived(): this {
+    return this.setFilter('in_archive[eq]', false);
+  }
+
+  inFolder(path: string): this {
+    return this.setFilter('folder[eq]', path);
+  }
+
+  sortByName(dir: QuerySortDirection = 'asc'): this {
+    return this.sortByField('name', dir);
+  }
+}
+
+export class ContactQueryBuilder extends BaseQueryBuilder {
+  inCountry(code: string): this {
+    return this.setFilter('country[eq]', code);
+  }
+
+  notArchived(): this {
+    return this.setFilter('in_archive[eq]', false);
+  }
+
+  sortByName(dir: QuerySortDirection = 'asc'): this {
+    return this.sortByField('name', dir);
+  }
+}
+
+export class InvoiceQueryBuilder extends BaseQueryBuilder {
+  withStatus(path: string): this {
+    return this.setFilter('status[eq]', path);
+  }
+
+  forContact(path: string): this {
+    return this.setFilter('contact[eq]', path);
+  }
+
+  sortByDate(dir: QuerySortDirection = 'asc'): this {
+    return this.sortByField('date', dir);
+  }
+}
+
+export const projectQuery = (): ProjectQueryBuilder => new ProjectQueryBuilder();
+export const equipmentQuery = (): EquipmentQueryBuilder => new EquipmentQueryBuilder();
+export const contactQuery = (): ContactQueryBuilder => new ContactQueryBuilder();
+export const invoiceQuery = (): InvoiceQueryBuilder => new InvoiceQueryBuilder();
+
 function warnForPaginatedMultiSort(opts: RentmanQueryOptions): void {
   if (
     !opts.suppressWarnings &&

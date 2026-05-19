@@ -1,11 +1,16 @@
 import { describe, it, expect, vi } from 'vitest';
 import {
+  BaseQueryBuilder,
   buildQueryParams,
   buildQueryString,
   buildRentmanQuery,
+  contactQuery,
+  equipmentQuery,
+  invoiceQuery,
   rel,
   notNull,
   isNull,
+  projectQuery,
 } from '../query.js';
 
 describe('buildQueryParams', () => {
@@ -167,5 +172,113 @@ describe('buildRentmanQuery', () => {
 
     expect(warn).not.toHaveBeenCalled();
     warn.mockRestore();
+  });
+});
+
+describe('BaseQueryBuilder', () => {
+  it('builds base fields/sort/pagination options', () => {
+    const query = new BaseQueryBuilder()
+      .fields(['id', 'name'])
+      .sort('-created')
+      .limit(50)
+      .offset(100)
+      .build();
+
+    expect(query).toEqual({
+      fields: ['id', 'name'],
+      sort: '-created',
+      limit: 50,
+      offset: 100,
+    });
+  });
+});
+
+describe('projectQuery', () => {
+  it('builds project-specific filters and sort', () => {
+    const query = projectQuery()
+      .startingAfter('2025-01-01')
+      .startingBefore('2025-12-31')
+      .withStatus('/statuses/3')
+      .notArchived()
+      .inFolder('/folders/42')
+      .sortByStartDate('desc')
+      .fields(['id', 'name', 'planperiod_start'])
+      .limit(100)
+      .offset(0)
+      .build();
+
+    expect(query).toEqual({
+      fields: ['id', 'name', 'planperiod_start'],
+      sort: '-planperiod_start',
+      filters: {
+        'status[eq]': '/statuses/3',
+        'in_archive[eq]': false,
+        'folder[eq]': '/folders/42',
+      },
+      relFilters: [
+        { field: 'planperiod_start', op: 'gte', value: '2025-01-01' },
+        { field: 'planperiod_start', op: 'lte', value: '2025-12-31' },
+      ],
+      limit: 100,
+      offset: 0,
+    });
+  });
+
+  it('sortByName defaults to ascending', () => {
+    expect(projectQuery().sortByName().build()).toEqual({ sort: '+name' });
+  });
+});
+
+describe('equipmentQuery', () => {
+  it('builds equipment-specific query', () => {
+    expect(
+      equipmentQuery()
+        .notArchived()
+        .inFolder('/folders/42')
+        .sortByName('desc')
+        .build(),
+    ).toEqual({
+      sort: '-name',
+      filters: {
+        'in_archive[eq]': false,
+        'folder[eq]': '/folders/42',
+      },
+    });
+  });
+});
+
+describe('contactQuery', () => {
+  it('builds contact-specific query', () => {
+    expect(
+      contactQuery()
+        .inCountry('HU')
+        .notArchived()
+        .sortByName()
+        .build(),
+    ).toEqual({
+      sort: '+name',
+      filters: {
+        'country[eq]': 'HU',
+        'in_archive[eq]': false,
+      },
+    });
+  });
+});
+
+describe('invoiceQuery', () => {
+  it('builds invoice-specific query', () => {
+    expect(
+      invoiceQuery()
+        .withStatus('/statuses/9')
+        .forContact('/contacts/12')
+        .sortByDate('desc')
+        .build(),
+    ).toEqual({
+      sort: '-date',
+      filters: {
+        'status[eq]': '/statuses/9',
+        'contact[eq]': '/contacts/12',
+      },
+    });
   });
 });

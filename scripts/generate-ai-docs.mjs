@@ -229,7 +229,7 @@ npm install ${pkg.name}
 - \`ENDPOINTS\`
 - helpers: \`normalizeToken\`, \`listEquipmentSetContents\`, \`normalizeEquipmentItem\`, \`NormalizedEquipmentItem\`
 - custom field helpers: \`RentmanCustomFieldType\`, \`RentmanCustomFieldTypeMap\`, \`RentmanCustomFieldDefinition\`, \`RentmanCustomRecord\`, \`WithCustomFields\`
-- query helpers: \`buildQueryParams\`, \`buildQueryString\`, \`buildRentmanQuery\`, \`rel\`, \`notNull\`, \`isNull\`
+- query helpers: \`buildQueryParams\`, \`buildQueryString\`, \`buildRentmanQuery\`, \`projectQuery\`, \`contactQuery\`, \`equipmentQuery\`, \`invoiceQuery\`, \`rel\`, \`notNull\`, \`isNull\`
 - scan helper: \`scanAll\`, \`ScanOptions\`, \`ScanResult<T>\`
 - lookup cache helpers: \`fetchLookupMap\`, \`fetchStatusCache\`, \`fetchFolderNameCache\`
 - resource types from \`src/types.ts\` (e.g. \`RentmanEquipmentItem\`, \`RentmanProject\`, \`RentmanContact\`)
@@ -274,6 +274,10 @@ import {
   buildQueryParams,
   buildQueryString,
   buildRentmanQuery,
+  projectQuery,
+  contactQuery,
+  equipmentQuery,
+  invoiceQuery,
   rel,
   notNull,
   isNull,
@@ -299,6 +303,31 @@ const params = buildRentmanQuery({
   limit: 50,
   offset: 0,
 });
+
+const projects = projectQuery()
+  .startingAfter('2025-01-01')
+  .withStatus('/statuses/3')
+  .sortByStartDate('desc')
+  .fields(['id', 'name', 'planperiod_start'])
+  .build();
+
+const equipment = equipmentQuery()
+  .notArchived()
+  .inFolder('/folders/42')
+  .sortByName()
+  .build();
+
+const contacts = contactQuery()
+  .inCountry('HU')
+  .notArchived()
+  .sortByName('desc')
+  .build();
+
+const invoices = invoiceQuery()
+  .withStatus('/statuses/9')
+  .forContact('/contacts/12')
+  .sortByDate('desc')
+  .build();
 \`\`\`
 
 - \`rel(field, op, value)\` supports \`lt | lte | gt | gte | neq\`
@@ -575,6 +604,15 @@ interface BuildQueryOptions {
 }
 \`\`\`
 
+Typed domain builders (all return \`RentmanQueryOptions\` from \`.build()\`):
+
+\`\`\`ts
+projectQuery(): ProjectQueryBuilder
+equipmentQuery(): EquipmentQueryBuilder
+contactQuery(): ContactQueryBuilder
+invoiceQuery(): InvoiceQueryBuilder
+\`\`\`
+
 Serialization rules in \`buildQueryParams()\` / \`buildQueryString()\`:
 
 - \`fields\`: array joins with commas
@@ -603,6 +641,10 @@ import {
   buildQueryParams,
   buildQueryString,
   buildRentmanQuery,
+  projectQuery,
+  contactQuery,
+  equipmentQuery,
+  invoiceQuery,
   rel,
   notNull,
   isNull,
@@ -626,6 +668,31 @@ const params = buildRentmanQuery({
   limit: 100,
   offset: 0,
 });
+
+const projects = projectQuery()
+  .startingAfter('2025-01-01')
+  .withStatus('/statuses/3')
+  .sortByStartDate('desc')
+  .fields(['id', 'name', 'planperiod_start'])
+  .build();
+
+const equipment = equipmentQuery()
+  .notArchived()
+  .inFolder('/folders/42')
+  .sortByName()
+  .build();
+
+const contacts = contactQuery()
+  .inCountry('HU')
+  .notArchived()
+  .sortByName('desc')
+  .build();
+
+const invoices = invoiceQuery()
+  .withStatus('/statuses/9')
+  .forContact('/contacts/12')
+  .sortByDate('desc')
+  .build();
 \`\`\`
 
 Caveats:
