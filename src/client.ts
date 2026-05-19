@@ -38,6 +38,7 @@ import type {
 } from './types.js';
 import { buildRentmanQuery, type RentmanQueryOptions } from './query.js';
 import { ENDPOINTS, type RentmanEndpoint } from './endpoints.js';
+import type { CustomFieldMap, WithCustomFields } from './custom-fields.js';
 
 export const RENTMAN_BASE_URL = 'https://api.rentman.net';
 
@@ -674,4 +675,96 @@ export function normalizeEquipmentItem<TCustom = DefaultCustomFields>(
  */
 export function createRentmanClient(opts: RentmanClientOptions): RentmanClient {
   return new RentmanClient(opts);
+}
+
+// ---------------------------------------------------------------------------
+// Typed client (custom field-aware facade)
+// ---------------------------------------------------------------------------
+
+/**
+ * Resolves to `TCF[K]` when the consumer has provided a custom field map for
+ * entity `K`; falls back to `Record<string, never>` (no custom fields) otherwise.
+ *
+ * @internal Not exported publicly; used to build `TypedRentmanClient`.
+ */
+type CFOrNever<TCF extends CustomFieldMap, K extends keyof CustomFieldMap> =
+  TCF[K] extends Record<string, unknown> ? TCF[K] : Record<string, never>;
+
+/**
+ * A `RentmanClient` whose OOP facade properties are typed with account-specific
+ * custom fields derived from `TCF` (the consumer's `CustomFieldMap` implementation).
+ *
+ * Obtain via `createTypedClient`.
+ *
+ * @example
+ * ```ts
+ * import type { TypedRentmanClient, CustomFieldMap } from '@alternative-design-and-media/rentman-api-connector';
+ *
+ * interface MyCustomFields extends CustomFieldMap {
+ *   projects: { budget: number };
+ * }
+ *
+ * declare const rentman: TypedRentmanClient<MyCustomFields>;
+ * const projects = await rentman.projects.listAll();
+ * projects[0].custom?.budget; // number
+ * ```
+ */
+export type TypedRentmanClient<TCF extends CustomFieldMap> = Omit<
+  RentmanClient,
+  | 'projects'
+  | 'subProjects'
+  | 'contacts'
+  | 'equipment'
+  | 'invoices'
+  | 'quotes'
+  | 'crew'
+  | 'vehicles'
+  | 'appointments'
+  | 'subrentals'
+> & {
+  readonly projects: ResourceApi<WithCustomFields<RentmanProject, CFOrNever<TCF, 'projects'>>> &
+    Pick<ProjectsResourceApi, 'listEquipment' | 'listCrew' | 'listFunctions' | 'listVehicles'>;
+  readonly subProjects: ResourceApi<WithCustomFields<RentmanSubProject, CFOrNever<TCF, 'subProjects'>>>;
+  readonly contacts: ResourceApi<WithCustomFields<RentmanContact, CFOrNever<TCF, 'contacts'>>>;
+  readonly equipment: ResourceApi<WithCustomFields<RentmanEquipmentItem, CFOrNever<TCF, 'equipment'>>>;
+  readonly invoices: ResourceApi<WithCustomFields<RentmanInvoice, CFOrNever<TCF, 'invoices'>>> &
+    Pick<InvoicesResourceApi, 'listLines' | 'listMoments'>;
+  readonly quotes: ResourceApi<WithCustomFields<RentmanQuote, CFOrNever<TCF, 'quotes'>>> &
+    Pick<QuotesResourceApi, 'listLines'>;
+  readonly crew: ResourceApi<WithCustomFields<RentmanCrewMember, CFOrNever<TCF, 'crew'>>>;
+  readonly vehicles: ResourceApi<WithCustomFields<RentmanVehicle, CFOrNever<TCF, 'vehicles'>>>;
+  readonly appointments: ResourceApi<WithCustomFields<RentmanAppointment, CFOrNever<TCF, 'appointments'>>> &
+    Pick<AppointmentsResourceApi, 'listCrew'>;
+  readonly subrentals: ResourceApi<WithCustomFields<RentmanSubrental, CFOrNever<TCF, 'subrentals'>>> &
+    Pick<SubrentalsResourceApi, 'listEquipment'>;
+};
+
+/**
+ * Wraps an existing `RentmanClient` with a typed facade that integrates
+ * account-specific custom fields into each resource API property.
+ *
+ * The `_customFieldSchema` parameter is used only for TypeScript type inference
+ * and carries no runtime value — passing `{} as MyCustomFields` is sufficient.
+ *
+ * @param client - A `RentmanClient` instance created via `createRentmanClient`.
+ * @param _customFieldSchema - An instance (or cast) of a `CustomFieldMap` implementation; used only for type inference.
+ * @returns The same client instance cast to `TypedRentmanClient<TCF>`.
+ *
+ * @example
+ * ```ts
+ * import { createRentmanClient, createTypedClient } from '@alternative-design-and-media/rentman-api-connector';
+ * import type { RentmanCustomFields } from './generated/custom-fields.generated';
+ *
+ * const base = createRentmanClient({ token: process.env.RENTMAN_TOKEN! });
+ * export const rentman = createTypedClient(base, {} as RentmanCustomFields);
+ *
+ * const projects = await rentman.projects.listAll();
+ * projects[0].custom?.budget; // typed via RentmanCustomFields
+ * ```
+ */
+export function createTypedClient<TCF extends CustomFieldMap>(
+  client: RentmanClient,
+  _customFieldSchema: TCF,
+): TypedRentmanClient<TCF> {
+  return client as unknown as TypedRentmanClient<TCF>;
 }
