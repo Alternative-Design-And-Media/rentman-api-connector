@@ -19,7 +19,7 @@ npm install @alternative-design-and-media/rentman-api-connector
 
 ## Main exports
 
- - Client API: `createRentmanClient`, `RentmanClient`, `RentmanApiError`, `scanAll`
+ - Client API: `createRentmanClient`, `RentmanClient`, `ResourceApi`, `RentmanApiError`, `scanAll`
  - Helper utilities: `normalizeToken`, `listEquipmentSetContents`, `normalizeEquipmentItem`, `NormalizedEquipmentItem`
  - Custom field helpers: `RentmanCustomFieldType`, `RentmanCustomFieldTypeMap`, `RentmanCustomFieldDefinition`, `RentmanCustomRecord`, `WithCustomFields`
 - Endpoint constants: `ENDPOINTS`, `RentmanEndpoint`
@@ -68,6 +68,27 @@ const rentman = createRentmanClient({
 ## Client methods (signatures + behavior)
 
 ```ts
+interface ResourceApi<T, TCreate = Partial<T>> {
+  list(query?: RentmanQueryOptions): Promise<RentmanCollectionResponse<T>>
+  listAll(query?: Omit<RentmanQueryOptions, 'limit' | 'offset'>): Promise<T[]>
+  getById(id: number, query?: Pick<RentmanQueryOptions, 'fields'>): Promise<RentmanItemResponse<T>>
+  create(body: TCreate): Promise<RentmanItemResponse<T>>
+  update(id: number, body: TCreate): Promise<RentmanItemResponse<T>>
+  delete(id: number): Promise<void>
+}
+
+projects: ResourceApi<RentmanProject>
+subProjects: ResourceApi<RentmanSubProject>
+contacts: ResourceApi<RentmanContact>
+contactPersons: ResourceApi<RentmanContactPerson>
+equipment: ResourceApi<RentmanEquipmentItem>
+invoices: ResourceApi<RentmanInvoice>
+quotes: ResourceApi<RentmanQuote>
+crew: ResourceApi<RentmanCrewMember>
+vehicles: ResourceApi<RentmanVehicle>
+appointments: ResourceApi<RentmanAppointment>
+subrentals: ResourceApi<RentmanSubrental>
+
 list<T>(path: RentmanEndpoint, query?: RentmanQueryOptions): Promise<RentmanCollectionResponse<T>>
 listAll<T>(path: RentmanEndpoint, query?: Omit<RentmanQueryOptions, 'limit' | 'offset'>, pageSize?: number): Promise<T[]>
 scanAll<T>(
@@ -98,6 +119,7 @@ Behavior notes:
 - `get` supports optional `fields` projection
 - `create` and `update` JSON-encode `body`
 - `delete` expects `204` and resolves to `void`
+- Resource facade properties call the same low-level methods with the correct endpoint constants internally
 
 Error behavior:
 
@@ -314,6 +336,24 @@ type MyEquipment = RentmanEquipmentItem<EquipmentCustom>;
 ```
 
 ## Typical usage patterns
+
+Domain resource facades (no `ENDPOINTS` in consumer code):
+
+```ts
+const rentman = createRentmanClient({ token: process.env.RENTMAN_TOKEN! });
+
+await rentman.projects.listAll({ sort: ['-planperiod_start'] });
+await rentman.subProjects.getById(101);
+await rentman.contacts.create({ displayname: 'Teszt Kft.', email: 'info@teszt.hu' });
+await rentman.contactPersons.list();
+await rentman.equipment.listAll({ sort: ['+name'] });
+await rentman.invoices.getById(55);
+await rentman.quotes.list();
+await rentman.crew.listAll();
+await rentman.vehicles.update(17, { remark: 'Updated via SDK facade' });
+await rentman.appointments.delete(31);
+await rentman.subrentals.list();
+```
 
 List with pagination:
 
