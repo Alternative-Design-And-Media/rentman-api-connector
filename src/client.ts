@@ -19,12 +19,21 @@ import type {
   DefaultCustomFields,
   RentmanCrewMember,
   RentmanInvoice,
+  RentmanInvoiceLine,
+  RentmanInvoiceMoment,
   RentmanQuote,
+  RentmanQuoteLine,
   RentmanAppointment,
+  RentmanAppointmentCrew,
   RentmanVehicle,
   RentmanSubrental,
+  RentmanSubrentalEquipment,
   RentmanEquipmentItem,
   RentmanEquipmentSetContent,
+  RentmanProjectEquipment,
+  RentmanProjectCrew,
+  RentmanProjectFunction,
+  RentmanProjectVehicle,
   RentmanItemResponse,
 } from './types.js';
 import { buildRentmanQuery, type RentmanQueryOptions } from './query.js';
@@ -115,6 +124,32 @@ export interface ResourceApi<T, TCreate = Partial<T>> {
   delete(id: number): Promise<void>;
 }
 
+type SubResourceQuery = Omit<RentmanQueryOptions, 'limit' | 'offset'>;
+
+export interface ProjectsResourceApi extends ResourceApi<RentmanProject> {
+  listEquipment(projectId: number, query?: SubResourceQuery): Promise<RentmanProjectEquipment[]>;
+  listCrew(projectId: number, query?: SubResourceQuery): Promise<RentmanProjectCrew[]>;
+  listFunctions(projectId: number, query?: SubResourceQuery): Promise<RentmanProjectFunction[]>;
+  listVehicles(projectId: number, query?: SubResourceQuery): Promise<RentmanProjectVehicle[]>;
+}
+
+export interface InvoicesResourceApi extends ResourceApi<RentmanInvoice> {
+  listLines(invoiceId: number, query?: SubResourceQuery): Promise<RentmanInvoiceLine[]>;
+  listMoments(invoiceId: number, query?: SubResourceQuery): Promise<RentmanInvoiceMoment[]>;
+}
+
+export interface QuotesResourceApi extends ResourceApi<RentmanQuote> {
+  listLines(quoteId: number, query?: SubResourceQuery): Promise<RentmanQuoteLine[]>;
+}
+
+export interface AppointmentsResourceApi extends ResourceApi<RentmanAppointment> {
+  listCrew(appointmentId: number, query?: SubResourceQuery): Promise<RentmanAppointmentCrew[]>;
+}
+
+export interface SubrentalsResourceApi extends ResourceApi<RentmanSubrental> {
+  listEquipment(subrentalId: number, query?: SubResourceQuery): Promise<RentmanSubrentalEquipment[]>;
+}
+
 function getFirstValue(record: Record<string, unknown>, keys: string[]): unknown {
   for (const key of keys) {
     if (key in record) {
@@ -176,17 +211,17 @@ export class RentmanClient {
   private readonly baseUrl: string;
   private readonly fetchImpl: typeof globalThis.fetch;
 
-  readonly projects: ResourceApi<RentmanProject>;
+  readonly projects: ProjectsResourceApi;
   readonly subProjects: ResourceApi<RentmanSubProject>;
   readonly contacts: ResourceApi<RentmanContact>;
   readonly contactPersons: ResourceApi<RentmanContactPerson>;
   readonly equipment: ResourceApi<RentmanEquipmentItem>;
-  readonly invoices: ResourceApi<RentmanInvoice>;
-  readonly quotes: ResourceApi<RentmanQuote>;
+  readonly invoices: InvoicesResourceApi;
+  readonly quotes: QuotesResourceApi;
   readonly crew: ResourceApi<RentmanCrewMember>;
   readonly vehicles: ResourceApi<RentmanVehicle>;
-  readonly appointments: ResourceApi<RentmanAppointment>;
-  readonly subrentals: ResourceApi<RentmanSubrental>;
+  readonly appointments: AppointmentsResourceApi;
+  readonly subrentals: SubrentalsResourceApi;
 
   constructor(private readonly opts: RentmanClientOptions) {
     const resolvedBaseUrl = opts.baseUrl ?? RENTMAN_BASE_URL;
@@ -197,17 +232,86 @@ export class RentmanClient {
     this.baseUrl = normalizedBaseUrl;
     this.fetchImpl = opts.fetch ?? globalThis.fetch.bind(globalThis);
 
-    this.projects = this.createResourceApi<RentmanProject>(ENDPOINTS.projects);
+    const projectsApi = this.createResourceApi<RentmanProject>(ENDPOINTS.projects);
+    this.projects = {
+      ...projectsApi,
+      listEquipment: (projectId, query) => this.listAllSub(
+        ENDPOINTS.projects,
+        projectId,
+        ENDPOINTS.projectEquipment,
+        query,
+      ),
+      listCrew: (projectId, query) => this.listAllSub(
+        ENDPOINTS.projects,
+        projectId,
+        ENDPOINTS.projectCrew,
+        query,
+      ),
+      listFunctions: (projectId, query) => this.listAllSub(
+        ENDPOINTS.projects,
+        projectId,
+        ENDPOINTS.projectFunctions,
+        query,
+      ),
+      listVehicles: (projectId, query) => this.listAllSub(
+        ENDPOINTS.projects,
+        projectId,
+        ENDPOINTS.projectVehicles,
+        query,
+      ),
+    };
     this.subProjects = this.createResourceApi<RentmanSubProject>(ENDPOINTS.subProjects);
     this.contacts = this.createResourceApi<RentmanContact>(ENDPOINTS.contacts);
     this.contactPersons = this.createResourceApi<RentmanContactPerson>(ENDPOINTS.contactPersons);
     this.equipment = this.createResourceApi<RentmanEquipmentItem>(ENDPOINTS.equipment);
-    this.invoices = this.createResourceApi<RentmanInvoice>(ENDPOINTS.invoices);
-    this.quotes = this.createResourceApi<RentmanQuote>(ENDPOINTS.quotes);
+    const invoicesApi = this.createResourceApi<RentmanInvoice>(ENDPOINTS.invoices);
+    this.invoices = {
+      ...invoicesApi,
+      listLines: (invoiceId, query) => this.listAllSub(
+        ENDPOINTS.invoices,
+        invoiceId,
+        ENDPOINTS.invoiceLines,
+        query,
+      ),
+      listMoments: (invoiceId, query) => this.listAllSub(
+        ENDPOINTS.invoices,
+        invoiceId,
+        ENDPOINTS.invoiceMoments,
+        query,
+      ),
+    };
+    const quotesApi = this.createResourceApi<RentmanQuote>(ENDPOINTS.quotes);
+    this.quotes = {
+      ...quotesApi,
+      listLines: (quoteId, query) => this.listAllSub(
+        ENDPOINTS.quotes,
+        quoteId,
+        ENDPOINTS.quoteLines,
+        query,
+      ),
+    };
     this.crew = this.createResourceApi<RentmanCrewMember>(ENDPOINTS.crew);
     this.vehicles = this.createResourceApi<RentmanVehicle>(ENDPOINTS.vehicles);
-    this.appointments = this.createResourceApi<RentmanAppointment>(ENDPOINTS.appointments);
-    this.subrentals = this.createResourceApi<RentmanSubrental>(ENDPOINTS.subrentals);
+    const appointmentsApi = this.createResourceApi<RentmanAppointment>(ENDPOINTS.appointments);
+    this.appointments = {
+      ...appointmentsApi,
+      listCrew: (appointmentId, query) => this.listAllSub(
+        ENDPOINTS.appointments,
+        appointmentId,
+        ENDPOINTS.appointmentCrew,
+        query,
+      ),
+    };
+    const subrentalsApi = this.createResourceApi<RentmanSubrental>(ENDPOINTS.subrentals);
+    this.subrentals = {
+      ...subrentalsApi,
+      listEquipment: (subrentalId, query) => this.listAllSub(
+        ENDPOINTS.subrentals,
+        subrentalId,
+        ENDPOINTS.subrentalEquipment,
+        query,
+      ),
+    };
   }
 
   private createResourceApi<T, TCreate = Partial<T>>(path: RentmanEndpoint): ResourceApi<T, TCreate> {

@@ -482,4 +482,78 @@ describe('RentmanClient', () => {
     expect(updateSpy).toHaveBeenCalledWith(endpoint, 123, updateBody);
     expect(deleteSpy).toHaveBeenCalledWith(endpoint, 123);
   });
+
+  const subResourceFacadeMethods = [
+    {
+      facade: 'projects',
+      method: 'listEquipment',
+      parentEndpoint: ENDPOINTS.projects,
+      subPath: ENDPOINTS.projectEquipment,
+    },
+    {
+      facade: 'projects',
+      method: 'listCrew',
+      parentEndpoint: ENDPOINTS.projects,
+      subPath: ENDPOINTS.projectCrew,
+    },
+    {
+      facade: 'projects',
+      method: 'listFunctions',
+      parentEndpoint: ENDPOINTS.projects,
+      subPath: ENDPOINTS.projectFunctions,
+    },
+    {
+      facade: 'projects',
+      method: 'listVehicles',
+      parentEndpoint: ENDPOINTS.projects,
+      subPath: ENDPOINTS.projectVehicles,
+    },
+    {
+      facade: 'invoices',
+      method: 'listLines',
+      parentEndpoint: ENDPOINTS.invoices,
+      subPath: ENDPOINTS.invoiceLines,
+    },
+    {
+      facade: 'invoices',
+      method: 'listMoments',
+      parentEndpoint: ENDPOINTS.invoices,
+      subPath: ENDPOINTS.invoiceMoments,
+    },
+    {
+      facade: 'quotes',
+      method: 'listLines',
+      parentEndpoint: ENDPOINTS.quotes,
+      subPath: ENDPOINTS.quoteLines,
+    },
+    {
+      facade: 'subrentals',
+      method: 'listEquipment',
+      parentEndpoint: ENDPOINTS.subrentals,
+      subPath: ENDPOINTS.subrentalEquipment,
+    },
+    {
+      facade: 'appointments',
+      method: 'listCrew',
+      parentEndpoint: ENDPOINTS.appointments,
+      subPath: ENDPOINTS.appointmentCrew,
+    },
+  ] as const;
+
+  it.each(subResourceFacadeMethods)(
+    '$facade.$method delegates to listAllSub with parent endpoint and sub-path',
+    async ({ facade, method, parentEndpoint, subPath }) => {
+      const client = createRentmanClient({ token: 't', fetch: vi.fn() as unknown as typeof fetch });
+      const listAllSubSpy = vi.spyOn(client, 'listAllSub').mockResolvedValue([]);
+      const query = { fields: ['id'], sort: ['+id'] };
+      const facadeApi = (client as unknown as Record<string, Record<string, (id: number, query: unknown) => Promise<unknown>>>)[
+        facade
+      ]!;
+      const methodFn = facadeApi[method]!;
+
+      await methodFn(123, query);
+
+      expect(listAllSubSpy).toHaveBeenCalledWith(parentEndpoint, 123, subPath, query);
+    },
+  );
 });

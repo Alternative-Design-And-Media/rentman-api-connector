@@ -77,17 +77,41 @@ interface ResourceApi<T, TCreate = Partial<T>> {
   delete(id: number): Promise<void>
 }
 
-projects: ResourceApi<RentmanProject>
+interface ProjectsResourceApi extends ResourceApi<RentmanProject> {
+  listEquipment(projectId: number, query?: Omit<RentmanQueryOptions, 'limit' | 'offset'>): Promise<RentmanProjectEquipment[]>
+  listCrew(projectId: number, query?: Omit<RentmanQueryOptions, 'limit' | 'offset'>): Promise<RentmanProjectCrew[]>
+  listFunctions(projectId: number, query?: Omit<RentmanQueryOptions, 'limit' | 'offset'>): Promise<RentmanProjectFunction[]>
+  listVehicles(projectId: number, query?: Omit<RentmanQueryOptions, 'limit' | 'offset'>): Promise<RentmanProjectVehicle[]>
+}
+
+interface InvoicesResourceApi extends ResourceApi<RentmanInvoice> {
+  listLines(invoiceId: number, query?: Omit<RentmanQueryOptions, 'limit' | 'offset'>): Promise<RentmanInvoiceLine[]>
+  listMoments(invoiceId: number, query?: Omit<RentmanQueryOptions, 'limit' | 'offset'>): Promise<RentmanInvoiceMoment[]>
+}
+
+interface QuotesResourceApi extends ResourceApi<RentmanQuote> {
+  listLines(quoteId: number, query?: Omit<RentmanQueryOptions, 'limit' | 'offset'>): Promise<RentmanQuoteLine[]>
+}
+
+interface AppointmentsResourceApi extends ResourceApi<RentmanAppointment> {
+  listCrew(appointmentId: number, query?: Omit<RentmanQueryOptions, 'limit' | 'offset'>): Promise<RentmanAppointmentCrew[]>
+}
+
+interface SubrentalsResourceApi extends ResourceApi<RentmanSubrental> {
+  listEquipment(subrentalId: number, query?: Omit<RentmanQueryOptions, 'limit' | 'offset'>): Promise<RentmanSubrentalEquipment[]>
+}
+
+projects: ProjectsResourceApi
 subProjects: ResourceApi<RentmanSubProject>
 contacts: ResourceApi<RentmanContact>
 contactPersons: ResourceApi<RentmanContactPerson>
 equipment: ResourceApi<RentmanEquipmentItem>
-invoices: ResourceApi<RentmanInvoice>
-quotes: ResourceApi<RentmanQuote>
+invoices: InvoicesResourceApi
+quotes: QuotesResourceApi
 crew: ResourceApi<RentmanCrewMember>
 vehicles: ResourceApi<RentmanVehicle>
-appointments: ResourceApi<RentmanAppointment>
-subrentals: ResourceApi<RentmanSubrental>
+appointments: AppointmentsResourceApi
+subrentals: SubrentalsResourceApi
 
 list<T>(path: RentmanEndpoint, query?: RentmanQueryOptions): Promise<RentmanCollectionResponse<T>>
 listAll<T>(path: RentmanEndpoint, query?: Omit<RentmanQueryOptions, 'limit' | 'offset'>, pageSize?: number): Promise<T[]>
@@ -343,16 +367,25 @@ Domain resource facades (no `ENDPOINTS` in consumer code):
 const rentman = createRentmanClient({ token: process.env.RENTMAN_TOKEN! });
 
 await rentman.projects.listAll({ sort: ['-planperiod_start'] });
+await rentman.projects.listEquipment(123, { fields: ['id', 'equipment', 'quantity'] });
+await rentman.projects.listCrew(123);
+await rentman.projects.listFunctions(123);
+await rentman.projects.listVehicles(123);
 await rentman.subProjects.getById(101);
 await rentman.contacts.create({ displayname: 'Teszt Kft.', email: 'info@teszt.hu' });
 await rentman.contactPersons.list();
 await rentman.equipment.listAll({ sort: ['+name'] });
 await rentman.invoices.getById(55);
+await rentman.invoices.listLines(55);
+await rentman.invoices.listMoments(55);
 await rentman.quotes.list();
+await rentman.quotes.listLines(66);
 await rentman.crew.listAll();
 await rentman.vehicles.update(17, { remark: 'Updated via SDK facade' });
+await rentman.appointments.listCrew(77);
 await rentman.appointments.delete(31);
 await rentman.subrentals.list();
+await rentman.subrentals.listEquipment(88);
 ```
 
 List with pagination:
