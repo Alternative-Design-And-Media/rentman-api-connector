@@ -91,6 +91,16 @@ export type WithCustomFields<
  * Consumers implement this interface (typically via the `generate-rentman-custom-fields` CLI)
  * and pass it to `createTypedClient` to get fully typed custom fields on each facade property.
  *
+ * Property types are `unknown` (not `Record<string, unknown>`) so that consumers can implement
+ * them with specific named interfaces (e.g. `{ budget: number }`). TypeScript enforces the
+ * object constraint via the `CFOrNever` conditional type inside `TypedRentmanClient`.
+ *
+ * Note: Rentman currently supports account-specific custom fields only for `projects`,
+ * `subProjects`, `contacts`, `equipment`, `crew`, and `subrentals`. The remaining properties
+ * (`invoices`, `quotes`, `vehicles`, `appointments`) are included for completeness and forward
+ * compatibility; the CLI generator will not populate them until Rentman exposes custom fields
+ * for those resources.
+ *
  * @example
  * ```ts
  * import type { CustomFieldMap } from '@alternative-design-and-media/rentman-api-connector';

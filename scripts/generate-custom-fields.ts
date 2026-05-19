@@ -126,6 +126,11 @@ const MODEL_TYPE_IMPORTS: Record<RentmanCustomFieldModel, string> = {
 /**
  * Maps `belongs_to` model values to the corresponding `CustomFieldMap` facade
  * property key. Models without a direct top-level facade property are omitted.
+ *
+ * Note: `invoices`, `quotes`, `vehicles`, and `appointments` are intentionally
+ * absent because Rentman does not expose custom field definitions for those
+ * resources via the API — there are no corresponding `belongs_to` values in the
+ * Rentman custom fields export.
  */
 const MODEL_TO_FACADE_KEY: Partial<Record<RentmanCustomFieldModel, string>> = {
   project: 'projects',
