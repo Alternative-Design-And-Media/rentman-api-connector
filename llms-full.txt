@@ -185,6 +185,15 @@ interface BuildQueryOptions {
 }
 ```
 
+Typed domain query builders:
+
+```ts
+projectQuery(): ProjectQueryBuilder
+equipmentQuery(): EquipmentQueryBuilder
+contactQuery(): ContactQueryBuilder
+invoiceQuery(): InvoiceQueryBuilder
+```
+
 Serialization rules in `buildQueryParams()` / `buildQueryString()`:
 
 - `fields`: array joins with commas
@@ -201,6 +210,10 @@ Helper signatures:
 buildQueryParams(opts: RentmanQueryOptions): Record<string, string>
 buildQueryString(opts: RentmanQueryOptions, options?: BuildQueryOptions): string
 buildRentmanQuery(opts: RentmanQueryOptions): URLSearchParams
+projectQuery(): ProjectQueryBuilder
+equipmentQuery(): EquipmentQueryBuilder
+contactQuery(): ContactQueryBuilder
+invoiceQuery(): InvoiceQueryBuilder
 rel(field: string, op: RentmanRelOp, value: string | number): RentmanRelFilter
 notNull(field: string): RentmanNullFilter
 isNull(field: string): RentmanNullFilter
@@ -213,6 +226,10 @@ import {
   buildQueryParams,
   buildQueryString,
   buildRentmanQuery,
+  projectQuery,
+  equipmentQuery,
+  contactQuery,
+  invoiceQuery,
   rel,
   notNull,
   isNull,
@@ -236,6 +253,31 @@ const params = buildRentmanQuery({
   limit: 100,
   offset: 0,
 });
+
+const projects = projectQuery()
+  .startingAfter('2025-01-01')
+  .withStatus('/statuses/3')
+  .sortByStartDate('desc')
+  .fields(['id', 'name', 'planperiod_start'])
+  .build();
+
+const items = equipmentQuery()
+  .notArchived()
+  .inFolder('/folders/42')
+  .sortByName()
+  .build();
+
+const contacts = contactQuery()
+  .inCountry('HU')
+  .notArchived()
+  .sortByName('desc')
+  .build();
+
+const invoices = invoiceQuery()
+  .withStatus('/statuses/9')
+  .forContact('/contacts/12')
+  .sortByDate('desc')
+  .build();
 ```
 
 Caveats:
