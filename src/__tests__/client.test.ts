@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { createRentmanClient, RentmanApiError, scanAll } from '../client.js';
 import type { RentmanCollectionResponse } from '../types.js';
+import { ENDPOINTS } from '../endpoints.js';
 
 const mockEquipment = { id: 1, name: 'Cable reel', updateHash: 'abc123', created: '', modified: '' };
 
@@ -433,5 +434,52 @@ describe('RentmanClient', () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
     const firstCallUrl = fetchMock.mock.calls[0]?.[0] as string;
     expect(firstCallUrl).toContain('/equipment/3473/equipmentsetscontent?limit=1&offset=0');
+  });
+
+  const resourceFacades = [
+    { key: 'projects', endpoint: ENDPOINTS.projects },
+    { key: 'subProjects', endpoint: ENDPOINTS.subProjects },
+    { key: 'contacts', endpoint: ENDPOINTS.contacts },
+    { key: 'contactPersons', endpoint: ENDPOINTS.contactPersons },
+    { key: 'equipment', endpoint: ENDPOINTS.equipment },
+    { key: 'invoices', endpoint: ENDPOINTS.invoices },
+    { key: 'quotes', endpoint: ENDPOINTS.quotes },
+    { key: 'crew', endpoint: ENDPOINTS.crew },
+    { key: 'vehicles', endpoint: ENDPOINTS.vehicles },
+    { key: 'appointments', endpoint: ENDPOINTS.appointments },
+    { key: 'subrentals', endpoint: ENDPOINTS.subrentals },
+  ] as const;
+
+  it.each(resourceFacades)('$key facade delegates all methods to base client methods', async ({ key, endpoint }) => {
+    const client = createRentmanClient({ token: 't', fetch: vi.fn() as unknown as typeof fetch });
+    const resource = (client as unknown as Record<string, any>)[key];
+
+    const listQuery = { limit: 25, offset: 10 };
+    const listAllQuery = { fields: ['id', 'name'], sort: ['+name'] };
+    const getByIdQuery = { fields: ['id', 'name'] };
+    const createBody = { name: `${key}-created` };
+    const updateBody = { name: `${key}-updated` };
+
+    const listSpy = vi.spyOn(client, 'list').mockResolvedValue({ data: [], itemCount: 0, limit: 300, offset: 0 });
+    const listAllSpy = vi.spyOn(client, 'listAll').mockResolvedValue([]);
+    const itemResponse = { data: { id: 1 } as never, itemCount: 1, limit: 1, offset: 0 };
+    const getSpy = vi.spyOn(client, 'get').mockResolvedValue(itemResponse);
+    const createSpy = vi.spyOn(client, 'create').mockResolvedValue(itemResponse);
+    const updateSpy = vi.spyOn(client, 'update').mockResolvedValue(itemResponse);
+    const deleteSpy = vi.spyOn(client, 'delete').mockResolvedValue(undefined);
+
+    await resource.list(listQuery);
+    await resource.listAll(listAllQuery);
+    await resource.getById(123, getByIdQuery);
+    await resource.create(createBody);
+    await resource.update(123, updateBody);
+    await resource.delete(123);
+
+    expect(listSpy).toHaveBeenCalledWith(endpoint, listQuery);
+    expect(listAllSpy).toHaveBeenCalledWith(endpoint, listAllQuery);
+    expect(getSpy).toHaveBeenCalledWith(endpoint, 123, getByIdQuery);
+    expect(createSpy).toHaveBeenCalledWith(endpoint, createBody);
+    expect(updateSpy).toHaveBeenCalledWith(endpoint, 123, updateBody);
+    expect(deleteSpy).toHaveBeenCalledWith(endpoint, 123);
   });
 });

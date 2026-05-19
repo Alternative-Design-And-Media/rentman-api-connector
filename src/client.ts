@@ -12,7 +12,17 @@
 
 import type {
   RentmanCollectionResponse,
+  RentmanProject,
+  RentmanSubProject,
+  RentmanContact,
+  RentmanContactPerson,
   DefaultCustomFields,
+  RentmanCrewMember,
+  RentmanInvoice,
+  RentmanQuote,
+  RentmanAppointment,
+  RentmanVehicle,
+  RentmanSubrental,
   RentmanEquipmentItem,
   RentmanEquipmentSetContent,
   RentmanItemResponse,
@@ -96,6 +106,15 @@ export interface NormalizedEquipmentItem<TCustom = DefaultCustomFields> {
   _raw: RentmanEquipmentItem<TCustom>;
 }
 
+export interface ResourceApi<T, TCreate = Partial<T>> {
+  list(query?: RentmanQueryOptions): Promise<RentmanCollectionResponse<T>>;
+  listAll(query?: Omit<RentmanQueryOptions, 'limit' | 'offset'>): Promise<T[]>;
+  getById(id: number, query?: Pick<RentmanQueryOptions, 'fields'>): Promise<RentmanItemResponse<T>>;
+  create(body: TCreate): Promise<RentmanItemResponse<T>>;
+  update(id: number, body: TCreate): Promise<RentmanItemResponse<T>>;
+  delete(id: number): Promise<void>;
+}
+
 function getFirstValue(record: Record<string, unknown>, keys: string[]): unknown {
   for (const key of keys) {
     if (key in record) {
@@ -157,6 +176,18 @@ export class RentmanClient {
   private readonly baseUrl: string;
   private readonly fetchImpl: typeof globalThis.fetch;
 
+  readonly projects: ResourceApi<RentmanProject>;
+  readonly subProjects: ResourceApi<RentmanSubProject>;
+  readonly contacts: ResourceApi<RentmanContact>;
+  readonly contactPersons: ResourceApi<RentmanContactPerson>;
+  readonly equipment: ResourceApi<RentmanEquipmentItem>;
+  readonly invoices: ResourceApi<RentmanInvoice>;
+  readonly quotes: ResourceApi<RentmanQuote>;
+  readonly crew: ResourceApi<RentmanCrewMember>;
+  readonly vehicles: ResourceApi<RentmanVehicle>;
+  readonly appointments: ResourceApi<RentmanAppointment>;
+  readonly subrentals: ResourceApi<RentmanSubrental>;
+
   constructor(private readonly opts: RentmanClientOptions) {
     const resolvedBaseUrl = opts.baseUrl ?? RENTMAN_BASE_URL;
     let normalizedBaseUrl = resolvedBaseUrl;
@@ -165,6 +196,29 @@ export class RentmanClient {
     }
     this.baseUrl = normalizedBaseUrl;
     this.fetchImpl = opts.fetch ?? globalThis.fetch.bind(globalThis);
+
+    this.projects = this.createResourceApi<RentmanProject>(ENDPOINTS.projects);
+    this.subProjects = this.createResourceApi<RentmanSubProject>(ENDPOINTS.subProjects);
+    this.contacts = this.createResourceApi<RentmanContact>(ENDPOINTS.contacts);
+    this.contactPersons = this.createResourceApi<RentmanContactPerson>(ENDPOINTS.contactPersons);
+    this.equipment = this.createResourceApi<RentmanEquipmentItem>(ENDPOINTS.equipment);
+    this.invoices = this.createResourceApi<RentmanInvoice>(ENDPOINTS.invoices);
+    this.quotes = this.createResourceApi<RentmanQuote>(ENDPOINTS.quotes);
+    this.crew = this.createResourceApi<RentmanCrewMember>(ENDPOINTS.crew);
+    this.vehicles = this.createResourceApi<RentmanVehicle>(ENDPOINTS.vehicles);
+    this.appointments = this.createResourceApi<RentmanAppointment>(ENDPOINTS.appointments);
+    this.subrentals = this.createResourceApi<RentmanSubrental>(ENDPOINTS.subrentals);
+  }
+
+  private createResourceApi<T, TCreate = Partial<T>>(path: RentmanEndpoint): ResourceApi<T, TCreate> {
+    return {
+      list: (query?: RentmanQueryOptions) => this.list<T>(path, query),
+      listAll: (query?: Omit<RentmanQueryOptions, 'limit' | 'offset'>) => this.listAll<T>(path, query),
+      getById: (id: number, query?: Pick<RentmanQueryOptions, 'fields'>) => this.get<T>(path, id, query),
+      create: (body: TCreate) => this.create<TCreate, T>(path, body),
+      update: (id: number, body: TCreate) => this.update<TCreate, T>(path, id, body),
+      delete: (id: number) => this.delete(path, id),
+    };
   }
 
   private async resolveToken(): Promise<string> {
