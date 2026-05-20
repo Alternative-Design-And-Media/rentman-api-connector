@@ -3,6 +3,21 @@
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.0.0] — 2026-05-20
+
+### Added
+- **OOP milestone** — full domain-level facade for consumer code. Consumers no longer need `ENDPOINTS.*` constants, raw path strings, or manual `RentmanQueryOptions` construction.
+- **Domain query builders**: `projectQuery()`, `equipmentQuery()`, `contactQuery()`, `invoiceQuery()` — typed fluent builders that return `RentmanQueryOptions` from `.build()`.
+- **Sub-resource facade methods** on `rentman.projects` (`listEquipment`, `listCrew`, `listFunctions`, `listVehicles`), `rentman.invoices` (`listLines`, `listMoments`), `rentman.quotes` (`listLines`), `rentman.appointments` (`listCrew`), `rentman.subrentals` (`listEquipment`).
+- **Usage example files**: `examples/projects.ts`, `examples/contacts.ts`, `examples/equipment.ts`.
+- **README "OOP interface" section** documenting the domain-level consumer API and typed query builders.
+- **`llms-full.txt`** updated with all new domain facade and query builder APIs.
+
+### Backward Compatible
+- The existing `client.list(ENDPOINTS.x, ...)` low-level API is unchanged and not deprecated.
+
+---
+
 ## [1.3.0] — 2026-05-19
 
 ### Added
