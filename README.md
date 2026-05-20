@@ -1,6 +1,6 @@
 # @alternative-design-and-media/rentman-api-connector
 
-v1.1.0
+v2.0.0
 
 > Type-safe Rentman REST API connector for Node.js and edge runtimes (Cloudflare Workers).
 > Synced to **OAS v1.7.0** (deployment 2025-11-13).
@@ -94,6 +94,94 @@ await rentman.create(ENDPOINTS.stockMovements, { equipment: '/equipment/42', qua
 await rentman.update(ENDPOINTS.equipment, 42, { remark: 'Updated via API' });
 await rentman.delete(ENDPOINTS.equipment, 99);
 ```
+
+---
+
+## OOP interface (consumer API)
+
+The recommended way to use this package is through the **domain-level OOP facade** — no `ENDPOINTS.*` constants, raw path strings, or manual `RentmanQueryOptions` construction required in your code.
+
+```ts
+import {
+  createRentmanClient,
+  projectQuery,
+  equipmentQuery,
+  contactQuery,
+  invoiceQuery,
+} from '@alternative-design-and-media/rentman-api-connector';
+
+const rentman = createRentmanClient({ token: process.env.RENTMAN_TOKEN! });
+
+// 1. List confirmed projects starting after a given date
+const projects = await rentman.projects.listAll(
+  projectQuery()
+    .startingAfter('2025-01-01')
+    .withStatus('/statuses/3')
+    .sortByStartDate('desc')
+    .build(),
+);
+
+// 2. Equipment lines on the first project
+const gear = await rentman.projects.listEquipment(projects[0].id);
+
+// 3. Create a new contact
+const { data: contact } = await rentman.contacts.create({
+  displayname: 'Teszt Kft.',
+  email: 'info@teszt.hu',
+});
+
+// 4. All active equipment, sorted by name
+const activeGear = await rentman.equipment.listAll(
+  equipmentQuery().notArchived().sortByName().build(),
+);
+
+// 5. Invoice lines for a specific invoice
+const lines = await rentman.invoices.listLines(42);
+```
+
+### Domain facades at a glance
+
+| Property | Type | Extra methods |
+|---|---|---|
+| `rentman.projects` | `ResourceApi<RentmanProject>` | `listEquipment`, `listCrew`, `listFunctions`, `listVehicles` |
+| `rentman.subProjects` | `ResourceApi<RentmanSubProject>` | — |
+| `rentman.contacts` | `ResourceApi<RentmanContact>` | — |
+| `rentman.contactPersons` | `ResourceApi<RentmanContactPerson>` | — |
+| `rentman.equipment` | `ResourceApi<RentmanEquipmentItem>` | — |
+| `rentman.invoices` | `ResourceApi<RentmanInvoice>` | `listLines`, `listMoments` |
+| `rentman.quotes` | `ResourceApi<RentmanQuote>` | `listLines` |
+| `rentman.crew` | `ResourceApi<RentmanCrewMember>` | — |
+| `rentman.vehicles` | `ResourceApi<RentmanVehicle>` | — |
+| `rentman.appointments` | `ResourceApi<RentmanAppointment>` | `listCrew` |
+| `rentman.subrentals` | `ResourceApi<RentmanSubrental>` | `listEquipment` |
+
+Every `ResourceApi<T>` exposes:
+
+```ts
+interface ResourceApi<T, TCreate = Partial<T>> {
+  list(query?: RentmanQueryOptions): Promise<RentmanCollectionResponse<T>>;
+  listAll(query?: Omit<RentmanQueryOptions, 'limit' | 'offset'>): Promise<T[]>;
+  getById(id: number, query?: Pick<RentmanQueryOptions, 'fields'>): Promise<RentmanItemResponse<T>>;
+  create(body: TCreate): Promise<RentmanItemResponse<T>>;
+  update(id: number, body: TCreate): Promise<RentmanItemResponse<T>>;
+  delete(id: number): Promise<void>;
+}
+```
+
+### Typed query builders
+
+Use the typed query builder helpers to compose `RentmanQueryOptions` without touching the raw type:
+
+| Builder | Factory | Domain-specific methods |
+|---|---|---|
+| `ProjectQueryBuilder` | `projectQuery()` | `startingAfter(date)`, `startingBefore(date)`, `withStatus(path)`, `notArchived()`, `inFolder(path)`, `sortByStartDate(dir?)`, `sortByName(dir?)` |
+| `EquipmentQueryBuilder` | `equipmentQuery()` | `notArchived()`, `inFolder(path)`, `sortByName(dir?)` |
+| `ContactQueryBuilder` | `contactQuery()` | `inCountry(code)`, `notArchived()`, `sortByName(dir?)` |
+| `InvoiceQueryBuilder` | `invoiceQuery()` | `withStatus(path)`, `forContact(path)`, `sortByDate(dir?)` |
+
+All builders also inherit `fields(...)`, `sort(...)`, `limit(n)`, `offset(n)`, and `.build()`.
+
+> **Backward compatibility**: the low-level `client.list(ENDPOINTS.x, ...)` API remains unchanged and is not deprecated.
 
 ---
 

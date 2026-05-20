@@ -275,8 +275,8 @@ import {
   buildQueryString,
   buildRentmanQuery,
   projectQuery,
-  contactQuery,
   equipmentQuery,
+  contactQuery,
   invoiceQuery,
   rel,
   notNull,
@@ -463,6 +463,7 @@ npm install ${pkg.name}
 ## Main exports
 
  - Client API: \`createRentmanClient\`, \`RentmanClient\`, \`ResourceApi\`, \`RentmanApiError\`, \`scanAll\`
+ - Typed client: \`createTypedClient\`, \`TypedRentmanClient\`, \`CustomFieldMap\`
  - Helper utilities: \`normalizeToken\`, \`listEquipmentSetContents\`, \`normalizeEquipmentItem\`, \`NormalizedEquipmentItem\`
  - Custom field helpers: \`RentmanCustomFieldType\`, \`RentmanCustomFieldTypeMap\`, \`RentmanCustomFieldDefinition\`, \`RentmanCustomRecord\`, \`WithCustomFields\`
 - Endpoint constants: \`ENDPOINTS\`, \`RentmanEndpoint\`
@@ -642,8 +643,8 @@ import {
   buildQueryString,
   buildRentmanQuery,
   projectQuery,
-  contactQuery,
   equipmentQuery,
+  contactQuery,
   invoiceQuery,
   rel,
   notNull,
