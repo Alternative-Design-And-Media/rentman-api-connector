@@ -123,6 +123,24 @@ const MODEL_TYPE_IMPORTS: Record<RentmanCustomFieldModel, string> = {
   repair: 'RentmanRepair',
 };
 
+/**
+ * Maps `belongs_to` model values to the corresponding `CustomFieldMap` facade
+ * property key. Models without a direct top-level facade property are omitted.
+ *
+ * Note: `invoices`, `quotes`, `vehicles`, and `appointments` are intentionally
+ * absent because Rentman does not expose custom field definitions for those
+ * resources via the API — there are no corresponding `belongs_to` values in the
+ * Rentman custom fields export.
+ */
+const MODEL_TO_FACADE_KEY: Partial<Record<RentmanCustomFieldModel, string>> = {
+  project: 'projects',
+  subproject: 'subProjects',
+  contact: 'contacts',
+  equipment: 'equipment',
+  crew: 'crew',
+  subrental: 'subrentals',
+};
+
 const MODEL_PASCAL_NAMES: Record<RentmanCustomFieldModel, string> = {
   project: 'Project',
   subproject: 'SubProject',
@@ -594,13 +612,33 @@ function generateFile(
   }
 
   const importsBySource = new Map<string, string[]>([
-    [options.withCustomFieldsImportSource, ['WithCustomFields']],
+    [options.withCustomFieldsImportSource, ['WithCustomFields', 'CustomFieldMap']],
   ]);
 
   if (usedTypeImports.length > 0) {
     const existingImports = importsBySource.get(options.modelTypesImportSource) ?? [];
     importsBySource.set(options.modelTypesImportSource, [...existingImports, ...usedTypeImports]);
   }
+
+  // Generate RentmanCustomFields interface (extends CustomFieldMap) — only for
+  // models that have a direct top-level facade property in CustomFieldMap.
+  const facadeProperties = modelOrder
+    .map(model => {
+      const facadeKey = MODEL_TO_FACADE_KEY[model];
+      if (!facadeKey) return '';
+      const interfaceName = `${MODEL_PASCAL_NAMES[model]}CustomFields`;
+      return `  ${facadeKey}: ${interfaceName};`;
+    })
+    .filter(Boolean);
+
+  const rentmanCustomFieldsSection = [
+    '// ─── RentmanCustomFields ' + '─'.repeat(Math.max(1, SECTION_HEADER_WIDTH - 'RentmanCustomFields'.length)),
+    '',
+    '/** Account-specific custom field map. Pass to `createTypedClient` to enable typed custom fields on the OOP facade. */',
+    'export interface RentmanCustomFields extends CustomFieldMap {',
+    ...facadeProperties,
+    '}',
+  ].join('\n');
 
   const headerLines = [
     '// AUTO-GENERATED — do not edit manually.',
@@ -618,7 +656,8 @@ function generateFile(
   headerLines.push('', '');
   const header = headerLines.join('\n');
 
-  return `${header}${sections.join('\n\n')}`.trimEnd() + '\n';
+  const allSections = [...sections, rentmanCustomFieldsSection];
+  return `${header}${allSections.join('\n\n')}`.trimEnd() + '\n';
 }
 
 function main(): void {

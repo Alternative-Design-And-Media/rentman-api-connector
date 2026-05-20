@@ -1,0 +1,126 @@
+/**
+ * Type-level tests for `createTypedClient` and related types.
+ *
+ * These are type-checked by `tsc --noEmit` (via `npm run typecheck`).
+ * They verify that the TypeScript inference is correct for `TypedRentmanClient<TCF>`.
+ */
+
+import { expectTypeOf } from 'vitest';
+import {
+  createRentmanClient,
+  createTypedClient,
+  type TypedRentmanClient,
+} from '../client.js';
+import type { CustomFieldMap, WithCustomFields } from '../custom-fields.js';
+import type { RentmanProject } from '../types.js';
+
+// ---------------------------------------------------------------------------
+// Test fixtures
+// ---------------------------------------------------------------------------
+
+interface MyCustomFields extends CustomFieldMap {
+  projects:  { budget: number; category: string; is_vip: boolean };
+  equipment: { serial_prefix?: string; warehouse_zone?: string };
+  contacts:  { vat_number: string; credit_limit: number };
+}
+
+declare const baseClient: ReturnType<typeof createRentmanClient>;
+const typedClient = createTypedClient(baseClient, {} as MyCustomFields);
+
+// ---------------------------------------------------------------------------
+// Return type of createTypedClient is TypedRentmanClient<TCF>
+// ---------------------------------------------------------------------------
+
+expectTypeOf(typedClient).toMatchTypeOf<TypedRentmanClient<MyCustomFields>>();
+
+// ---------------------------------------------------------------------------
+// projects: custom fields typed correctly
+// ---------------------------------------------------------------------------
+
+declare const projects: Awaited<ReturnType<typeof typedClient.projects.listAll>>;
+type ProjectItem = (typeof projects)[number];
+
+expectTypeOf<ProjectItem>().toMatchTypeOf<WithCustomFields<RentmanProject, { budget: number; category: string; is_vip: boolean }>>();
+
+// custom?.budget is number, not unknown
+declare const budget: NonNullable<ProjectItem['custom']>['budget'];
+expectTypeOf<typeof budget>().toEqualTypeOf<number>();
+
+// custom?.is_vip is boolean
+declare const isVip: NonNullable<ProjectItem['custom']>['is_vip'];
+expectTypeOf<typeof isVip>().toEqualTypeOf<boolean>();
+
+// custom?.category is string
+declare const category: NonNullable<ProjectItem['custom']>['category'];
+expectTypeOf<typeof category>().toEqualTypeOf<string>();
+
+// ---------------------------------------------------------------------------
+// equipment: custom fields typed correctly
+// ---------------------------------------------------------------------------
+
+declare const equipmentItems: Awaited<ReturnType<typeof typedClient.equipment.listAll>>;
+type EquipmentItem = (typeof equipmentItems)[number];
+
+// custom?.warehouse_zone is string | undefined (optional field)
+declare const warehouseZone: NonNullable<EquipmentItem['custom']>['warehouse_zone'];
+expectTypeOf<typeof warehouseZone>().toEqualTypeOf<string | undefined>();
+
+// ---------------------------------------------------------------------------
+// contacts: custom fields typed correctly
+// ---------------------------------------------------------------------------
+
+declare const contacts: Awaited<ReturnType<typeof typedClient.contacts.listAll>>;
+type ContactItem = (typeof contacts)[number];
+
+declare const vatNumber: NonNullable<ContactItem['custom']>['vat_number'];
+expectTypeOf<typeof vatNumber>().toEqualTypeOf<string>();
+
+// ---------------------------------------------------------------------------
+// Entity with no custom fields in TCF → accessing any key on custom returns never
+// ---------------------------------------------------------------------------
+
+declare const crewItems: Awaited<ReturnType<typeof typedClient.crew.listAll>>;
+type CrewItem = (typeof crewItems)[number];
+
+// crew has no custom fields in MyCustomFields → fallback to Record<string, never>
+// Any string-keyed access on the custom object returns never (no valid fields)
+declare const crewCustomKey: NonNullable<CrewItem['custom']>[string];
+expectTypeOf<typeof crewCustomKey>().toEqualTypeOf<never>();
+
+// ---------------------------------------------------------------------------
+// Extended sub-resource methods are still present on typed client
+// ---------------------------------------------------------------------------
+
+expectTypeOf(typedClient.projects.listEquipment).toBeFunction();
+expectTypeOf(typedClient.projects.listCrew).toBeFunction();
+expectTypeOf(typedClient.projects.listFunctions).toBeFunction();
+expectTypeOf(typedClient.projects.listVehicles).toBeFunction();
+expectTypeOf(typedClient.invoices.listLines).toBeFunction();
+expectTypeOf(typedClient.invoices.listMoments).toBeFunction();
+expectTypeOf(typedClient.quotes.listLines).toBeFunction();
+expectTypeOf(typedClient.appointments.listCrew).toBeFunction();
+expectTypeOf(typedClient.subrentals.listEquipment).toBeFunction();
+
+// ---------------------------------------------------------------------------
+// Low-level API methods are still present on typed client
+// ---------------------------------------------------------------------------
+
+expectTypeOf(typedClient.list).toBeFunction();
+expectTypeOf(typedClient.listAll).toBeFunction();
+expectTypeOf(typedClient.get).toBeFunction();
+expectTypeOf(typedClient.create).toBeFunction();
+expectTypeOf(typedClient.update).toBeFunction();
+expectTypeOf(typedClient.delete).toBeFunction();
+
+// ---------------------------------------------------------------------------
+// CFOrNever: entity with no TCF entry → accessing any key on custom returns never
+// ---------------------------------------------------------------------------
+
+interface EmptyCustomFields extends CustomFieldMap {}
+declare const emptyTyped: TypedRentmanClient<EmptyCustomFields>;
+
+declare const emptyProjects: Awaited<ReturnType<typeof emptyTyped.projects.listAll>>;
+// When no custom fields defined for projects, custom key access returns never
+declare const emptyProjectCustomKey: NonNullable<(typeof emptyProjects)[number]['custom']>[string];
+expectTypeOf<typeof emptyProjectCustomKey>().toEqualTypeOf<never>();
+

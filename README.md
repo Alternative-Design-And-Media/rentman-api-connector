@@ -23,6 +23,7 @@ v1.1.0
 - ✅ Kit/set content helper (`listEquipmentSetContents`) for `/equipment/{id}/equipmentsetscontent`
 - ✅ Equipment field normalizer (`normalizeEquipmentItem`) for mixed OAS/legacy payloads
 - ✅ Typed custom fields — narrow `custom_<number>` keys per entity at compile time
+- ✅ **Prisma-style typed client** — `createTypedClient` integrates account-specific custom fields into the OOP facade
 - ✅ Resource path utilities — `parseResourcePath`, `resourceId`, `buildResourcePath`
 - ✅ Lookup cache helpers — `fetchLookupMap`, `fetchStatusCache`, `fetchFolderNameCache`
 
@@ -448,6 +449,70 @@ import { type WithUnknownFields, type RentmanEquipmentItem } from '@alternative-
 const { data: raw } = await rentman.get<WithUnknownFields<RentmanEquipmentItem>>(ENDPOINTS.equipment, 42);
 console.log(raw.someNewUnmappedField); // typed as `unknown`, no compile error
 ```
+
+### Custom fields + OOP facade (Prisma-style DX)
+
+Use `createTypedClient` to integrate account-specific custom fields directly into the OOP facade — no low-level API calls needed. The pattern is inspired by Prisma's `prisma generate` / graphql-codegen workflow.
+
+#### Step 1 — Define your custom fields config
+
+```json
+// custom-fields.config.json
+[
+  { "id": 11, "name": "budget", "belongs_to": "project", "type": "price", "input_fields_group": "General", "required": false },
+  { "id": 12, "name": "category", "belongs_to": "project", "type": "dropdown", "input_fields_group": "General", "required": true,
+    "options": [{ "id": 1, "name": "Conference" }, { "id": 2, "name": "Wedding" }] },
+  { "id": 21, "name": "serial_prefix", "belongs_to": "equipment", "type": "text", "input_fields_group": "General", "required": false }
+]
+```
+
+#### Step 2 — Regenerate types (run once per config change)
+
+```bash
+npx generate-rentman-custom-fields
+# or inside your project:
+npm run generate:custom-fields
+```
+
+This writes `src/generated/custom-fields.generated.ts` which includes a `RentmanCustomFields extends CustomFieldMap` interface alongside per-model helpers.
+
+#### Step 3 — Create the typed client (written once by hand)
+
+```ts
+// src/lib/rentman.ts
+import {
+  createRentmanClient,
+  createTypedClient,
+} from '@alternative-design-and-media/rentman-api-connector';
+import type { RentmanCustomFields } from './generated/custom-fields.generated';
+
+const base = createRentmanClient({ token: process.env.RENTMAN_TOKEN! });
+
+// The second argument is only used for TypeScript inference.
+// {} as RentmanCustomFields is sufficient at runtime.
+export const rentman = createTypedClient(base, {} as RentmanCustomFields);
+```
+
+#### Step 4 — Use in your application code
+
+```ts
+import { rentman } from './lib/rentman';
+
+const projects = await rentman.projects.listAll();
+projects[0].custom?.budget;   // ✅ number
+projects[0].custom?.category; // ✅ 'Conference' | 'Wedding'
+
+const items = await rentman.equipment.listAll();
+items[0].custom?.serial_prefix; // ✅ string | undefined
+
+// Low-level API still works (backward compatible)
+const raw = await rentman.list(ENDPOINTS.projects);
+
+// Sub-resource methods are preserved on the typed client
+const equipment = await rentman.projects.listEquipment(123);
+```
+
+Entities without custom fields in your `CustomFieldMap` fall back to `Record<string, never>` (typed, but no false positives). Backward compatible: `createRentmanClient` without `createTypedClient` continues to work unchanged.
 
 ---
 

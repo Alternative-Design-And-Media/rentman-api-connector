@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { createRentmanClient, RentmanApiError, scanAll } from '../client.js';
+import { createRentmanClient, createTypedClient, RentmanApiError, scanAll } from '../client.js';
 import type { RentmanCollectionResponse } from '../types.js';
 import { ENDPOINTS } from '../endpoints.js';
 
@@ -556,4 +556,54 @@ describe('RentmanClient', () => {
       expect(listAllSubSpy).toHaveBeenCalledWith(parentEndpoint, 123, subPath, query);
     },
   );
+});
+
+describe('createTypedClient', () => {
+  it('returns the same underlying client instance', () => {
+    const base = createRentmanClient({ token: 't', fetch: vi.fn() as unknown as typeof fetch });
+    const typed = createTypedClient(base, {});
+    expect(typed).toBe(base);
+  });
+
+  it('typed client facade methods delegate to the same base client methods', async () => {
+    const base = createRentmanClient({ token: 't', fetch: vi.fn() as unknown as typeof fetch });
+    const typed = createTypedClient(base, {});
+
+    const listSpy = vi.spyOn(base, 'list').mockResolvedValue({ data: [], itemCount: 0, limit: 300, offset: 0 });
+    const listAllSpy = vi.spyOn(base, 'listAll').mockResolvedValue([]);
+    const itemResponse = { data: { id: 1 } as never, itemCount: 1, limit: 1, offset: 0 };
+    const getSpy = vi.spyOn(base, 'get').mockResolvedValue(itemResponse);
+    const createSpy = vi.spyOn(base, 'create').mockResolvedValue(itemResponse);
+    const updateSpy = vi.spyOn(base, 'update').mockResolvedValue(itemResponse);
+    const deleteSpy = vi.spyOn(base, 'delete').mockResolvedValue(undefined);
+
+    await typed.projects.list({ limit: 10 });
+    await typed.equipment.listAll();
+    await typed.contacts.getById(1);
+    await typed.crew.create({ displayname: 'Alice' });
+    await typed.vehicles.update(1, { name: 'Van' });
+    await typed.subrentals.delete(1);
+
+    expect(listSpy).toHaveBeenCalledWith(ENDPOINTS.projects, { limit: 10 });
+    expect(listAllSpy).toHaveBeenCalledWith(ENDPOINTS.equipment, undefined);
+    expect(getSpy).toHaveBeenCalledWith(ENDPOINTS.contacts, 1, undefined);
+    expect(createSpy).toHaveBeenCalledWith(ENDPOINTS.crew, { displayname: 'Alice' });
+    expect(updateSpy).toHaveBeenCalledWith(ENDPOINTS.vehicles, 1, { name: 'Van' });
+    expect(deleteSpy).toHaveBeenCalledWith(ENDPOINTS.subrentals, 1);
+  });
+
+  it('typed client extended sub-resource methods delegate to the same base client methods', async () => {
+    const base = createRentmanClient({ token: 't', fetch: vi.fn() as unknown as typeof fetch });
+    const typed = createTypedClient(base, {});
+
+    const listAllSubSpy = vi.spyOn(base, 'listAllSub').mockResolvedValue([]);
+
+    await typed.projects.listEquipment(10, { fields: ['id'] });
+    await typed.invoices.listLines(5);
+    await typed.appointments.listCrew(7);
+
+    expect(listAllSubSpy).toHaveBeenCalledWith(ENDPOINTS.projects, 10, ENDPOINTS.projectEquipment, { fields: ['id'] });
+    expect(listAllSubSpy).toHaveBeenCalledWith(ENDPOINTS.invoices, 5, ENDPOINTS.invoiceLines, undefined);
+    expect(listAllSubSpy).toHaveBeenCalledWith(ENDPOINTS.appointments, 7, ENDPOINTS.appointmentCrew, undefined);
+  });
 });
