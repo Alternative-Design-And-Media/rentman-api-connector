@@ -36,7 +36,7 @@ import type {
   RentmanProjectVehicle,
   RentmanItemResponse,
 } from './types.js';
-import { buildRentmanQuery, type RentmanQueryOptions } from './query.js';
+import { buildQueryString, buildRentmanQuery, type RentmanQueryOptions } from './query.js';
 import { ENDPOINTS, type RentmanEndpoint } from './endpoints.js';
 import type { CustomFieldMap, WithCustomFields } from './custom-fields.js';
 
@@ -94,6 +94,11 @@ export interface ScanResult<T> {
   limitReached: boolean;
   /** Total item count reported by the Rentman API (from first page response). */
   totalCount: number;
+}
+
+export interface ListWithPreservedSlashesOptions {
+  limit?: number;
+  offset?: number;
 }
 
 export interface NormalizedEquipmentItem<TCustom = DefaultCustomFields> {
@@ -632,6 +637,24 @@ export function listEquipmentSetContents(
     kitId,
     ENDPOINTS.equipmentSetsContent,
   );
+}
+
+/**
+ * Fetches a collection while preserving forward slashes in serialized query values.
+ * Useful for resource-path filters like `equipment[eq]=/equipment/4362`.
+ */
+export function listWithPreservedSlashes<T>(
+  client: RentmanClient,
+  endpoint: RentmanEndpoint,
+  query: Omit<RentmanQueryOptions, 'limit' | 'offset'>,
+  options: ListWithPreservedSlashesOptions = {},
+): Promise<RentmanCollectionResponse<T>> {
+  const path = `${endpoint}${buildQueryString(
+    { ...query, ...options },
+    { preserveSlashes: true },
+  )}` as RentmanEndpoint;
+
+  return client.list<T>(path);
 }
 
 /**

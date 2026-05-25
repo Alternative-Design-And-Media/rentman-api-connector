@@ -1,5 +1,11 @@
 import { describe, it, expect, vi } from 'vitest';
-import { createRentmanClient, createTypedClient, RentmanApiError, scanAll } from '../client.js';
+import {
+  createRentmanClient,
+  createTypedClient,
+  listWithPreservedSlashes,
+  RentmanApiError,
+  scanAll,
+} from '../client.js';
 import type { RentmanCollectionResponse } from '../types.js';
 import { ENDPOINTS } from '../endpoints.js';
 
@@ -392,6 +398,23 @@ describe('RentmanClient', () => {
 
     const [url] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(url).toBe('https://api.rentman.net/equipment/3473/equipmentsetscontent?fields=id%2Cquantity');
+  });
+
+  it('listWithPreservedSlashes preserves path filter slashes and paginates via options', async () => {
+    const fetchMock = makeFetch(200, { data: [], itemCount: 0, limit: 25, offset: 50 });
+    const client = createRentmanClient({ token: 't', fetch: fetchMock as unknown as typeof fetch });
+
+    await listWithPreservedSlashes(client, ENDPOINTS.equipmentSetsContent, {
+      filters: { 'equipment[eq]': '/equipment/4362 & lighting' },
+    }, {
+      limit: 25,
+      offset: 50,
+    });
+
+    const [url] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe(
+      'https://api.rentman.net/equipmentsetscontent?equipment%5Beq%5D=/equipment/4362%20%26%20lighting&limit=25&offset=50',
+    );
   });
 
   it('listSub throws when subPath does not start with "/"', async () => {

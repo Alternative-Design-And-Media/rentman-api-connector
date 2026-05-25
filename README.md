@@ -17,6 +17,7 @@ v2.0.0
 - ✅ Explicit `updateHash` on every entity for change tracking
 - ✅ Type-safe query builder — `fields`, `sort`, relational operators, `isnull` filters
 - ✅ Auto-pagination helper (`listAll`) for collections larger than 300 items
+- ✅ Preserve-slashes collection helper (`listWithPreservedSlashes`) for resource-path filters
 - ✅ Token normalization helper (`normalizeToken`) — accepts bare JWTs and `"Bearer ..."` tokens
 - ✅ Edge-runtime compatible — uses native `fetch` only (Node.js 18+, Cloudflare Workers)
 - ✅ Token rotation via callback — no need to recreate the client on token refresh
@@ -745,6 +746,10 @@ Fetch a collection. Returns `RentmanCollectionResponse<T>` with `data`, `itemCou
 
 Auto-paginate through all items. `pageSize` defaults to `300` (the API hard cap).
 
+### `listWithPreservedSlashes<T>(client, endpoint, query, options?)`
+
+Fetch a collection while keeping `/` characters unescaped in resource-path filter values such as `equipment[eq]=/equipment/4362`.
+
 ### `scanAll<T>(client, endpoint, query, options?)`
 
 Paginated scan helper that returns `{ items, totalCount, limitReached }`.
@@ -874,6 +879,31 @@ const params = buildRentmanQuery({
   offset: 0,
 });
 ```
+
+### Preserving slashes in resource-path filters
+
+Some Rentman collection filters expect a resource path value such as `/equipment/4362`. In these cases, `%2F`-encoding the slash can break Rentman’s parser. Use `listWithPreservedSlashes()` for collection requests that need this encoding behavior.
+
+```ts
+import {
+  ENDPOINTS,
+  listWithPreservedSlashes,
+  type RentmanEquipmentSetContent,
+} from '@alternative-design-and-media/rentman-api-connector';
+
+const query = {
+  filters: { 'equipment[eq]': '/equipment/4362' },
+};
+
+const { data } = await listWithPreservedSlashes<RentmanEquipmentSetContent>(
+  rentman,
+  ENDPOINTS.equipmentSetsContent,
+  query,
+  { limit: 100, offset: 0 },
+);
+```
+
+`listWithPreservedSlashes()` still percent-encodes other reserved characters in values; it only keeps `/` readable for resource-path filters.
 
 ---
 

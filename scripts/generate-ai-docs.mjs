@@ -227,7 +227,7 @@ npm install ${pkg.name}
 - \`RentmanClient\`
 - \`RentmanApiError\`
 - \`ENDPOINTS\`
-- helpers: \`normalizeToken\`, \`listEquipmentSetContents\`, \`normalizeEquipmentItem\`, \`NormalizedEquipmentItem\`
+- helpers: \`normalizeToken\`, \`listEquipmentSetContents\`, \`listWithPreservedSlashes\`, \`normalizeEquipmentItem\`, \`NormalizedEquipmentItem\`
 - custom field helpers: \`RentmanCustomFieldType\`, \`RentmanCustomFieldTypeMap\`, \`RentmanCustomFieldDefinition\`, \`RentmanCustomRecord\`, \`WithCustomFields\`
 - query helpers: \`buildQueryParams\`, \`buildQueryString\`, \`buildRentmanQuery\`, \`projectQuery\`, \`contactQuery\`, \`equipmentQuery\`, \`invoiceQuery\`, \`rel\`, \`notNull\`, \`isNull\`
 - scan helper: \`scanAll\`, \`ScanOptions\`, \`ScanResult<T>\`
@@ -257,6 +257,7 @@ const rentman = createRentmanClient({
 - \`scanAll<T>(client, endpoint, query, options?)\` → \`Promise<{ items: T[]; totalCount: number; limitReached: boolean }>\`
 - \`normalizeToken(token)\` → \`string\`
 - \`listEquipmentSetContents(client, kitId)\` → \`Promise<RentmanEquipmentSetContent[]>\`
+- \`listWithPreservedSlashes<T>(client, endpoint, query, options?)\` → \`Promise<RentmanCollectionResponse<T>>\`
 - \`normalizeEquipmentItem(item)\` → \`NormalizedEquipmentItem\`
 - \`listSub<T>(parentPath, parentId, subPath, query?)\` → \`Promise<RentmanCollectionResponse<T>>\`
 - \`listAllSub<T>(parentPath, parentId, subPath, query?, pageSize = 300)\` → \`Promise<T[]>\` (auto-paginates)
@@ -335,6 +336,31 @@ const invoices = invoiceQuery()
 - \`rel(field, op, value)\` supports \`lt | lte | gt | gte | neq\`
 - \`notNull(field)\` serializes to \`field[isnull]=false\`
 - \`isNull(field)\` serializes to \`field[isnull]=true\`
+
+## Preserving slashes in resource-path filters
+
+When a Rentman collection filter value is itself a resource path (for example \`/equipment/4362\`), percent-encoding the slash as \`%2F\` can break Rentman’s parser. Use \`listWithPreservedSlashes()\` for those collection requests.
+
+\`\`\`ts
+import {
+  ENDPOINTS,
+  listWithPreservedSlashes,
+  type RentmanEquipmentSetContent,
+} from '${pkg.name}';
+
+const query = {
+  filters: { 'equipment[eq]': '/equipment/4362' },
+};
+
+const { data } = await listWithPreservedSlashes<RentmanEquipmentSetContent>(
+  rentman,
+  ENDPOINTS.equipmentSetsContent,
+  query,
+  { limit: 100, offset: 0 },
+);
+\`\`\`
+
+\`listWithPreservedSlashes()\` still percent-encodes other reserved characters in values; it only leaves \`/\` unescaped for resource-path filters.
 
 ## Custom field helpers
 
@@ -466,7 +492,7 @@ npm install ${pkg.name}
 
  - Client API: \`createRentmanClient\`, \`RentmanClient\`, \`ResourceApi\`, \`RentmanApiError\`, \`scanAll\`
  - Typed client: \`createTypedClient\`, \`TypedRentmanClient\`, \`CustomFieldMap\`
- - Helper utilities: \`normalizeToken\`, \`listEquipmentSetContents\`, \`normalizeEquipmentItem\`, \`NormalizedEquipmentItem\`
+ - Helper utilities: \`normalizeToken\`, \`listEquipmentSetContents\`, \`listWithPreservedSlashes\`, \`normalizeEquipmentItem\`, \`NormalizedEquipmentItem\`
  - Custom field helpers: \`RentmanCustomFieldType\`, \`RentmanCustomFieldTypeMap\`, \`RentmanCustomFieldDefinition\`, \`RentmanCustomRecord\`, \`WithCustomFields\`
 - Endpoint constants: \`ENDPOINTS\`, \`RentmanEndpoint\`
 - Query API: \`buildQueryParams\`, \`buildQueryString\`, \`buildRentmanQuery\`, \`rel\`, \`notNull\`, \`isNull\`
@@ -545,6 +571,12 @@ scanAll<T>(
 ): Promise<{ items: T[]; totalCount: number; limitReached: boolean }>
 normalizeToken(token: string): string
 listEquipmentSetContents(client: RentmanClient, kitId: number): Promise<RentmanEquipmentSetContent[]>
+listWithPreservedSlashes<T>(
+  client: RentmanClient,
+  endpoint: RentmanEndpoint,
+  query: Omit<RentmanQueryOptions, 'limit' | 'offset'>,
+  options?: { limit?: number; offset?: number },
+): Promise<RentmanCollectionResponse<T>>
 normalizeEquipmentItem(item: RentmanEquipmentItem): NormalizedEquipmentItem
 listSub<T>(parentPath: RentmanEndpoint, parentId: number, subPath: string, query?: RentmanQueryOptions): Promise<RentmanCollectionResponse<T>>
 listAllSub<T>(parentPath: RentmanEndpoint, parentId: number, subPath: string, query?: Omit<RentmanQueryOptions, 'limit' | 'offset'>, pageSize?: number): Promise<T[]>
@@ -559,6 +591,7 @@ Behavior notes:
 - \`list\` returns \`{ data, itemCount, limit, offset }\`
 - \`listAll\` auto-paginates and concatenates all pages
 - \`scanAll\` auto-paginates with optional \`scanLimit\`; returns \`{ items, totalCount, limitReached }\`
+- \`listWithPreservedSlashes\` preserves \`/\` in resource-path filter values while still encoding other reserved characters
 - \`listSub\` builds path-level sub-resource URLs: \`\${parentPath}/\${parentId}\${subPath}\`
 - \`listAllSub\` auto-paginates and concatenates all sub-resource pages
 - \`listAll\` default \`pageSize\` is \`300\` (Rentman API hard cap)
@@ -699,6 +732,31 @@ const invoices = invoiceQuery()
   .sortByDate('desc')
   .build();
 \`\`\`
+
+## Preserving slashes in resource-path filters
+
+When a collection filter value is a Rentman resource path such as \`/equipment/4362\`, use \`listWithPreservedSlashes()\` so the path stays readable to the API parser.
+
+\`\`\`ts
+import {
+  ENDPOINTS,
+  listWithPreservedSlashes,
+  type RentmanEquipmentSetContent,
+} from '${pkg.name}';
+
+const query = {
+  filters: { 'equipment[eq]': '/equipment/4362' },
+};
+
+const { data } = await listWithPreservedSlashes<RentmanEquipmentSetContent>(
+  rentman,
+  ENDPOINTS.equipmentSetsContent,
+  query,
+  { limit: 100, offset: 0 },
+);
+\`\`\`
+
+\`listWithPreservedSlashes()\` still percent-encodes other reserved characters in values; it only leaves \`/\` unescaped for resource-path filters.
 
 Caveats:
 
@@ -882,13 +940,18 @@ Helper examples:
 
 \`\`\`ts
 import {
+  ENDPOINTS,
   listEquipmentSetContents,
+  listWithPreservedSlashes,
   normalizeEquipmentItem,
   normalizeToken,
 } from '${pkg.name}';
 
 const token = normalizeToken(process.env.RENTMAN_TOKEN!);
 const contents = await listEquipmentSetContents(rentman, 3473);
+const filteredContents = await listWithPreservedSlashes(rentman, ENDPOINTS.equipmentSetsContent, {
+  filters: { 'equipment[eq]': '/equipment/3473' },
+});
 const normalized = normalizeEquipmentItem((await rentman.get(ENDPOINTS.equipment, 42)).data);
 \`\`\`
 
