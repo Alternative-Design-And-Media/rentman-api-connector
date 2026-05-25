@@ -125,6 +125,18 @@ export class ProjectQueryBuilder extends BaseQueryBuilder {
     return this.setFilter('status[eq]', path);
   }
 
+  forCustomer(path: string): this {
+    return this.setFilter('customer[eq]', path);
+  }
+
+  forCustomerId(id: number): this {
+    return this.forCustomer(`/contacts/${id}`);
+  }
+
+  forProjectType(id: number | string): this {
+    return this.setFilter('projecttype[eq]', id);
+  }
+
   startingAfter(date: string): this {
     return this.addRelFilter('planperiod_start', 'gte', date);
   }

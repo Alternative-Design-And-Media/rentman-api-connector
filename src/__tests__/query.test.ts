@@ -227,6 +227,50 @@ describe('projectQuery', () => {
   it('sortByName defaults to ascending', () => {
     expect(projectQuery().sortByName().build()).toEqual({ sort: '+name' });
   });
+
+  it('forCustomer sets customer filter', () => {
+    expect(projectQuery().forCustomer('/contacts/10').build()).toEqual({
+      filters: { 'customer[eq]': '/contacts/10' },
+    });
+  });
+
+  it('forCustomerId builds path and sets customer filter', () => {
+    expect(projectQuery().forCustomerId(10).build()).toEqual({
+      filters: { 'customer[eq]': '/contacts/10' },
+    });
+  });
+
+  it('forProjectType sets projecttype filter with numeric id', () => {
+    expect(projectQuery().forProjectType(104).build()).toEqual({
+      filters: { 'projecttype[eq]': 104 },
+    });
+  });
+
+  it('forProjectType accepts a string id', () => {
+    expect(projectQuery().forProjectType('104').build()).toEqual({
+      filters: { 'projecttype[eq]': '104' },
+    });
+  });
+
+  it('combines customer, projecttype, and date range filters', () => {
+    const query = projectQuery()
+      .forCustomer('/contacts/10')
+      .forProjectType(104)
+      .startingAfter('2026-01-01')
+      .startingBefore('2026-03-31')
+      .build();
+
+    expect(query).toEqual({
+      filters: {
+        'customer[eq]': '/contacts/10',
+        'projecttype[eq]': 104,
+      },
+      relFilters: [
+        { field: 'planperiod_start', op: 'gte', value: '2026-01-01' },
+        { field: 'planperiod_start', op: 'lte', value: '2026-03-31' },
+      ],
+    });
+  });
 });
 
 describe('equipmentQuery', () => {
