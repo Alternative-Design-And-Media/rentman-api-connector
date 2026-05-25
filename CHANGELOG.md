@@ -3,6 +3,15 @@
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.1.0] — 2026-05-25
+
+### Added
+- `normalizeEquipmentItem(item: RentmanEquipmentItem): NormalizedEquipmentItem` for canonical equipment field aliases (`currentquantity` / `current_quantity`, `inarchive` / `in_archive`, etc.).
+- `fetchFolderNameCache(client: RentmanClient): Promise<Map<string, string>>` for folder resource path → folder display name lookups using `client.listAll()`.
+- `listWithPreservedSlashes(client, endpoint, query, options?)` is now shipped as a connector export for resource-path filter values.
+
+---
+
 ## [2.0.0] — 2026-05-20
 
 ### Added
