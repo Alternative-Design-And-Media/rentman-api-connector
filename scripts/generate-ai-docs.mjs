@@ -307,6 +307,8 @@ const params = buildRentmanQuery({
 const projects = projectQuery()
   .startingAfter('2025-01-01')
   .withStatus('/statuses/3')
+  .forCustomer('/contacts/10')
+  .forProjectType(104)
   .sortByStartDate('desc')
   .fields(['id', 'name', 'planperiod_start'])
   .build();
@@ -673,6 +675,8 @@ const params = buildRentmanQuery({
 const projects = projectQuery()
   .startingAfter('2025-01-01')
   .withStatus('/statuses/3')
+  .forCustomer('/contacts/10')
+  .forProjectType(104)
   .sortByStartDate('desc')
   .fields(['id', 'name', 'planperiod_start'])
   .build();
@@ -697,9 +701,6 @@ const invoices = invoiceQuery()
 \`\`\`
 
 Caveats:
-
-- With pagination (\`limit\`/\`offset\`), Rentman applies only the first sort field.
-- Generated fields cannot be used for filtering/sorting when paginating.
 
 ## Custom field helpers
 

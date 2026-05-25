@@ -174,7 +174,7 @@ Use the typed query builder helpers to compose `RentmanQueryOptions` without tou
 
 | Builder | Factory | Domain-specific methods |
 |---|---|---|
-| `ProjectQueryBuilder` | `projectQuery()` | `startingAfter(date)`, `startingBefore(date)`, `withStatus(path)`, `notArchived()`, `inFolder(path)`, `sortByStartDate(dir?)`, `sortByName(dir?)` |
+| `ProjectQueryBuilder` | `projectQuery()` | `startingAfter(date)`, `startingBefore(date)`, `withStatus(path)`, `forCustomer(path)`, `forCustomerId(id)`, `forProjectType(id)`, `notArchived()`, `inFolder(path)`, `sortByStartDate(dir?)`, `sortByName(dir?)` |
 | `EquipmentQueryBuilder` | `equipmentQuery()` | `notArchived()`, `inFolder(path)`, `sortByName(dir?)` |
 | `ContactQueryBuilder` | `contactQuery()` | `inCountry(code)`, `notArchived()`, `sortByName(dir?)` |
 | `InvoiceQueryBuilder` | `invoiceQuery()` | `withStatus(path)`, `forContact(path)`, `sortByDate(dir?)` |
