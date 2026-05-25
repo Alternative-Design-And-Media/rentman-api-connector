@@ -58,6 +58,13 @@ describe('buildQueryString', () => {
       { preserveSlashes: true },
     )).toBe('?status%5Beq%5D=/statuses/3');
   });
+
+  it('preserves slashes while still encoding other reserved characters', () => {
+    expect(buildQueryString(
+      { filters: { 'equipment[eq]': '/equipment/4362 & lighting' } },
+      { preserveSlashes: true },
+    )).toBe('?equipment%5Beq%5D=/equipment/4362%20%26%20lighting');
+  });
 });
 
 describe('buildRentmanQuery', () => {
