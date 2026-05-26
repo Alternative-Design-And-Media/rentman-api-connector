@@ -153,28 +153,48 @@ export type WithUnknownFields<T> = T & Record<string, unknown>;
 export interface RentmanEquipmentItem<TCustom = DefaultCustomFields>
   extends RentmanBaseEntityWithCustom<TCustom> {
   name: string;
+  /** GENERATED FIELD. */
+  displayname?: string;
   code?: string | null;
   folder?: string | null;
+  factor_group?: string | null;
   type?: string | null;
   in_quantity?: number | null;
   internal_remark?: string | null;
   external_remark?: string | null;
   critical_stock_level?: number | null;
   unit?: string | null;
+  in_shop?: boolean;
   /** URI reference to the `/ledgercodes` endpoint (e.g. `/ledgercodes/3`). `null` when no ledger code is assigned. */
   ledger?: string | null;
   surface_article?: boolean;
+  shop_description_short?: string;
+  shop_description_long?: string;
+  shop_seo_title?: string;
+  shop_seo_keyword?: string;
+  shop_seo_description?: string;
+  shop_featured?: boolean;
   description?: string | null;
   description_short?: string | null;
   remark?: string | null;
   price?: number | null;
+  subrental_costs?: number;
   purchase_price?: number | null;
   replacement_cost?: number | null;
+  rental_sales?: boolean;
+  temporary?: boolean;
+  in_planner?: boolean;
+  /** URI reference to the `/taxclasses` endpoint (e.g. `/taxclasses/3`). `null` when no tax class is assigned. */
+  taxclass?: string | null;
+  list_price?: number;
   location_in_warehouse?: string | null;
+  packed_per?: number;
   tags?: string | null;
   image?: string | null;
   /** GENERATED FIELD — not sortable when limit/offset are set; not filterable. */
   current_quantity?: number | null;
+  /** GENERATED FIELD. Not visible in collection responses. */
+  current_quantity_excl_cases?: number;
   /** GENERATED FIELD */
   quantity_in_cases?: number | null;
   /** GENERATED FIELD */
@@ -182,11 +202,22 @@ export interface RentmanEquipmentItem<TCustom = DefaultCustomFields>
   /** GENERATED FIELD */
   quantity_expected?: number | null;
   weight?: number | null;
+  empty_weight?: number;
   volume?: number | null;
   length?: number | null;
   width?: number | null;
   height?: number | null;
+  power?: number;
+  current?: number;
   country_of_origin?: string | null;
+  defaultgroup?: string;
+  is_combination?: boolean;
+  is_physical?: boolean;
+  can_edit_content_during_planning?: boolean;
+  /** GENERATED FIELD. */
+  qrcodes?: string;
+  /** GENERATED FIELD. */
+  qrcodes_of_serial_numbers?: string;
   serial?: boolean;
   bulk?: boolean;
   archive?: boolean;
