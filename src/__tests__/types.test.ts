@@ -338,6 +338,54 @@ describe('RentmanBaseEntity — no open index signature', () => {
   });
 });
 
+describe('RentmanEquipmentItem — ledgercode and surface_article', () => {
+  it('accepts ledgercode as string', () => {
+    const item = {} as unknown as RentmanEquipmentItem;
+    expectTypeOf(item.ledgercode).toEqualTypeOf<string | null | undefined>();
+  });
+
+  it('accepts ledgercode as null', () => {
+    const item: RentmanEquipmentItem = {
+      id: 1,
+      created: '2025-01-01T00:00:00+00:00',
+      modified: '2025-01-01T00:00:00+00:00',
+      updateHash: 'abc',
+      name: 'Camera',
+      ledgercode: null,
+    };
+    expectTypeOf(item.ledgercode).toEqualTypeOf<string | null | undefined>();
+  });
+
+  it('accepts ledgercode as URI reference string', () => {
+    const item: RentmanEquipmentItem = {
+      id: 2,
+      created: '2025-01-01T00:00:00+00:00',
+      modified: '2025-01-01T00:00:00+00:00',
+      updateHash: 'def',
+      name: 'Lens',
+      ledgercode: '/ledgercodes/3',
+    };
+    expectTypeOf(item.ledgercode).toEqualTypeOf<string | null | undefined>();
+  });
+
+  it('accepts surface_article as boolean', () => {
+    const item = {} as unknown as RentmanEquipmentItem;
+    expectTypeOf(item.surface_article).toEqualTypeOf<boolean | null | undefined>();
+  });
+
+  it('accepts surface_article as null', () => {
+    const item: RentmanEquipmentItem = {
+      id: 3,
+      created: '2025-01-01T00:00:00+00:00',
+      modified: '2025-01-01T00:00:00+00:00',
+      updateHash: 'ghi',
+      name: 'Tripod',
+      surface_article: null,
+    };
+    expectTypeOf(item.surface_article).toEqualTypeOf<boolean | null | undefined>();
+  });
+});
+
 describe('WithUnknownFields escape hatch', () => {
   it('allows arbitrary field access when explicitly opted in', () => {
     const item = {} as unknown as WithUnknownFields<RentmanEquipmentItem>;

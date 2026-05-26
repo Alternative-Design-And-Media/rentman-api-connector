@@ -161,7 +161,10 @@ export interface RentmanEquipmentItem<TCustom = DefaultCustomFields>
   external_remark?: string | null;
   critical_stock_level?: number | null;
   unit?: string | null;
-  surface_article?: boolean;
+  /** URI reference to the `/ledgercodes` endpoint (e.g. `/ledgercodes/3`). `null` when no ledger code is assigned. */
+  ledgercode?: string | null;
+  /** Marks the item as a surface article. `null` when not set. */
+  surface_article?: boolean | null;
   description?: string | null;
   description_short?: string | null;
   remark?: string | null;
