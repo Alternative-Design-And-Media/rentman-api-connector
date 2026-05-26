@@ -740,6 +740,17 @@ export interface RentmanPlanning extends RentmanBaseEntity {
   remark?: string | null;
 }
 
+export interface RentmanPlanningCrew extends RentmanBaseEntity {
+  medewerker?: string | null;
+  subproject?: string | null;
+  project?: string | null;
+  functie?: string | null;
+  functiegroep?: string | null;
+  start?: string | null;
+  eind?: string | null;
+  end?: string | null;
+}
+
 // ---------------------------------------------------------------------------
 // Crew activities (Tijd module)
 // ---------------------------------------------------------------------------

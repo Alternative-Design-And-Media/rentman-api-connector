@@ -89,6 +89,12 @@ crew: ResourceApi<RentmanCrewMember>
 vehicles: ResourceApi<RentmanVehicle>
 appointments: ResourceApi<RentmanAppointment>
 subrentals: ResourceApi<RentmanSubrental>
+functions: ResourceApi<RentmanFunction>
+functionGroups: ResourceApi<RentmanFunctionGroup>
+templates: ResourceApi<RentmanTemplate>
+briefpapier: ResourceApi<RentmanBriefpapier>
+planning: ResourceApi<RentmanPlanning>
+planningCrew: ResourceApi<RentmanPlanningCrew>
 
 list<T>(path: RentmanEndpoint, query?: RentmanQueryOptions): Promise<RentmanCollectionResponse<T>>
 listAll<T>(path: RentmanEndpoint, query?: Omit<RentmanQueryOptions, 'limit' | 'offset'>, pageSize?: number): Promise<T[]>
@@ -135,6 +141,9 @@ Error behavior:
   - `message`: includes method/path/status
   - `status`: HTTP status code
   - `body`: parsed JSON response body when possible, else text
+- Rate limiting is retried automatically:
+  - `429` responses
+  - `403` responses when they look rate-limit-shaped (for example when `Retry-After` is present and the body is not permission-shaped)
 
 ## Query builder reference
 
@@ -531,6 +540,7 @@ try {
 - `projectRequests` -> `/projectrequests` -> `RentmanProjectRequest`
 - `projectTypes` -> `/projecttypes` -> `RentmanProjectType`
 - `planning` -> `/planning` -> `RentmanPlanning`
+- `planningCrew` -> `/planningcrew` -> `RentmanPlanningCrew`
 
 ### Finance
 

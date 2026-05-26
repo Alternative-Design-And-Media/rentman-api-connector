@@ -20,6 +20,7 @@ export const ENDPOINTS = {
   projectFunctionGroups: '/projectfunctiongroups',
   projectCrew: '/projectcrew',
   projectVehicles: '/projectvehicles',
+  planningCrew: '/planningcrew',
   invoices: '/invoices',
   invoiceLines: '/invoicelines',
   invoiceMoments: '/invoicemoments',

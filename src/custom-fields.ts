@@ -96,7 +96,8 @@ export type WithCustomFields<
  * object constraint via the `CFOrNever` conditional type inside `TypedRentmanClient`.
  *
  * Note: Rentman currently supports account-specific custom fields only for `projects`,
- * `subProjects`, `contacts`, `equipment`, `crew`, and `subrentals`. The remaining properties
+ * `subProjects`, `contacts`, `equipment`, `crew`, and `subrentals`. `templates` and `planning`
+ * are included because some accounts expose custom fields there. The remaining properties
  * (`invoices`, `quotes`, `vehicles`, `appointments`) are included for completeness and forward
  * compatibility; the CLI generator will not populate them until Rentman exposes custom fields
  * for those resources.
@@ -122,4 +123,6 @@ export interface CustomFieldMap {
   vehicles?:      unknown;
   appointments?:  unknown;
   subrentals?:    unknown;
+  templates?:     unknown;
+  planning?:      unknown;
 }

@@ -155,6 +155,12 @@ const lines = await rentman.invoices.listLines(42);
 | `rentman.vehicles` | `ResourceApi<RentmanVehicle>` | — |
 | `rentman.appointments` | `ResourceApi<RentmanAppointment>` | `listCrew` |
 | `rentman.subrentals` | `ResourceApi<RentmanSubrental>` | `listEquipment` |
+| `rentman.functions` | `ResourceApi<RentmanFunction>` | — |
+| `rentman.functionGroups` | `ResourceApi<RentmanFunctionGroup>` | — |
+| `rentman.templates` | `ResourceApi<RentmanTemplate>` | — |
+| `rentman.briefpapier` | `ResourceApi<RentmanBriefpapier>` | — |
+| `rentman.planning` | `ResourceApi<RentmanPlanning>` | — |
+| `rentman.planningCrew` | `ResourceApi<RentmanPlanningCrew>` | — |
 
 Every `ResourceApi<T>` exposes:
 
@@ -227,6 +233,7 @@ All 55+ endpoints from OAS v1.7.0 are available as typed constants in `ENDPOINTS
 | `projectRequests` | `/projectrequests` | `RentmanProjectRequest` | Incoming project requests |
 | `projectTypes` | `/projecttypes` | `RentmanProjectType` | Project type lookup values |
 | `planning` | `/planning` | `RentmanPlanning` | Equipment planning entries |
+| `planningCrew` | `/planningcrew` | `RentmanPlanningCrew` | Crew planning entries |
 
 ### Finance
 

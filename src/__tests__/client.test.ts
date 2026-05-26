@@ -134,6 +134,30 @@ describe('RentmanClient', () => {
     expect(err!.message).toContain('Forbidden');
     // Non-JSON body falls back to plain string
     expect(err!.body).toBe('Forbidden');
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('retries 403 responses with Retry-After header and succeeds', async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 403,
+        statusText: 'Forbidden',
+        headers: new Headers({ 'Retry-After': '0' }),
+        text: () => Promise.resolve(''),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        headers: new Headers(),
+        json: () => Promise.resolve({ data: [mockEquipment], itemCount: 1, limit: 300, offset: 0 }),
+      });
+    const client = createRentmanClient({ token: 't', fetch: fetchMock as unknown as typeof fetch });
+
+    const result = await client.list('/functions');
+
+    expect(result.data).toHaveLength(1);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
   it('auto-paginates in listAll', async () => {
@@ -471,6 +495,12 @@ describe('RentmanClient', () => {
     { key: 'vehicles', endpoint: ENDPOINTS.vehicles },
     { key: 'appointments', endpoint: ENDPOINTS.appointments },
     { key: 'subrentals', endpoint: ENDPOINTS.subrentals },
+    { key: 'functions', endpoint: ENDPOINTS.functions },
+    { key: 'functionGroups', endpoint: ENDPOINTS.functionGroups },
+    { key: 'templates', endpoint: ENDPOINTS.templates },
+    { key: 'briefpapier', endpoint: ENDPOINTS.briefpapier },
+    { key: 'planning', endpoint: ENDPOINTS.planning },
+    { key: 'planningCrew', endpoint: ENDPOINTS.planningCrew },
   ] as const;
 
   it.each(resourceFacades)('$key facade delegates all methods to base client methods', async ({ key, endpoint }) => {
@@ -603,15 +633,21 @@ describe('createTypedClient', () => {
     await typed.projects.list({ limit: 10 });
     await typed.equipment.listAll();
     await typed.contacts.getById(1);
+    await typed.templates.list();
+    await typed.planning.getById(2);
     await typed.crew.create({ displayname: 'Alice' });
     await typed.vehicles.update(1, { name: 'Van' });
+    await typed.functions.listAll();
     await typed.subrentals.delete(1);
 
     expect(listSpy).toHaveBeenCalledWith(ENDPOINTS.projects, { limit: 10 });
     expect(listAllSpy).toHaveBeenCalledWith(ENDPOINTS.equipment, undefined);
     expect(getSpy).toHaveBeenCalledWith(ENDPOINTS.contacts, 1, undefined);
+    expect(listSpy).toHaveBeenCalledWith(ENDPOINTS.templates, undefined);
+    expect(getSpy).toHaveBeenCalledWith(ENDPOINTS.planning, 2, undefined);
     expect(createSpy).toHaveBeenCalledWith(ENDPOINTS.crew, { displayname: 'Alice' });
     expect(updateSpy).toHaveBeenCalledWith(ENDPOINTS.vehicles, 1, { name: 'Van' });
+    expect(listAllSpy).toHaveBeenCalledWith(ENDPOINTS.functions, undefined);
     expect(deleteSpy).toHaveBeenCalledWith(ENDPOINTS.subrentals, 1);
   });
 

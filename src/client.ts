@@ -34,6 +34,12 @@ import type {
   RentmanProjectCrew,
   RentmanProjectFunction,
   RentmanProjectVehicle,
+  RentmanPlanning,
+  RentmanPlanningCrew,
+  RentmanFunction,
+  RentmanFunctionGroup,
+  RentmanBriefpapier,
+  RentmanTemplate,
   RentmanItemResponse,
 } from './types.js';
 import { buildQueryString, buildRentmanQuery, type RentmanQueryOptions } from './query.js';
@@ -156,6 +162,13 @@ export interface SubrentalsResourceApi extends ResourceApi<RentmanSubrental> {
   listEquipment(subrentalId: number, query?: SubResourceQuery): Promise<RentmanSubrentalEquipment[]>;
 }
 
+const RETRYABLE_RATE_LIMIT_STATUS = 429;
+const POSSIBLE_RATE_LIMIT_403_STATUS = 403;
+const MAX_RATE_LIMIT_RETRIES = 2;
+const BASE_BACKOFF_MS = 250;
+const MAX_BACKOFF_MS = 5_000;
+const PERMISSION_403_BODY_PATTERN = /\b(unauthorized|forbidden|permission)\b/i;
+
 function getFirstValue(record: Record<string, unknown>, keys: string[]): unknown {
   for (const key of keys) {
     if (key in record) {
@@ -209,6 +222,39 @@ function toTags(value: unknown): string[] {
   return [];
 }
 
+function getRetryAfterSeconds(value: string | null): number | null {
+  if (!value) return null;
+  const asNumber = Number(value);
+  if (Number.isFinite(asNumber) && asNumber >= 0) {
+    return asNumber;
+  }
+  const retryAt = Date.parse(value);
+  if (!Number.isNaN(retryAt)) {
+    return Math.max(0, (retryAt - Date.now()) / 1000);
+  }
+  return null;
+}
+
+function getRetryAfterHeaderValue(res: Response): string | null {
+  return typeof res.headers?.get === 'function' ? res.headers.get('Retry-After') : null;
+}
+
+function bodyLooksPermission403(body: unknown): boolean {
+  if (typeof body === 'string') return PERMISSION_403_BODY_PATTERN.test(body);
+  if (body == null) return false;
+  if (typeof body === 'object') return PERMISSION_403_BODY_PATTERN.test(JSON.stringify(body));
+  return false;
+}
+
+function sleep(ms: number): Promise<void> {
+  if (ms <= 0) return Promise.resolve();
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function computeExponentialBackoffMs(retryAttempt: number): number {
+  return Math.min(BASE_BACKOFF_MS * (2 ** retryAttempt), MAX_BACKOFF_MS);
+}
+
 // ---------------------------------------------------------------------------
 // Client
 // ---------------------------------------------------------------------------
@@ -228,6 +274,12 @@ export class RentmanClient {
   readonly vehicles: ResourceApi<RentmanVehicle>;
   readonly appointments: AppointmentsResourceApi;
   readonly subrentals: SubrentalsResourceApi;
+  readonly functions: ResourceApi<RentmanFunction>;
+  readonly functionGroups: ResourceApi<RentmanFunctionGroup>;
+  readonly templates: ResourceApi<RentmanTemplate>;
+  readonly briefpapier: ResourceApi<RentmanBriefpapier>;
+  readonly planning: ResourceApi<RentmanPlanning>;
+  readonly planningCrew: ResourceApi<RentmanPlanningCrew>;
 
   constructor(private readonly opts: RentmanClientOptions) {
     const resolvedBaseUrl = opts.baseUrl ?? RENTMAN_BASE_URL;
@@ -318,6 +370,12 @@ export class RentmanClient {
         query,
       ),
     };
+    this.functions = this.createResourceApi<RentmanFunction>(ENDPOINTS.functions);
+    this.functionGroups = this.createResourceApi<RentmanFunctionGroup>(ENDPOINTS.functionGroups);
+    this.templates = this.createResourceApi<RentmanTemplate>(ENDPOINTS.templates);
+    this.briefpapier = this.createResourceApi<RentmanBriefpapier>(ENDPOINTS.briefpapier);
+    this.planning = this.createResourceApi<RentmanPlanning>(ENDPOINTS.planning);
+    this.planningCrew = this.createResourceApi<RentmanPlanningCrew>(ENDPOINTS.planningCrew);
   }
 
   private createResourceApi<T, TCreate = Partial<T>>(path: RentmanEndpoint): ResourceApi<T, TCreate> {
@@ -338,19 +396,25 @@ export class RentmanClient {
   }
 
   private async request<T>(path: string, init: RequestInit = {}): Promise<T> {
-    const token = await this.resolveToken();
     const url = `${this.baseUrl}${path}`;
+    let retryAttempt = 0;
 
-    const res = await this.fetchImpl(url, {
-      ...init,
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-        ...(init.headers ?? {}),
-      },
-    });
+    while (true) {
+      const token = await this.resolveToken();
+      const res = await this.fetchImpl(url, {
+        ...init,
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+          ...(init.headers ?? {}),
+        },
+      });
 
-    if (!res.ok) {
+      if (res.ok) {
+        if (res.status === 204) return undefined as T;
+        return res.json() as Promise<T>;
+      }
+
       // Read the body exactly once via text() to avoid "Body has already been
       // used" in edge runtimes (Cloudflare Workers) where consuming the stream
       // via json() — even if it throws — prevents a second read via text().
@@ -358,15 +422,28 @@ export class RentmanClient {
       try { bodyText = await res.text(); } catch { bodyText = '<failed to read body>'; }
       let body: unknown;
       try { body = JSON.parse(bodyText); } catch { body = bodyText; }
+
+      const retryAfterSeconds = getRetryAfterSeconds(getRetryAfterHeaderValue(res));
+      const is429RateLimit = res.status === RETRYABLE_RATE_LIMIT_STATUS;
+      const is403RateLimitSignal = res.status === POSSIBLE_RATE_LIMIT_403_STATUS
+        && !bodyLooksPermission403(body);
+      const hasRetryBudget = retryAttempt < MAX_RATE_LIMIT_RETRIES;
+
+      if ((is429RateLimit || is403RateLimitSignal) && hasRetryBudget) {
+        const backoffMs = retryAfterSeconds != null
+          ? Math.ceil(retryAfterSeconds * 1000)
+          : computeExponentialBackoffMs(retryAttempt);
+        retryAttempt += 1;
+        await sleep(backoffMs);
+        continue;
+      }
+
       throw new RentmanApiError(
         `Rentman API ${init.method ?? 'GET'} ${path} → ${res.status} ${res.statusText}`,
         res.status,
         body,
       );
     }
-
-    if (res.status === 204) return undefined as T;
-    return res.json() as Promise<T>;
   }
 
   // -------------------------------------------------------------------------
@@ -744,6 +821,8 @@ export type TypedRentmanClient<TCF extends CustomFieldMap> = Omit<
   | 'vehicles'
   | 'appointments'
   | 'subrentals'
+  | 'templates'
+  | 'planning'
 > & {
   readonly projects: ResourceApi<WithCustomFields<RentmanProject, CFOrNever<TCF, 'projects'>>> &
     Pick<ProjectsResourceApi, 'listEquipment' | 'listCrew' | 'listFunctions' | 'listVehicles'>;
@@ -760,6 +839,8 @@ export type TypedRentmanClient<TCF extends CustomFieldMap> = Omit<
     Pick<AppointmentsResourceApi, 'listCrew'>;
   readonly subrentals: ResourceApi<WithCustomFields<RentmanSubrental, CFOrNever<TCF, 'subrentals'>>> &
     Pick<SubrentalsResourceApi, 'listEquipment'>;
+  readonly templates: ResourceApi<WithCustomFields<RentmanTemplate, CFOrNever<TCF, 'templates'>>>;
+  readonly planning: ResourceApi<WithCustomFields<RentmanPlanning, CFOrNever<TCF, 'planning'>>>;
 };
 
 /**

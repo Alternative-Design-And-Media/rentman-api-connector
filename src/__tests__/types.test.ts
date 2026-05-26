@@ -3,6 +3,7 @@ import type {
   RentmanEquipmentSetContent,
   RentmanEquipmentItem,
   RentmanPlanning,
+  RentmanPlanningCrew,
   RentmanCrewActivity,
   RentmanFunction,
   RentmanFunctionGroup,
@@ -63,6 +64,26 @@ describe('RentmanPlanning', () => {
       equipment: '/equipment/200',
     };
     expectTypeOf(sample).toMatchTypeOf<RentmanPlanning>();
+  });
+
+  describe('RentmanPlanningCrew', () => {
+    it('accepts observed production fields', () => {
+      const sample: RentmanPlanningCrew = {
+        id: 12,
+        created: '2025-01-01T00:00:00+00:00',
+        modified: '2025-01-01T00:00:00+00:00',
+        updateHash: 'abc200',
+        medewerker: '/crew/20',
+        subproject: '/subprojects/5',
+        project: '/projects/2',
+        functie: '/functions/8',
+        functiegroep: '/functiongroups/3',
+        start: '2025-06-01T08:00:00+00:00',
+        eind: '2025-06-01T16:00:00+00:00',
+        end: '2025-06-01T16:00:00+00:00',
+      };
+      expectTypeOf(sample).toMatchTypeOf<RentmanPlanningCrew>();
+    });
   });
 
   it('accepts optional fields', () => {

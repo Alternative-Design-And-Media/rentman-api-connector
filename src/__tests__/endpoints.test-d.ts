@@ -15,3 +15,5 @@ client.list('/doesnotexist');
 
 export const ep: RentmanEndpoint = ENDPOINTS.equipmentSetsContent;
 expectTypeOf(ep).toMatchTypeOf<RentmanEndpoint>();
+export const planningCrewEp: RentmanEndpoint = ENDPOINTS.planningCrew;
+expectTypeOf(planningCrewEp).toMatchTypeOf<RentmanEndpoint>();

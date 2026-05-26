@@ -12,7 +12,7 @@ import {
   type TypedRentmanClient,
 } from '../client.js';
 import type { CustomFieldMap, WithCustomFields } from '../custom-fields.js';
-import type { RentmanProject } from '../types.js';
+import type { RentmanPlanning, RentmanProject, RentmanTemplate } from '../types.js';
 
 // ---------------------------------------------------------------------------
 // Test fixtures
@@ -22,6 +22,8 @@ interface MyCustomFields extends CustomFieldMap {
   projects:  { budget: number; category: string; is_vip: boolean };
   equipment: { serial_prefix?: string; warehouse_zone?: string };
   contacts:  { vat_number: string; credit_limit: number };
+  templates: { language?: 'nl' | 'en' };
+  planning:  { shift_code: string };
 }
 
 declare const baseClient: ReturnType<typeof createRentmanClient>;
@@ -76,6 +78,18 @@ declare const vatNumber: NonNullable<ContactItem['custom']>['vat_number'];
 expectTypeOf<typeof vatNumber>().toEqualTypeOf<string>();
 
 // ---------------------------------------------------------------------------
+// templates + planning: custom fields typed correctly
+// ---------------------------------------------------------------------------
+
+declare const templates: Awaited<ReturnType<typeof typedClient.templates.listAll>>;
+type TemplateItem = (typeof templates)[number];
+expectTypeOf<TemplateItem>().toMatchTypeOf<WithCustomFields<RentmanTemplate, { language?: 'nl' | 'en' }>>();
+
+declare const planningRows: Awaited<ReturnType<typeof typedClient.planning.listAll>>;
+type PlanningItem = (typeof planningRows)[number];
+expectTypeOf<PlanningItem>().toMatchTypeOf<WithCustomFields<RentmanPlanning, { shift_code: string }>>();
+
+// ---------------------------------------------------------------------------
 // Entity with no custom fields in TCF → accessing any key on custom returns never
 // ---------------------------------------------------------------------------
 
@@ -100,6 +114,8 @@ expectTypeOf(typedClient.invoices.listMoments).toBeFunction();
 expectTypeOf(typedClient.quotes.listLines).toBeFunction();
 expectTypeOf(typedClient.appointments.listCrew).toBeFunction();
 expectTypeOf(typedClient.subrentals.listEquipment).toBeFunction();
+expectTypeOf(typedClient.templates.list).toBeFunction();
+expectTypeOf(typedClient.planning.listAll).toBeFunction();
 
 // ---------------------------------------------------------------------------
 // Low-level API methods are still present on typed client
@@ -123,4 +139,3 @@ declare const emptyProjects: Awaited<ReturnType<typeof emptyTyped.projects.listA
 // When no custom fields defined for projects, custom key access returns never
 declare const emptyProjectCustomKey: NonNullable<(typeof emptyProjects)[number]['custom']>[string];
 expectTypeOf<typeof emptyProjectCustomKey>().toEqualTypeOf<never>();
-

@@ -66,7 +66,7 @@ const rentman = createRentmanClient({
 - `update<TIn, TOut>(path, id, body)` → `Promise<RentmanItemResponse<TOut>>`
 - `delete(path, id)` → `Promise<void>`
 
-All methods throw `RentmanApiError` for non-2xx API responses.
+All methods throw `RentmanApiError` for non-2xx API responses. The client automatically retries rate-limit responses (`429`, and `403` when the response shape indicates rate limiting, e.g. `Retry-After` is present).
 
 ## Query helpers
 
@@ -257,6 +257,7 @@ try {
 - `projectRequests` -> `/projectrequests` -> `RentmanProjectRequest`
 - `projectTypes` -> `/projecttypes` -> `RentmanProjectType`
 - `planning` -> `/planning` -> `RentmanPlanning`
+- `planningCrew` -> `/planningcrew` -> `RentmanPlanningCrew`
 - `invoices` -> `/invoices` -> `RentmanInvoice`
 - `invoiceLines` -> `/invoicelines` -> `RentmanInvoiceLine`
 - `invoiceMoments` -> `/invoicemoments` -> `RentmanInvoiceMoment`
