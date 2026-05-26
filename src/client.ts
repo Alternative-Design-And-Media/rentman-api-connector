@@ -161,15 +161,39 @@ export interface ResourceApi<T, TCreate = Partial<T>> {
   delete(id: number): Promise<void>;
 }
 
-type SubResourceQuery = Omit<RentmanQueryOptions, 'limit' | 'offset'>;
+type SubResourceQuery = RentmanQueryOptions;
 
 export interface ProjectsResourceApi extends ResourceApi<RentmanProject> {
   listEquipment(projectId: number, query?: SubResourceQuery): Promise<RentmanProjectEquipment[]>;
+  listEquipmentPaged(
+    projectId: number,
+    query?: SubResourceQuery,
+  ): Promise<RentmanCollectionResponse<RentmanProjectEquipment>>;
   listEquipmentGroups(projectId: number, query?: SubResourceQuery): Promise<RentmanProjectEquipmentGroup[]>;
+  listEquipmentGroupsPaged(
+    projectId: number,
+    query?: SubResourceQuery,
+  ): Promise<RentmanCollectionResponse<RentmanProjectEquipmentGroup>>;
   listCrew(projectId: number, query?: SubResourceQuery): Promise<RentmanProjectCrew[]>;
+  listCrewPaged(
+    projectId: number,
+    query?: SubResourceQuery,
+  ): Promise<RentmanCollectionResponse<RentmanProjectCrew>>;
   listFunctions(projectId: number, query?: SubResourceQuery): Promise<RentmanProjectFunction[]>;
+  listFunctionsPaged(
+    projectId: number,
+    query?: SubResourceQuery,
+  ): Promise<RentmanCollectionResponse<RentmanProjectFunction>>;
   listFunctionGroups(projectId: number, query?: SubResourceQuery): Promise<RentmanProjectFunctionGroup[]>;
+  listFunctionGroupsPaged(
+    projectId: number,
+    query?: SubResourceQuery,
+  ): Promise<RentmanCollectionResponse<RentmanProjectFunctionGroup>>;
   listVehicles(projectId: number, query?: SubResourceQuery): Promise<RentmanProjectVehicle[]>;
+  listVehiclesPaged(
+    projectId: number,
+    query?: SubResourceQuery,
+  ): Promise<RentmanCollectionResponse<RentmanProjectVehicle>>;
   listContracts(projectId: number, query?: SubResourceQuery): Promise<RentmanContract[]>;
   listCosts(projectId: number, query?: SubResourceQuery): Promise<RentmanCost[]>;
   listFiles(projectId: number, query?: SubResourceQuery): Promise<RentmanFile[]>;
@@ -200,6 +224,10 @@ export interface ContactPersonsResourceApi extends ResourceApi<RentmanContactPer
 
 export interface InvoicesResourceApi extends ResourceApi<RentmanInvoice> {
   listLines(invoiceId: number, query?: SubResourceQuery): Promise<RentmanInvoiceLine[]>;
+  listLinesPaged(
+    invoiceId: number,
+    query?: SubResourceQuery,
+  ): Promise<RentmanCollectionResponse<RentmanInvoiceLine>>;
   /**
    * Lists payments recorded against the invoice.
    *
@@ -207,16 +235,28 @@ export interface InvoicesResourceApi extends ResourceApi<RentmanInvoice> {
    * backed by `/invoicemoments`. It now resolves via `/invoices/{id}/payments`.
    */
   listMoments(invoiceId: number, query?: SubResourceQuery): Promise<RentmanPayment[]>;
+  listMomentsPaged(
+    invoiceId: number,
+    query?: SubResourceQuery,
+  ): Promise<RentmanCollectionResponse<RentmanPayment>>;
   listFiles(id: number, query?: SubResourceQuery): Promise<RentmanFile[]>;
 }
 
 export interface QuotesResourceApi extends ResourceApi<RentmanQuote> {
   listLines(quoteId: number, query?: SubResourceQuery): Promise<RentmanInvoiceLine[]>;
+  listLinesPaged(
+    quoteId: number,
+    query?: SubResourceQuery,
+  ): Promise<RentmanCollectionResponse<RentmanInvoiceLine>>;
   listFiles(quoteId: number, query?: SubResourceQuery): Promise<RentmanFile[]>;
 }
 
 export interface AppointmentsResourceApi extends ResourceApi<RentmanAppointment> {
   listCrew(appointmentId: number, query?: SubResourceQuery): Promise<RentmanAppointmentCrew[]>;
+  listCrewPaged(
+    appointmentId: number,
+    query?: SubResourceQuery,
+  ): Promise<RentmanCollectionResponse<RentmanAppointmentCrew>>;
 }
 
 export interface ContractsResourceApi extends ResourceApi<RentmanContract> {
@@ -267,7 +307,15 @@ export interface StockLocationsResourceApi extends ResourceApi<RentmanStockLocat
 
 export interface SubrentalsResourceApi extends ResourceApi<RentmanSubrental> {
   listEquipment(subrentalId: number, query?: SubResourceQuery): Promise<RentmanSubrentalEquipment[]>;
+  listEquipmentPaged(
+    subrentalId: number,
+    query?: SubResourceQuery,
+  ): Promise<RentmanCollectionResponse<RentmanSubrentalEquipment>>;
   listEquipmentGroups(subrentalId: number, query?: SubResourceQuery): Promise<RentmanSubrentalEquipmentGroup[]>;
+  listEquipmentGroupsPaged(
+    subrentalId: number,
+    query?: SubResourceQuery,
+  ): Promise<RentmanCollectionResponse<RentmanSubrentalEquipmentGroup>>;
   listFiles(id: number, query?: SubResourceQuery): Promise<RentmanFile[]>;
   listFileFolders(id: number, query?: SubResourceQuery): Promise<RentmanFileFolder[]>;
 }
@@ -451,7 +499,19 @@ export class RentmanClient {
         ENDPOINTS.projectEquipment,
         query,
       ),
+      listEquipmentPaged: (projectId, query) => this.listSubResourcePaged(
+        ENDPOINTS.projects,
+        projectId,
+        ENDPOINTS.projectEquipment,
+        query,
+      ),
       listEquipmentGroups: (projectId, query) => this.listAllSub(
+        ENDPOINTS.projects,
+        projectId,
+        ENDPOINTS.projectEquipmentGroups,
+        query,
+      ),
+      listEquipmentGroupsPaged: (projectId, query) => this.listSubResourcePaged(
         ENDPOINTS.projects,
         projectId,
         ENDPOINTS.projectEquipmentGroups,
@@ -463,7 +523,19 @@ export class RentmanClient {
         ENDPOINTS.projectCrew,
         query,
       ),
+      listCrewPaged: (projectId, query) => this.listSubResourcePaged(
+        ENDPOINTS.projects,
+        projectId,
+        ENDPOINTS.projectCrew,
+        query,
+      ),
       listFunctions: (projectId, query) => this.listAllSub(
+        ENDPOINTS.projects,
+        projectId,
+        ENDPOINTS.projectFunctions,
+        query,
+      ),
+      listFunctionsPaged: (projectId, query) => this.listSubResourcePaged(
         ENDPOINTS.projects,
         projectId,
         ENDPOINTS.projectFunctions,
@@ -475,7 +547,19 @@ export class RentmanClient {
         ENDPOINTS.projectFunctionGroups,
         query,
       ),
+      listFunctionGroupsPaged: (projectId, query) => this.listSubResourcePaged(
+        ENDPOINTS.projects,
+        projectId,
+        ENDPOINTS.projectFunctionGroups,
+        query,
+      ),
       listVehicles: (projectId, query) => this.listAllSub(
+        ENDPOINTS.projects,
+        projectId,
+        ENDPOINTS.projectVehicles,
+        query,
+      ),
+      listVehiclesPaged: (projectId, query) => this.listSubResourcePaged(
         ENDPOINTS.projects,
         projectId,
         ENDPOINTS.projectVehicles,
@@ -651,7 +735,19 @@ export class RentmanClient {
         ENDPOINTS.invoiceLines,
         query,
       ),
+      listLinesPaged: (invoiceId, query) => this.listSubResourcePaged(
+        ENDPOINTS.invoices,
+        invoiceId,
+        ENDPOINTS.invoiceLines,
+        query,
+      ),
       listMoments: (invoiceId, query) => this.listAllSub(
+        ENDPOINTS.invoices,
+        invoiceId,
+        ENDPOINTS.payments,
+        query,
+      ),
+      listMomentsPaged: (invoiceId, query) => this.listSubResourcePaged(
         ENDPOINTS.invoices,
         invoiceId,
         ENDPOINTS.payments,
@@ -668,6 +764,12 @@ export class RentmanClient {
     this.quotes = {
       ...quotesApi,
       listLines: (quoteId, query) => this.listAllSub(
+        ENDPOINTS.quotes,
+        quoteId,
+        ENDPOINTS.invoiceLines,
+        query,
+      ),
+      listLinesPaged: (quoteId, query) => this.listSubResourcePaged(
         ENDPOINTS.quotes,
         quoteId,
         ENDPOINTS.invoiceLines,
@@ -742,6 +844,12 @@ export class RentmanClient {
         ENDPOINTS.appointmentCrew,
         query,
       ),
+      listCrewPaged: (appointmentId, query) => this.listSubResourcePaged(
+        ENDPOINTS.appointments,
+        appointmentId,
+        ENDPOINTS.appointmentCrew,
+        query,
+      ),
     };
     const subrentalsApi = this.createResourceApi<RentmanSubrental>(ENDPOINTS.subrentals);
     this.subrentals = {
@@ -752,7 +860,19 @@ export class RentmanClient {
         ENDPOINTS.subrentalEquipment,
         query,
       ),
+      listEquipmentPaged: (subrentalId, query) => this.listSubResourcePaged(
+        ENDPOINTS.subrentals,
+        subrentalId,
+        ENDPOINTS.subrentalEquipment,
+        query,
+      ),
       listEquipmentGroups: (subrentalId, query) => this.listAllSub(
+        ENDPOINTS.subrentals,
+        subrentalId,
+        ENDPOINTS.subrentalEquipmentGroups,
+        query,
+      ),
+      listEquipmentGroupsPaged: (subrentalId, query) => this.listSubResourcePaged(
         ENDPOINTS.subrentals,
         subrentalId,
         ENDPOINTS.subrentalEquipmentGroups,
@@ -1141,24 +1261,27 @@ export class RentmanClient {
    * @param parentPath - Parent resource path (prefer `ENDPOINTS.<key>` constants).
    * @param parentId - Numeric ID of the parent resource.
    * @param subPath - Sub-resource path segment, must start with `/`.
-   * @param query - Optional query options excluding `limit`/`offset`; pagination is managed internally.
+   * @param query - Optional query options; `limit`/`offset` are ignored while auto-paginating.
    * @param pageSize - Page size per request. Defaults to `300` (Rentman API hard cap).
-   * @returns A flattened array containing items from all fetched pages.
+   * @returns A flattened array containing items from fetched pages.
    * @throws {RentmanApiError} When any page request returns a non-2xx response.
    */
-  async listAllSub<T>(
+  private async listAllSubResource<T>(
     parentPath: RentmanEndpoint,
     parentId: number,
     subPath: string,
-    query?: Omit<RentmanQueryOptions, 'limit' | 'offset'>,
+    query?: RentmanQueryOptions,
     pageSize = 300,
   ): Promise<T[]> {
+    const queryWithoutPagination: RentmanQueryOptions = { ...(query ?? {}) };
+    delete queryWithoutPagination.limit;
+    delete queryWithoutPagination.offset;
     const results: T[] = [];
     let offset = 0;
 
     while (true) {
       const page = await this.listSub<T>(parentPath, parentId, subPath, {
-        ...query,
+        ...queryWithoutPagination,
         limit: pageSize,
         offset,
       });
@@ -1169,6 +1292,34 @@ export class RentmanClient {
     }
 
     return results;
+  }
+
+  private listSubResourcePaged<T>(
+    parentPath: RentmanEndpoint,
+    parentId: number,
+    subPath: string,
+    query?: RentmanQueryOptions,
+  ): Promise<RentmanCollectionResponse<T>> {
+    return this.listSub<T>(parentPath, parentId, subPath, query);
+  }
+
+  /**
+   * Backward-compatible sub-resource list helper.
+   * Auto-paginates when `query.limit` is omitted; otherwise returns a single page's `data`.
+   */
+  async listAllSub<T>(
+    parentPath: RentmanEndpoint,
+    parentId: number,
+    subPath: string,
+    query?: RentmanQueryOptions,
+    pageSize = 300,
+  ): Promise<T[]> {
+    if (typeof query?.limit === 'number') {
+      const page = await this.listSubResourcePaged<T>(parentPath, parentId, subPath, query);
+      return page.data;
+    }
+
+    return this.listAllSubResource<T>(parentPath, parentId, subPath, query, pageSize);
   }
 
   // -------------------------------------------------------------------------
@@ -1451,7 +1602,7 @@ export type TypedRentmanClient<TCF extends CustomFieldMap> = Omit<
   | 'equipmentAssignedSerials'
 > & {
   readonly projects: ResourceApi<WithCustomFields<RentmanProject, CFOrNever<TCF, 'projects'>>> &
-    Pick<ProjectsResourceApi, 'listEquipment' | 'listEquipmentGroups' | 'listCrew' | 'listFunctions' | 'listFunctionGroups' | 'listVehicles' | 'listContracts' | 'listCosts' | 'listFiles' | 'listFileFolders' | 'listQuotes' | 'listSubProjects'>;
+    Pick<ProjectsResourceApi, 'listEquipment' | 'listEquipmentPaged' | 'listEquipmentGroups' | 'listEquipmentGroupsPaged' | 'listCrew' | 'listCrewPaged' | 'listFunctions' | 'listFunctionsPaged' | 'listFunctionGroups' | 'listFunctionGroupsPaged' | 'listVehicles' | 'listVehiclesPaged' | 'listContracts' | 'listCosts' | 'listFiles' | 'listFileFolders' | 'listQuotes' | 'listSubProjects'>;
   readonly subProjects: ResourceApi<WithCustomFields<RentmanSubProject, CFOrNever<TCF, 'subProjects'>>> &
     Pick<SubProjectsResourceApi, 'listCrew' | 'listEquipment' | 'listEquipmentGroups' | 'listFunctionGroups' | 'listVehicles' | 'listFileFolders'>;
   readonly contacts: ResourceApi<WithCustomFields<RentmanContact, CFOrNever<TCF, 'contacts'>>> &
@@ -1461,9 +1612,9 @@ export type TypedRentmanClient<TCF extends CustomFieldMap> = Omit<
   readonly equipment: ResourceApi<WithCustomFields<RentmanEquipmentItem, CFOrNever<TCF, 'equipment'>>> &
     Pick<EquipmentResourceApi, 'listSetContents' | 'listAccessories' | 'listRepairs' | 'listSerialNumbers' | 'listStockMovements' | 'listFiles' | 'listFileFolders'>;
   readonly invoices: ResourceApi<WithCustomFields<RentmanInvoice, CFOrNever<TCF, 'invoices'>>> &
-    Pick<InvoicesResourceApi, 'listLines' | 'listMoments' | 'listFiles'>;
+    Pick<InvoicesResourceApi, 'listLines' | 'listLinesPaged' | 'listMoments' | 'listMomentsPaged' | 'listFiles'>;
   readonly quotes: ResourceApi<WithCustomFields<RentmanQuote, CFOrNever<TCF, 'quotes'>>> &
-    Pick<QuotesResourceApi, 'listLines' | 'listFiles'>;
+    Pick<QuotesResourceApi, 'listLines' | 'listLinesPaged' | 'listFiles'>;
   readonly crew: CrewResourceApi<CFOrNever<TCF, 'crew'>>;
   readonly crewAvailabilities: ResourceApi<RentmanCrewAvailability>;
   readonly crewRates: ResourceApi<RentmanCrewRate>;
@@ -1471,9 +1622,9 @@ export type TypedRentmanClient<TCF extends CustomFieldMap> = Omit<
     Pick<VehiclesResourceApi, 'listFiles' | 'listFileFolders'>;
   readonly payments: ResourceApi<RentmanPayment>;
   readonly appointments: ResourceApi<WithCustomFields<RentmanAppointment, CFOrNever<TCF, 'appointments'>>> &
-    Pick<AppointmentsResourceApi, 'listCrew'>;
+    Pick<AppointmentsResourceApi, 'listCrew' | 'listCrewPaged'>;
   readonly subrentals: ResourceApi<WithCustomFields<RentmanSubrental, CFOrNever<TCF, 'subrentals'>>> &
-    Pick<SubrentalsResourceApi, 'listEquipment' | 'listEquipmentGroups' | 'listFiles' | 'listFileFolders'>;
+    Pick<SubrentalsResourceApi, 'listEquipment' | 'listEquipmentPaged' | 'listEquipmentGroups' | 'listEquipmentGroupsPaged' | 'listFiles' | 'listFileFolders'>;
   readonly subrentalEquipmentGroups: SubrentalEquipmentGroupsResourceApi;
   readonly files: ResourceApi<RentmanFile>;
   readonly fileFolders: ResourceApi<RentmanFileFolder>;
