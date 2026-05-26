@@ -62,6 +62,22 @@ export interface BuildQueryOptions {
 
 export type QuerySortDirection = 'asc' | 'desc';
 
+function toISODate(date: string | Date): string {
+  if (typeof date === 'string') {
+    if (/^\d{4}-\d{2}-\d{2}$/.test(date)) return date;
+    return toISODate(new Date(date));
+  }
+
+  if (Number.isNaN(date.getTime())) {
+    throw new RangeError('Invalid date');
+  }
+
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 /**
  * Base fluent query builder that accumulates `RentmanQueryOptions`.
  */
@@ -199,8 +215,20 @@ export class InvoiceQueryBuilder extends BaseQueryBuilder {
     return this.setFilter('contact[eq]', path);
   }
 
+  dueBefore(date: string | Date): this {
+    return this.addRelFilter('due_date', 'lt', toISODate(date));
+  }
+
+  dueAfter(date: string | Date): this {
+    return this.addRelFilter('due_date', 'gt', toISODate(date));
+  }
+
   sortByDate(dir: QuerySortDirection = 'asc'): this {
     return this.sortByField('date', dir);
+  }
+
+  sortByDueDate(dir: QuerySortDirection = 'asc'): this {
+    return this.sortByField('due_date', dir);
   }
 }
 

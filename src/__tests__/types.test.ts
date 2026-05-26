@@ -6,6 +6,7 @@ import type {
   RentmanCrewActivity,
   RentmanFunction,
   RentmanFunctionGroup,
+  RentmanInvoice,
   RentmanInvoiceMoment,
   RentmanTaglink,
   RentmanBriefpapier,
@@ -183,6 +184,28 @@ describe('RentmanInvoiceMoment', () => {
       remark: 'Half upfront, half on delivery',
     };
     expectTypeOf(sample).toMatchTypeOf<RentmanInvoiceMoment>();
+  });
+});
+
+describe('RentmanInvoice', () => {
+  it('accepts invoice contact and payment metadata fields', () => {
+    const sample: RentmanInvoice = {
+      id: 52,
+      created: '2025-01-01T00:00:00+00:00',
+      modified: '2025-01-01T00:00:00+00:00',
+      updateHash: 'abc132a',
+      project: '/projects/10',
+      number: 'INV-2025-001',
+      date: '2025-01-01',
+      due_date: '2025-01-08',
+      status: '/invoicestatuses/1',
+      contact: '/contacts/99',
+      payment_term: 8,
+      vat_included: true,
+      remark: 'Paid on delivery',
+      price: 1200,
+    };
+    expectTypeOf(sample).toMatchTypeOf<RentmanInvoice>();
   });
 });
 
