@@ -420,6 +420,11 @@ export interface RentmanQuote extends RentmanBaseEntity {
   remark?: string | null;
 }
 
+/**
+ * @deprecated This type is kept for backwards compatibility only.
+ * The `/quotelines` top-level endpoint is not present in OAS v1.7.0.
+ * `QuotesResourceApi.listLines` now returns `RentmanInvoiceLine[]` instead.
+ */
 export interface RentmanQuoteLine extends RentmanBaseEntity {
   quote: string;
   name?: string | null;
