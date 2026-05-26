@@ -474,6 +474,7 @@ describe('RentmanClient', () => {
     { key: 'payments', endpoint: ENDPOINTS.payments },
     { key: 'appointments', endpoint: ENDPOINTS.appointments },
     { key: 'subrentals', endpoint: ENDPOINTS.subrentals },
+    { key: 'subrentalEquipmentGroups', endpoint: ENDPOINTS.subrentalEquipmentGroups },
     { key: 'files', endpoint: ENDPOINTS.files },
     { key: 'fileFolders', endpoint: ENDPOINTS.fileFolders },
     { key: 'folders', endpoint: ENDPOINTS.folders },
@@ -574,6 +575,108 @@ describe('RentmanClient', () => {
       subPath: ENDPOINTS.projectVehicles,
     },
     {
+      facade: 'projects',
+      method: 'listContracts',
+      parentEndpoint: ENDPOINTS.projects,
+      subPath: ENDPOINTS.contracts,
+    },
+    {
+      facade: 'projects',
+      method: 'listCosts',
+      parentEndpoint: ENDPOINTS.projects,
+      subPath: ENDPOINTS.costs,
+    },
+    {
+      facade: 'projects',
+      method: 'listFiles',
+      parentEndpoint: ENDPOINTS.projects,
+      subPath: ENDPOINTS.files,
+    },
+    {
+      facade: 'projects',
+      method: 'listFileFolders',
+      parentEndpoint: ENDPOINTS.projects,
+      subPath: ENDPOINTS.fileFolders,
+    },
+    {
+      facade: 'projects',
+      method: 'listQuotes',
+      parentEndpoint: ENDPOINTS.projects,
+      subPath: ENDPOINTS.quotes,
+    },
+    {
+      facade: 'projects',
+      method: 'listSubProjects',
+      parentEndpoint: ENDPOINTS.projects,
+      subPath: ENDPOINTS.subProjects,
+    },
+    {
+      facade: 'subProjects',
+      method: 'listCrew',
+      parentEndpoint: ENDPOINTS.subProjects,
+      subPath: ENDPOINTS.projectCrew,
+    },
+    {
+      facade: 'subProjects',
+      method: 'listEquipment',
+      parentEndpoint: ENDPOINTS.subProjects,
+      subPath: ENDPOINTS.projectEquipment,
+    },
+    {
+      facade: 'subProjects',
+      method: 'listEquipmentGroups',
+      parentEndpoint: ENDPOINTS.subProjects,
+      subPath: ENDPOINTS.projectEquipmentGroups,
+    },
+    {
+      facade: 'subProjects',
+      method: 'listFunctionGroups',
+      parentEndpoint: ENDPOINTS.subProjects,
+      subPath: ENDPOINTS.projectFunctionGroups,
+    },
+    {
+      facade: 'subProjects',
+      method: 'listVehicles',
+      parentEndpoint: ENDPOINTS.subProjects,
+      subPath: ENDPOINTS.projectVehicles,
+    },
+    {
+      facade: 'subProjects',
+      method: 'listFileFolders',
+      parentEndpoint: ENDPOINTS.subProjects,
+      subPath: ENDPOINTS.fileFolders,
+    },
+    {
+      facade: 'contacts',
+      method: 'listContactPersons',
+      parentEndpoint: ENDPOINTS.contacts,
+      subPath: ENDPOINTS.contactPersons,
+    },
+    {
+      facade: 'contacts',
+      method: 'listFiles',
+      parentEndpoint: ENDPOINTS.contacts,
+      subPath: ENDPOINTS.files,
+    },
+    {
+      facade: 'contacts',
+      method: 'listFileFolders',
+      parentEndpoint: ENDPOINTS.contacts,
+      subPath: ENDPOINTS.fileFolders,
+    },
+    {
+      facade: 'contactPersons',
+      method: 'listFiles',
+      parentEndpoint: ENDPOINTS.contactPersons,
+      subPath: ENDPOINTS.files,
+    },
+    {
+      facade: 'contactPersons',
+      method: 'listFileFolders',
+      parentEndpoint: ENDPOINTS.contactPersons,
+      subPath: ENDPOINTS.fileFolders,
+    },
+    {
       facade: 'invoices',
       method: 'listLines',
       parentEndpoint: ENDPOINTS.invoices,
@@ -586,10 +689,22 @@ describe('RentmanClient', () => {
       subPath: ENDPOINTS.payments,
     },
     {
+      facade: 'invoices',
+      method: 'listFiles',
+      parentEndpoint: ENDPOINTS.invoices,
+      subPath: ENDPOINTS.files,
+    },
+    {
       facade: 'quotes',
       method: 'listLines',
       parentEndpoint: ENDPOINTS.quotes,
       subPath: ENDPOINTS.invoiceLines,
+    },
+    {
+      facade: 'quotes',
+      method: 'listFiles',
+      parentEndpoint: ENDPOINTS.quotes,
+      subPath: ENDPOINTS.files,
     },
     {
       facade: 'subrentals',
@@ -604,6 +719,24 @@ describe('RentmanClient', () => {
       subPath: ENDPOINTS.subrentalEquipmentGroups,
     },
     {
+      facade: 'subrentals',
+      method: 'listFiles',
+      parentEndpoint: ENDPOINTS.subrentals,
+      subPath: ENDPOINTS.files,
+    },
+    {
+      facade: 'subrentals',
+      method: 'listFileFolders',
+      parentEndpoint: ENDPOINTS.subrentals,
+      subPath: ENDPOINTS.fileFolders,
+    },
+    {
+      facade: 'subrentalEquipmentGroups',
+      method: 'listEquipment',
+      parentEndpoint: ENDPOINTS.subrentalEquipmentGroups,
+      subPath: ENDPOINTS.subrentalEquipment,
+    },
+    {
       facade: 'appointments',
       method: 'listCrew',
       parentEndpoint: ENDPOINTS.appointments,
@@ -614,6 +747,198 @@ describe('RentmanClient', () => {
       method: 'listSetContents',
       parentEndpoint: ENDPOINTS.equipment,
       subPath: ENDPOINTS.equipmentSetsContent,
+    },
+    {
+      facade: 'equipment',
+      method: 'listAccessories',
+      parentEndpoint: ENDPOINTS.equipment,
+      subPath: ENDPOINTS.accessories,
+    },
+    {
+      facade: 'equipment',
+      method: 'listRepairs',
+      parentEndpoint: ENDPOINTS.equipment,
+      subPath: ENDPOINTS.repairs,
+    },
+    {
+      facade: 'equipment',
+      method: 'listSerialNumbers',
+      parentEndpoint: ENDPOINTS.equipment,
+      subPath: ENDPOINTS.serialNumbers,
+    },
+    {
+      facade: 'equipment',
+      method: 'listStockMovements',
+      parentEndpoint: ENDPOINTS.equipment,
+      subPath: ENDPOINTS.stockMovements,
+    },
+    {
+      facade: 'equipment',
+      method: 'listFiles',
+      parentEndpoint: ENDPOINTS.equipment,
+      subPath: ENDPOINTS.files,
+    },
+    {
+      facade: 'equipment',
+      method: 'listFileFolders',
+      parentEndpoint: ENDPOINTS.equipment,
+      subPath: ENDPOINTS.fileFolders,
+    },
+    {
+      facade: 'crew',
+      method: 'listAppointments',
+      parentEndpoint: ENDPOINTS.crew,
+      subPath: ENDPOINTS.appointments,
+    },
+    {
+      facade: 'crew',
+      method: 'listAvailabilities',
+      parentEndpoint: ENDPOINTS.crew,
+      subPath: ENDPOINTS.crewAvailabilities,
+    },
+    {
+      facade: 'crew',
+      method: 'listRates',
+      parentEndpoint: ENDPOINTS.crew,
+      subPath: ENDPOINTS.crewRates,
+    },
+    {
+      facade: 'crew',
+      method: 'listFiles',
+      parentEndpoint: ENDPOINTS.crew,
+      subPath: ENDPOINTS.files,
+    },
+    {
+      facade: 'crew',
+      method: 'listFileFolders',
+      parentEndpoint: ENDPOINTS.crew,
+      subPath: ENDPOINTS.fileFolders,
+    },
+    {
+      facade: 'vehicles',
+      method: 'listFiles',
+      parentEndpoint: ENDPOINTS.vehicles,
+      subPath: ENDPOINTS.files,
+    },
+    {
+      facade: 'vehicles',
+      method: 'listFileFolders',
+      parentEndpoint: ENDPOINTS.vehicles,
+      subPath: ENDPOINTS.fileFolders,
+    },
+    {
+      facade: 'contracts',
+      method: 'listFiles',
+      parentEndpoint: ENDPOINTS.contracts,
+      subPath: ENDPOINTS.files,
+    },
+    {
+      facade: 'contracts',
+      method: 'listLines',
+      parentEndpoint: ENDPOINTS.contracts,
+      subPath: ENDPOINTS.invoiceLines,
+    },
+    {
+      facade: 'stockLocations',
+      method: 'listVehicles',
+      parentEndpoint: ENDPOINTS.stockLocations,
+      subPath: ENDPOINTS.vehicles,
+    },
+    {
+      facade: 'timeRegistrations',
+      method: 'listFiles',
+      parentEndpoint: ENDPOINTS.timeRegistrations,
+      subPath: ENDPOINTS.files,
+    },
+    {
+      facade: 'timeRegistrations',
+      method: 'listActivities',
+      parentEndpoint: ENDPOINTS.timeRegistrations,
+      subPath: ENDPOINTS.timeRegistrationActivities,
+    },
+    {
+      facade: 'leaveRequests',
+      method: 'listTimeRegistrations',
+      parentEndpoint: ENDPOINTS.leaveRequests,
+      subPath: ENDPOINTS.timeRegistrations,
+    },
+    {
+      facade: 'repairs',
+      method: 'listFiles',
+      parentEndpoint: ENDPOINTS.repairs,
+      subPath: ENDPOINTS.files,
+    },
+    {
+      facade: 'repairs',
+      method: 'listFileFolders',
+      parentEndpoint: ENDPOINTS.repairs,
+      subPath: ENDPOINTS.fileFolders,
+    },
+    {
+      facade: 'serialNumbers',
+      method: 'listActualContent',
+      parentEndpoint: ENDPOINTS.serialNumbers,
+      subPath: ENDPOINTS.actualContent,
+    },
+    {
+      facade: 'serialNumbers',
+      method: 'listAssignedSerials',
+      parentEndpoint: ENDPOINTS.serialNumbers,
+      subPath: ENDPOINTS.equipmentAssignedSerials,
+    },
+    {
+      facade: 'serialNumbers',
+      method: 'listFiles',
+      parentEndpoint: ENDPOINTS.serialNumbers,
+      subPath: ENDPOINTS.files,
+    },
+    {
+      facade: 'serialNumbers',
+      method: 'listFileFolders',
+      parentEndpoint: ENDPOINTS.serialNumbers,
+      subPath: ENDPOINTS.fileFolders,
+    },
+    {
+      facade: 'rates',
+      method: 'listRateFactors',
+      parentEndpoint: ENDPOINTS.rates,
+      subPath: ENDPOINTS.rateFactors,
+    },
+    {
+      facade: 'factorGroups',
+      method: 'listFactors',
+      parentEndpoint: ENDPOINTS.factorGroups,
+      subPath: ENDPOINTS.factors,
+    },
+    {
+      facade: 'projectRequests',
+      method: 'listEquipment',
+      parentEndpoint: ENDPOINTS.projectRequests,
+      subPath: ENDPOINTS.projectRequestEquipment,
+    },
+    {
+      facade: 'projectEquipmentGroups',
+      method: 'listEquipment',
+      parentEndpoint: ENDPOINTS.projectEquipmentGroups,
+      subPath: ENDPOINTS.projectEquipment,
+    },
+    {
+      facade: 'projectFunctionGroups',
+      method: 'listFunctions',
+      parentEndpoint: ENDPOINTS.projectFunctionGroups,
+      subPath: ENDPOINTS.projectFunctions,
+    },
+    {
+      facade: 'projectFunctions',
+      method: 'listCrew',
+      parentEndpoint: ENDPOINTS.projectFunctions,
+      subPath: ENDPOINTS.projectCrew,
+    },
+    {
+      facade: 'projectFunctions',
+      method: 'listVehicles',
+      parentEndpoint: ENDPOINTS.projectFunctions,
+      subPath: ENDPOINTS.projectVehicles,
     },
   ] as const;
 
@@ -677,18 +1002,30 @@ describe('createTypedClient', () => {
 
     await typed.projects.listEquipment(10, { fields: ['id'] });
     await typed.projects.listEquipmentGroups(10);
+    await typed.projects.listFiles(10);
+    await typed.projects.listFileFolders(10);
     await typed.projects.listFunctionGroups(10);
+    await typed.projects.listQuotes(10);
+    await typed.projects.listSubProjects(10);
     await typed.equipment.listSetContents(42);
     await typed.invoices.listLines(5);
+    await typed.quotes.listFiles(5);
     await typed.appointments.listCrew(7);
     await typed.subrentals.listEquipmentGroups(11);
+    await typed.subrentalEquipmentGroups.listEquipment(11);
 
     expect(listAllSubSpy).toHaveBeenCalledWith(ENDPOINTS.projects, 10, ENDPOINTS.projectEquipment, { fields: ['id'] });
     expect(listAllSubSpy).toHaveBeenCalledWith(ENDPOINTS.projects, 10, ENDPOINTS.projectEquipmentGroups, undefined);
+    expect(listAllSubSpy).toHaveBeenCalledWith(ENDPOINTS.projects, 10, ENDPOINTS.files, undefined);
+    expect(listAllSubSpy).toHaveBeenCalledWith(ENDPOINTS.projects, 10, ENDPOINTS.fileFolders, undefined);
     expect(listAllSubSpy).toHaveBeenCalledWith(ENDPOINTS.projects, 10, ENDPOINTS.projectFunctionGroups, undefined);
+    expect(listAllSubSpy).toHaveBeenCalledWith(ENDPOINTS.projects, 10, ENDPOINTS.quotes, undefined);
+    expect(listAllSubSpy).toHaveBeenCalledWith(ENDPOINTS.projects, 10, ENDPOINTS.subProjects, undefined);
     expect(listAllSubSpy).toHaveBeenCalledWith(ENDPOINTS.equipment, 42, ENDPOINTS.equipmentSetsContent, undefined);
     expect(listAllSubSpy).toHaveBeenCalledWith(ENDPOINTS.invoices, 5, ENDPOINTS.invoiceLines, undefined);
+    expect(listAllSubSpy).toHaveBeenCalledWith(ENDPOINTS.quotes, 5, ENDPOINTS.files, undefined);
     expect(listAllSubSpy).toHaveBeenCalledWith(ENDPOINTS.appointments, 7, ENDPOINTS.appointmentCrew, undefined);
     expect(listAllSubSpy).toHaveBeenCalledWith(ENDPOINTS.subrentals, 11, ENDPOINTS.subrentalEquipmentGroups, undefined);
+    expect(listAllSubSpy).toHaveBeenCalledWith(ENDPOINTS.subrentalEquipmentGroups, 11, ENDPOINTS.subrentalEquipment, undefined);
   });
 });

@@ -101,13 +101,19 @@ expectTypeOf(typedClient.projects.listCrew).toBeFunction();
 expectTypeOf(typedClient.projects.listFunctions).toBeFunction();
 expectTypeOf(typedClient.projects.listFunctionGroups).toBeFunction();
 expectTypeOf(typedClient.projects.listVehicles).toBeFunction();
+expectTypeOf(typedClient.projects.listFiles).toBeFunction();
+expectTypeOf(typedClient.projects.listFileFolders).toBeFunction();
+expectTypeOf(typedClient.projects.listQuotes).toBeFunction();
+expectTypeOf(typedClient.projects.listSubProjects).toBeFunction();
 expectTypeOf(typedClient.equipment.listSetContents).toBeFunction();
 expectTypeOf(typedClient.invoices.listLines).toBeFunction();
 expectTypeOf(typedClient.invoices.listMoments).toBeFunction();
 expectTypeOf(typedClient.quotes.listLines).toBeFunction();
+expectTypeOf(typedClient.quotes.listFiles).toBeFunction();
 expectTypeOf(typedClient.appointments.listCrew).toBeFunction();
 expectTypeOf(typedClient.subrentals.listEquipment).toBeFunction();
 expectTypeOf(typedClient.subrentals.listEquipmentGroups).toBeFunction();
+expectTypeOf(typedClient.subrentalEquipmentGroups.listEquipment).toBeFunction();
 
 // ---------------------------------------------------------------------------
 // Low-level API methods are still present on typed client
