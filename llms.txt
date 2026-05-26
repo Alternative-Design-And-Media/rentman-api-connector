@@ -27,7 +27,7 @@ npm install @alternative-design-and-media/rentman-api-connector
 - `RentmanClient`
 - `RentmanApiError`
 - `ENDPOINTS`
-- helpers: `normalizeToken`, `listEquipmentSetContents`, `listWithPreservedSlashes`, `normalizeEquipmentItem`, `NormalizedEquipmentItem`
+- helpers: `normalizeToken`, `listEquipmentSetContents` (alias for `rentman.equipment.listSetContents`), `listWithPreservedSlashes`, `normalizeEquipmentItem`, `NormalizedEquipmentItem`
 - custom field helpers: `RentmanCustomFieldType`, `RentmanCustomFieldTypeMap`, `RentmanCustomFieldDefinition`, `RentmanCustomRecord`, `WithCustomFields`
 - query helpers: `buildQueryParams`, `buildQueryString`, `buildRentmanQuery`, `projectQuery`, `contactQuery`, `equipmentQuery`, `invoiceQuery`, `rel`, `notNull`, `isNull`
 - scan helper: `scanAll`, `ScanOptions`, `ScanResult<T>`
@@ -56,7 +56,7 @@ const rentman = createRentmanClient({
 - `listAll<T>(path, query?, pageSize = 300)` → `Promise<T[]>` (auto-paginates)
 - `scanAll<T>(client, endpoint, query, options?)` → `Promise<{ items: T[]; totalCount: number; limitReached: boolean }>`
 - `normalizeToken(token)` → `string`
-- `listEquipmentSetContents(client, kitId)` → `Promise<RentmanEquipmentSetContent[]>`
+- `listEquipmentSetContents(client, kitId)` → `Promise<RentmanEquipmentSetContent[]>` (delegates to `rentman.equipment.listSetContents(kitId)`)
 - `listWithPreservedSlashes<T>(client, endpoint, query, options?)` → `Promise<RentmanCollectionResponse<T>>`
 - `normalizeEquipmentItem(item)` → `NormalizedEquipmentItem`
 - `listSub<T>(parentPath, parentId, subPath, query?)` → `Promise<RentmanCollectionResponse<T>>`
