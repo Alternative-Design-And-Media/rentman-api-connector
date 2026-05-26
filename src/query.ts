@@ -10,9 +10,35 @@
  *   - pagination: `limit` and `offset`
  */
 
+import type {
+  RentmanAppointment,
+  RentmanContact,
+  RentmanContract,
+  RentmanCrewMember,
+  RentmanEquipmentItem,
+  RentmanInvoice,
+  RentmanLeaveMutation,
+  RentmanLeaveRequest,
+  RentmanProject,
+  RentmanProjectCrew,
+  RentmanProjectEquipment,
+  RentmanQuote,
+  RentmanRepair,
+  RentmanStockMovement,
+  RentmanSubrental,
+  RentmanTimeRegistration,
+  RentmanVehicle,
+} from './types.js';
+
 /** The six relational filter operators the Rentman API supports. */
 export type RentmanRelOp = 'lt' | 'lte' | 'gt' | 'gte' | 'neq';
 export type RentmanFilterValue = string | number | boolean;
+export type RentmanStatusPath = `/statuses/${number}`;
+export type SubrentalStatus = RentmanStatusPath;
+export type QuoteStatus = RentmanStatusPath;
+export type ContractStatus = RentmanStatusPath;
+export type RepairStatus = RentmanStatusPath;
+export type LeaveRequestStatus = RentmanStatusPath;
 
 /** A single relational filter, e.g. `distance[lte]=300`. */
 export interface RentmanRelFilter {
@@ -136,7 +162,12 @@ export class BaseQueryBuilder {
   }
 }
 
-export class ProjectQueryBuilder extends BaseQueryBuilder {
+export class RentmanQueryBuilder<TEntity> extends BaseQueryBuilder {
+  // Type parameter carrier for discoverability in IDEs.
+  protected declare readonly __entityType?: TEntity;
+}
+
+export class ProjectQueryBuilder extends RentmanQueryBuilder<RentmanProject> {
   withStatus(path: string): this {
     return this.setFilter('status[eq]', path);
   }
@@ -190,7 +221,7 @@ export class ProjectQueryBuilder extends BaseQueryBuilder {
   }
 }
 
-export class EquipmentQueryBuilder extends BaseQueryBuilder {
+export class EquipmentQueryBuilder extends RentmanQueryBuilder<RentmanEquipmentItem> {
   notArchived(): this {
     return this.setFilter('in_archive[eq]', false);
   }
@@ -202,9 +233,29 @@ export class EquipmentQueryBuilder extends BaseQueryBuilder {
   sortByName(dir: QuerySortDirection = 'asc'): this {
     return this.sortByField('name', dir);
   }
+
+  /** Filter by equipment type ID (`type[eq]`). */
+  withType(typeId: number): this {
+    return this.setFilter('type[eq]', typeId);
+  }
+
+  /** Sort by equipment code (`code`). */
+  sortByCode(dir: QuerySortDirection = 'asc'): this {
+    return this.sortByField('code', dir);
+  }
+
+  /** Filter items that have (or do not have) serial tracking (`serial[eq]`). */
+  hasSerial(has: boolean): this {
+    return this.setFilter('serial[eq]', has);
+  }
+
+  /** Filter items currently in stock (`in_stock[eq]`). */
+  inStock(has: boolean): this {
+    return this.setFilter('in_stock[eq]', has);
+  }
 }
 
-export class ContactQueryBuilder extends BaseQueryBuilder {
+export class ContactQueryBuilder extends RentmanQueryBuilder<RentmanContact> {
   inCountry(code: string): this {
     return this.setFilter('country[eq]', code);
   }
@@ -216,9 +267,24 @@ export class ContactQueryBuilder extends BaseQueryBuilder {
   sortByName(dir: QuerySortDirection = 'asc'): this {
     return this.sortByField('name', dir);
   }
+
+  /** Sort contacts by city (`city`). */
+  sortByCity(dir: QuerySortDirection = 'asc'): this {
+    return this.sortByField('city', dir);
+  }
+
+  /** Filter contacts that have (or do not have) an email (`email[isnull]`). */
+  hasEmail(has: boolean): this {
+    return this.addNullFilter('email', !has);
+  }
+
+  /** Filter contacts by tag ID (`tag[eq]`). */
+  withTag(tagId: number): this {
+    return this.setFilter('tag[eq]', `/tags/${tagId}`);
+  }
 }
 
-export class InvoiceQueryBuilder extends BaseQueryBuilder {
+export class InvoiceQueryBuilder extends RentmanQueryBuilder<RentmanInvoice> {
   withStatus(path: string): this {
     return this.setFilter('status[eq]', path);
   }
@@ -244,10 +310,370 @@ export class InvoiceQueryBuilder extends BaseQueryBuilder {
   }
 }
 
+export class CrewQueryBuilder extends RentmanQueryBuilder<RentmanCrewMember> {
+  /** Exclude archived crew members (`in_archive[eq]`). */
+  notArchived(): this {
+    return this.setFilter('in_archive[eq]', false);
+  }
+
+  /** Filter crew by folder ID (`folder[eq]`). */
+  inFolder(folderId: number): this {
+    return this.setFilter('folder[eq]', `/folders/${folderId}`);
+  }
+
+  /** Filter crew by country code (`country[eq]`). */
+  inCountry(countryCode: string): this {
+    return this.setFilter('country[eq]', countryCode);
+  }
+
+  /** Filter only active, non-archived crew members (`active[eq]`, `in_archive[eq]`). */
+  onlyActive(): this {
+    this.setFilter('active[eq]', true);
+    return this.setFilter('in_archive[eq]', false);
+  }
+
+  /** Sort by display name (`displayname`). */
+  sortByName(direction: QuerySortDirection = 'asc'): this {
+    return this.sortByField('displayname', direction);
+  }
+
+  /** Sort by surname (`surname`). */
+  sortBySurname(direction: QuerySortDirection = 'asc'): this {
+    return this.sortByField('surname', direction);
+  }
+}
+
+export class VehicleQueryBuilder extends RentmanQueryBuilder<RentmanVehicle> {
+  /** Exclude archived vehicles (`in_archive[eq]`). */
+  notArchived(): this {
+    return this.setFilter('in_archive[eq]', false);
+  }
+
+  /** Filter vehicles by folder ID (`folder[eq]`). */
+  inFolder(folderId: number): this {
+    return this.setFilter('folder[eq]', `/folders/${folderId}`);
+  }
+
+  /** Sort by vehicle name (`name`). */
+  sortByName(direction: QuerySortDirection = 'asc'): this {
+    return this.sortByField('name', direction);
+  }
+
+  /** Sort by license plate (`license_plate`). */
+  sortByLicensePlate(direction: QuerySortDirection = 'asc'): this {
+    return this.sortByField('license_plate', direction);
+  }
+}
+
+export class SubrentalQueryBuilder extends RentmanQueryBuilder<RentmanSubrental> {
+  /** Filter by subrental status (`status[eq]`). */
+  withStatus(status: SubrentalStatus): this {
+    return this.setFilter('status[eq]', status);
+  }
+
+  /** Filter subrentals by project ID (`project[eq]`). */
+  forProject(projectId: number): this {
+    return this.setFilter('project[eq]', `/projects/${projectId}`);
+  }
+
+  /** Filter subrentals by contact ID (`contact[eq]`). */
+  forContact(contactId: number): this {
+    return this.setFilter('contact[eq]', `/contacts/${contactId}`);
+  }
+
+  /** Filter subrentals with start date on/after the provided date (`in[gte]`). */
+  startingAfter(date: string | Date): this {
+    return this.addRelFilter('in', 'gte', toISODate(date));
+  }
+
+  /** Filter subrentals with start date on/before the provided date (`in[lte]`). */
+  startingBefore(date: string | Date): this {
+    return this.addRelFilter('in', 'lte', toISODate(date));
+  }
+
+  /** Sort by subrental date (`in`). */
+  sortByDate(direction: QuerySortDirection = 'asc'): this {
+    return this.sortByField('in', direction);
+  }
+}
+
+export class QuoteQueryBuilder extends RentmanQueryBuilder<RentmanQuote> {
+  /** Filter by quote status (`status[eq]`). */
+  withStatus(status: QuoteStatus): this {
+    return this.setFilter('status[eq]', status);
+  }
+
+  /** Filter quotes by project ID (`project[eq]`). */
+  forProject(projectId: number): this {
+    return this.setFilter('project[eq]', `/projects/${projectId}`);
+  }
+
+  /** Sort quotes by date (`date`). */
+  sortByDate(direction: QuerySortDirection = 'asc'): this {
+    return this.sortByField('date', direction);
+  }
+
+  /** Sort quotes by quote number (`number`). */
+  sortByNumber(direction: QuerySortDirection = 'asc'): this {
+    return this.sortByField('number', direction);
+  }
+}
+
+export class ContractQueryBuilder extends RentmanQueryBuilder<RentmanContract> {
+  /** Filter by contract status (`status[eq]`). */
+  withStatus(status: ContractStatus): this {
+    return this.setFilter('status[eq]', status);
+  }
+
+  /** Filter contracts by project ID (`project[eq]`). */
+  forProject(projectId: number): this {
+    return this.setFilter('project[eq]', `/projects/${projectId}`);
+  }
+
+  /** Sort contracts by date (`date`). */
+  sortByDate(direction: QuerySortDirection = 'asc'): this {
+    return this.sortByField('date', direction);
+  }
+
+  /** Sort contracts by contract number (`number`). */
+  sortByNumber(direction: QuerySortDirection = 'asc'): this {
+    return this.sortByField('number', direction);
+  }
+}
+
+export class RepairQueryBuilder extends RentmanQueryBuilder<RentmanRepair> {
+  /** Filter repairs by equipment ID (`equipment[eq]`). */
+  forEquipment(equipmentId: number): this {
+    return this.setFilter('equipment[eq]', `/equipment/${equipmentId}`);
+  }
+
+  /** Filter repairs by status (`status[eq]`). */
+  withStatus(status: RepairStatus): this {
+    return this.setFilter('status[eq]', status);
+  }
+
+  /** Filter repairs starting on/after the provided date (`start[gte]`). */
+  startingAfter(date: string | Date): this {
+    return this.addRelFilter('start', 'gte', toISODate(date));
+  }
+
+  /** Filter repairs starting on/before the provided date (`start[lte]`). */
+  startingBefore(date: string | Date): this {
+    return this.addRelFilter('start', 'lte', toISODate(date));
+  }
+
+  /** Sort repairs by start date (`start`). */
+  sortByDate(direction: QuerySortDirection = 'asc'): this {
+    return this.sortByField('start', direction);
+  }
+}
+
+export class AppointmentQueryBuilder extends RentmanQueryBuilder<RentmanAppointment> {
+  /** Filter appointments starting on/after the provided date (`start[gte]`). */
+  startingAfter(date: string | Date): this {
+    return this.addRelFilter('start', 'gte', toISODate(date));
+  }
+
+  /** Filter appointments starting on/before the provided date (`start[lte]`). */
+  startingBefore(date: string | Date): this {
+    return this.addRelFilter('start', 'lte', toISODate(date));
+  }
+
+  /** Filter appointments ending on/after the provided date (`end[gte]`). */
+  endingAfter(date: string | Date): this {
+    return this.addRelFilter('end', 'gte', toISODate(date));
+  }
+
+  /** Filter appointments ending on/before the provided date (`end[lte]`). */
+  endingBefore(date: string | Date): this {
+    return this.addRelFilter('end', 'lte', toISODate(date));
+  }
+
+  /** Filter appointments by crew ID (`crew[eq]`). */
+  forCrew(crewId: number): this {
+    return this.setFilter('crew[eq]', `/crew/${crewId}`);
+  }
+
+  /** Sort appointments by start (`start`). */
+  sortByStart(direction: QuerySortDirection = 'asc'): this {
+    return this.sortByField('start', direction);
+  }
+}
+
+export class TimeRegistrationQueryBuilder extends RentmanQueryBuilder<RentmanTimeRegistration> {
+  /** Filter time registrations by crew ID (`crew[eq]`). */
+  forCrew(crewId: number): this {
+    return this.setFilter('crew[eq]', `/crew/${crewId}`);
+  }
+
+  /** Filter time registrations by project ID (`project[eq]`). */
+  forProject(projectId: number): this {
+    return this.setFilter('project[eq]', `/projects/${projectId}`);
+  }
+
+  /** Filter registrations starting on/after the provided date (`start[gte]`). */
+  startingAfter(date: string | Date): this {
+    return this.addRelFilter('start', 'gte', toISODate(date));
+  }
+
+  /** Filter registrations starting on/before the provided date (`start[lte]`). */
+  startingBefore(date: string | Date): this {
+    return this.addRelFilter('start', 'lte', toISODate(date));
+  }
+
+  /** Sort registrations by start date (`start`). */
+  sortByDate(direction: QuerySortDirection = 'asc'): this {
+    return this.sortByField('start', direction);
+  }
+}
+
+export class StockMovementQueryBuilder extends RentmanQueryBuilder<RentmanStockMovement> {
+  /** Filter stock movements by equipment ID (`equipment[eq]`). */
+  forEquipment(equipmentId: number): this {
+    return this.setFilter('equipment[eq]', `/equipment/${equipmentId}`);
+  }
+
+  /** Filter stock movements by stock location ID (`stocklocation[eq]`). */
+  forLocation(locationId: number): this {
+    return this.setFilter('stocklocation[eq]', `/stocklocations/${locationId}`);
+  }
+
+  /** Filter stock movements on/after the provided date (`date[gte]`). */
+  startingAfter(date: string | Date): this {
+    return this.addRelFilter('date', 'gte', toISODate(date));
+  }
+
+  /** Filter stock movements on/before the provided date (`date[lte]`). */
+  startingBefore(date: string | Date): this {
+    return this.addRelFilter('date', 'lte', toISODate(date));
+  }
+
+  /** Sort stock movements by date (`date`). */
+  sortByDate(direction: QuerySortDirection = 'asc'): this {
+    return this.sortByField('date', direction);
+  }
+}
+
+export class LeaveMutationQueryBuilder extends RentmanQueryBuilder<RentmanLeaveMutation> {
+  /** Filter leave mutations by crew ID (`crew[eq]`). */
+  forCrew(crewId: number): this {
+    return this.setFilter('crew[eq]', `/crew/${crewId}`);
+  }
+
+  /** Filter leave mutations on/after the provided date (`date[gte]`). */
+  startingAfter(date: string | Date): this {
+    return this.addRelFilter('date', 'gte', toISODate(date));
+  }
+
+  /** Filter leave mutations on/before the provided date (`date[lte]`). */
+  startingBefore(date: string | Date): this {
+    return this.addRelFilter('date', 'lte', toISODate(date));
+  }
+
+  /** Filter leave mutations by leave type ID (`leavetype[eq]`). */
+  forLeaveType(leaveTypeId: number): this {
+    return this.setFilter('leavetype[eq]', `/leavetypes/${leaveTypeId}`);
+  }
+
+  /** Sort leave mutations by date (`date`). */
+  sortByDate(direction: QuerySortDirection = 'asc'): this {
+    return this.sortByField('date', direction);
+  }
+}
+
+export class LeaveRequestQueryBuilder extends RentmanQueryBuilder<RentmanLeaveRequest> {
+  /** Filter leave requests by crew ID (`crew[eq]`). */
+  forCrew(crewId: number): this {
+    return this.setFilter('crew[eq]', `/crew/${crewId}`);
+  }
+
+  /** Filter leave requests by status (`status[eq]`). */
+  withStatus(status: LeaveRequestStatus): this {
+    return this.setFilter('status[eq]', status);
+  }
+
+  /** Filter leave requests by leave type ID (`leavetype[eq]`). */
+  forLeaveType(leaveTypeId: number): this {
+    return this.setFilter('leavetype[eq]', `/leavetypes/${leaveTypeId}`);
+  }
+
+  /** Sort leave requests by creation date (`created`). */
+  sortByDate(direction: QuerySortDirection = 'asc'): this {
+    return this.sortByField('created', direction);
+  }
+}
+
+export class ProjectEquipmentQueryBuilder extends RentmanQueryBuilder<RentmanProjectEquipment> {
+  /** Filter project equipment by project ID (`project[eq]`). */
+  forProject(projectId: number): this {
+    return this.setFilter('project[eq]', `/projects/${projectId}`);
+  }
+
+  /** Filter project equipment by sub-project ID (`subproject[eq]`). */
+  forSubProject(subProjectId: number): this {
+    return this.setFilter('subproject[eq]', `/subprojects/${subProjectId}`);
+  }
+
+  /** Filter project equipment by equipment ID (`equipment[eq]`). */
+  forEquipment(equipmentId: number): this {
+    return this.setFilter('equipment[eq]', `/equipment/${equipmentId}`);
+  }
+
+  /** Sort project equipment by row order (`order`). */
+  sortByOrder(direction: QuerySortDirection = 'asc'): this {
+    return this.sortByField('order', direction);
+  }
+}
+
+export class ProjectCrewQueryBuilder extends RentmanQueryBuilder<RentmanProjectCrew> {
+  /** Filter project crew rows by project ID (`project[eq]`). */
+  forProject(projectId: number): this {
+    return this.setFilter('project[eq]', `/projects/${projectId}`);
+  }
+
+  /** Filter project crew rows by crew ID (`crew[eq]`). */
+  forCrew(crewId: number): this {
+    return this.setFilter('crew[eq]', `/crew/${crewId}`);
+  }
+
+  /** Filter project crew rows by sub-project ID (`subproject[eq]`). */
+  forSubProject(subProjectId: number): this {
+    return this.setFilter('subproject[eq]', `/subprojects/${subProjectId}`);
+  }
+
+  /** Filter project crew rows starting on/after the provided date (`start[gte]`). */
+  startingAfter(date: string | Date): this {
+    return this.addRelFilter('start', 'gte', toISODate(date));
+  }
+
+  /** Filter project crew rows starting on/before the provided date (`start[lte]`). */
+  startingBefore(date: string | Date): this {
+    return this.addRelFilter('start', 'lte', toISODate(date));
+  }
+
+  /** Sort project crew rows by start date (`start`). */
+  sortByDate(direction: QuerySortDirection = 'asc'): this {
+    return this.sortByField('start', direction);
+  }
+}
+
 export const projectQuery = (): ProjectQueryBuilder => new ProjectQueryBuilder();
 export const equipmentQuery = (): EquipmentQueryBuilder => new EquipmentQueryBuilder();
 export const contactQuery = (): ContactQueryBuilder => new ContactQueryBuilder();
 export const invoiceQuery = (): InvoiceQueryBuilder => new InvoiceQueryBuilder();
+export const crewQuery = (): CrewQueryBuilder => new CrewQueryBuilder();
+export const vehicleQuery = (): VehicleQueryBuilder => new VehicleQueryBuilder();
+export const subrentalQuery = (): SubrentalQueryBuilder => new SubrentalQueryBuilder();
+export const quoteQuery = (): QuoteQueryBuilder => new QuoteQueryBuilder();
+export const contractQuery = (): ContractQueryBuilder => new ContractQueryBuilder();
+export const repairQuery = (): RepairQueryBuilder => new RepairQueryBuilder();
+export const appointmentQuery = (): AppointmentQueryBuilder => new AppointmentQueryBuilder();
+export const timeRegistrationQuery = (): TimeRegistrationQueryBuilder => new TimeRegistrationQueryBuilder();
+export const stockMovementQuery = (): StockMovementQueryBuilder => new StockMovementQueryBuilder();
+export const leaveMutationQuery = (): LeaveMutationQueryBuilder => new LeaveMutationQueryBuilder();
+export const leaveRequestQuery = (): LeaveRequestQueryBuilder => new LeaveRequestQueryBuilder();
+export const projectEquipmentQuery = (): ProjectEquipmentQueryBuilder => new ProjectEquipmentQueryBuilder();
+export const projectCrewQuery = (): ProjectCrewQueryBuilder => new ProjectCrewQueryBuilder();
 
 function warnForPaginatedMultiSort(opts: RentmanQueryOptions): void {
   if (
