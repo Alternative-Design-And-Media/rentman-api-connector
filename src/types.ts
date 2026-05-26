@@ -400,6 +400,9 @@ export interface RentmanInvoice extends RentmanBaseEntity {
   date?: string | null;
   due_date?: string | null;
   status?: string | null;
+  contact?: string | null;
+  payment_term?: number | null;
+  vat_included?: boolean;
   remark?: string | null;
   /** GENERATED FIELD */
   price?: number | null;

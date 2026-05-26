@@ -322,14 +322,26 @@ describe('invoiceQuery', () => {
       invoiceQuery()
         .withStatus('/statuses/9')
         .forContact('/contacts/12')
-        .sortByDate('desc')
+        .dueBefore('2025-06-01')
+        .dueAfter(new Date('2025-05-01T12:30:00Z'))
+        .sortByDueDate('desc')
         .build(),
     ).toEqual({
-      sort: '-date',
+      sort: '-due_date',
       filters: {
         'status[eq]': '/statuses/9',
         'contact[eq]': '/contacts/12',
       },
+      relFilters: [
+        { field: 'due_date', op: 'lt', value: '2025-06-01' },
+        { field: 'due_date', op: 'gt', value: '2025-05-01' },
+      ],
+    });
+  });
+
+  it('keeps date sorting available', () => {
+    expect(invoiceQuery().sortByDate('desc').build()).toEqual({
+      sort: '-date',
     });
   });
 });
