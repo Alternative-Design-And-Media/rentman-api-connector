@@ -338,51 +338,53 @@ describe('RentmanBaseEntity — no open index signature', () => {
   });
 });
 
-describe('RentmanEquipmentItem — ledgercode and surface_article', () => {
-  it('accepts ledgercode as string', () => {
-    const item = {} as unknown as RentmanEquipmentItem;
-    expectTypeOf(item.ledgercode).toEqualTypeOf<string | null | undefined>();
-  });
-
-  it('accepts ledgercode as null', () => {
+describe('RentmanEquipmentItem — ledger and surface_article', () => {
+  it('accepts ledger as string', () => {
     const item: RentmanEquipmentItem = {
       id: 1,
       created: '2025-01-01T00:00:00+00:00',
       modified: '2025-01-01T00:00:00+00:00',
       updateHash: 'abc',
       name: 'Camera',
-      ledgercode: null,
+      ledger: '/ledgercodes/3',
     };
-    expectTypeOf(item.ledgercode).toEqualTypeOf<string | null | undefined>();
+    expectTypeOf(item.ledger).toEqualTypeOf<string | null | undefined>();
   });
 
-  it('accepts ledgercode as URI reference string', () => {
+  it('accepts ledger as null', () => {
+    const item: RentmanEquipmentItem = {
+      id: 1,
+      created: '2025-01-01T00:00:00+00:00',
+      modified: '2025-01-01T00:00:00+00:00',
+      updateHash: 'abc',
+      name: 'Camera',
+      ledger: null,
+    };
+    expectTypeOf(item.ledger).toEqualTypeOf<string | null | undefined>();
+  });
+
+  it('accepts ledger as URI reference string', () => {
     const item: RentmanEquipmentItem = {
       id: 2,
       created: '2025-01-01T00:00:00+00:00',
       modified: '2025-01-01T00:00:00+00:00',
       updateHash: 'def',
       name: 'Lens',
-      ledgercode: '/ledgercodes/3',
+      ledger: '/ledgercodes/3',
     };
-    expectTypeOf(item.ledgercode).toEqualTypeOf<string | null | undefined>();
+    expectTypeOf(item.ledger).toEqualTypeOf<string | null | undefined>();
   });
 
   it('accepts surface_article as boolean', () => {
-    const item = {} as unknown as RentmanEquipmentItem;
-    expectTypeOf(item.surface_article).toEqualTypeOf<boolean | null | undefined>();
-  });
-
-  it('accepts surface_article as null', () => {
     const item: RentmanEquipmentItem = {
       id: 3,
       created: '2025-01-01T00:00:00+00:00',
       modified: '2025-01-01T00:00:00+00:00',
       updateHash: 'ghi',
       name: 'Tripod',
-      surface_article: null,
+      surface_article: true,
     };
-    expectTypeOf(item.surface_article).toEqualTypeOf<boolean | null | undefined>();
+    expectTypeOf(item.surface_article).toEqualTypeOf<boolean | undefined>();
   });
 });
 

@@ -78,17 +78,47 @@ interface ResourceApi<T, TCreate = Partial<T>> {
   delete(id: number): Promise<void>
 }
 
-projects: ResourceApi<RentmanProject>
+projects: ResourceApi<RentmanProject> // + listEquipment, listEquipmentGroups, listCrew, listFunctions, listFunctionGroups, listVehicles
 subProjects: ResourceApi<RentmanSubProject>
 contacts: ResourceApi<RentmanContact>
 contactPersons: ResourceApi<RentmanContactPerson>
-equipment: ResourceApi<RentmanEquipmentItem>
-invoices: ResourceApi<RentmanInvoice>
-quotes: ResourceApi<RentmanQuote>
+equipment: ResourceApi<RentmanEquipmentItem> // + listSetContents
+invoices: ResourceApi<RentmanInvoice> // + listLines, listMoments
+quotes: ResourceApi<RentmanQuote> // + listLines
 crew: ResourceApi<RentmanCrewMember>
+crewAvailabilities: ResourceApi<RentmanCrewAvailability>
+crewRates: ResourceApi<RentmanCrewRate>
 vehicles: ResourceApi<RentmanVehicle>
-appointments: ResourceApi<RentmanAppointment>
-subrentals: ResourceApi<RentmanSubrental>
+payments: ResourceApi<RentmanPayment>
+appointments: ResourceApi<RentmanAppointment> // + listCrew
+subrentals: ResourceApi<RentmanSubrental> // + listEquipment, listEquipmentGroups
+files: ResourceApi<RentmanFile>
+fileFolders: ResourceApi<RentmanFileFolder>
+folders: ResourceApi<RentmanFolder>
+contracts: ResourceApi<RentmanContract>
+costs: ResourceApi<RentmanCost>
+stockMovements: ResourceApi<RentmanStockMovement>
+stockLocations: ResourceApi<RentmanStockLocation>
+timeRegistrations: ResourceApi<RentmanTimeRegistration>
+timeRegistrationActivities: ResourceApi<RentmanTimeRegistrationActivity>
+leaveMutations: ResourceApi<RentmanLeaveMutation>
+leaveRequests: ResourceApi<RentmanLeaveRequest>
+leaveTypes: ResourceApi<RentmanLeaveType>
+repairs: ResourceApi<RentmanRepair>
+serialNumbers: ResourceApi<RentmanSerialNumber>
+accessories: ResourceApi<RentmanAccessory>
+rates: ResourceApi<RentmanRate>
+rateFactors: ResourceApi<RentmanRateFactor>
+factorGroups: ResourceApi<RentmanFactorGroup>
+factors: ResourceApi<RentmanFactor>
+projectTypes: ResourceApi<RentmanProjectType>
+statuses: ResourceApi<RentmanStatus>
+taxClasses: ResourceApi<RentmanTaxClass>
+ledgerCodes: ResourceApi<RentmanLedgerCode>
+projectRequests: ResourceApi<RentmanProjectRequest>
+projectRequestEquipment: ResourceApi<RentmanProjectRequestEquipment>
+actualContent: ResourceApi<RentmanActualContent>
+equipmentAssignedSerials: ResourceApi<RentmanEquipmentAssignedSerial>
 
 list<T>(path: RentmanEndpoint, query?: RentmanQueryOptions): Promise<RentmanCollectionResponse<T>>
 listAll<T>(path: RentmanEndpoint, query?: Omit<RentmanQueryOptions, 'limit' | 'offset'>, pageSize?: number): Promise<T[]>
@@ -99,7 +129,7 @@ scanAll<T>(
   options?: { pageSize?: number; scanLimit?: number },
 ): Promise<{ items: T[]; totalCount: number; limitReached: boolean }>
 normalizeToken(token: string): string
-listEquipmentSetContents(client: RentmanClient, kitId: number): Promise<RentmanEquipmentSetContent[]>
+listEquipmentSetContents(client: RentmanClient, kitId: number): Promise<RentmanEquipmentSetContent[]> // alias of client.equipment.listSetContents(kitId)
 listWithPreservedSlashes<T>(
   client: RentmanClient,
   endpoint: RentmanEndpoint,
