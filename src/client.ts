@@ -20,9 +20,8 @@ import type {
   RentmanCrewMember,
   RentmanInvoice,
   RentmanInvoiceLine,
-  RentmanInvoiceMoment,
+  RentmanPayment,
   RentmanQuote,
-  RentmanQuoteLine,
   RentmanAppointment,
   RentmanAppointmentCrew,
   RentmanVehicle,
@@ -141,11 +140,17 @@ export interface ProjectsResourceApi extends ResourceApi<RentmanProject> {
 
 export interface InvoicesResourceApi extends ResourceApi<RentmanInvoice> {
   listLines(invoiceId: number, query?: SubResourceQuery): Promise<RentmanInvoiceLine[]>;
-  listMoments(invoiceId: number, query?: SubResourceQuery): Promise<RentmanInvoiceMoment[]>;
+  /**
+   * Lists payments recorded against the invoice.
+   *
+   * Method name is preserved from the pre-OAS v1.7 surface where this was
+   * backed by `/invoicemoments`. It now resolves via `/invoices/{id}/payments`.
+   */
+  listMoments(invoiceId: number, query?: SubResourceQuery): Promise<RentmanPayment[]>;
 }
 
 export interface QuotesResourceApi extends ResourceApi<RentmanQuote> {
-  listLines(quoteId: number, query?: SubResourceQuery): Promise<RentmanQuoteLine[]>;
+  listLines(quoteId: number, query?: SubResourceQuery): Promise<RentmanInvoiceLine[]>;
 }
 
 export interface AppointmentsResourceApi extends ResourceApi<RentmanAppointment> {
@@ -282,7 +287,7 @@ export class RentmanClient {
       listMoments: (invoiceId, query) => this.listAllSub(
         ENDPOINTS.invoices,
         invoiceId,
-        ENDPOINTS.invoiceMoments,
+        ENDPOINTS.payments,
         query,
       ),
     };
@@ -292,7 +297,7 @@ export class RentmanClient {
       listLines: (quoteId, query) => this.listAllSub(
         ENDPOINTS.quotes,
         quoteId,
-        ENDPOINTS.quoteLines,
+        ENDPOINTS.invoiceLines,
         query,
       ),
     };

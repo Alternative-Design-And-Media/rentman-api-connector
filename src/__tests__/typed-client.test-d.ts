@@ -12,7 +12,7 @@ import {
   type TypedRentmanClient,
 } from '../client.js';
 import type { CustomFieldMap, WithCustomFields } from '../custom-fields.js';
-import type { RentmanProject } from '../types.js';
+import type { RentmanInvoiceLine, RentmanPayment, RentmanProject } from '../types.js';
 
 // ---------------------------------------------------------------------------
 // Test fixtures
@@ -124,3 +124,6 @@ declare const emptyProjects: Awaited<ReturnType<typeof emptyTyped.projects.listA
 declare const emptyProjectCustomKey: NonNullable<(typeof emptyProjects)[number]['custom']>[string];
 expectTypeOf<typeof emptyProjectCustomKey>().toEqualTypeOf<never>();
 
+// listMoments/listLines compatibility aliases return OAS-backed types
+expectTypeOf<Awaited<ReturnType<typeof typedClient.invoices.listMoments>>>().toEqualTypeOf<RentmanPayment[]>();
+expectTypeOf<Awaited<ReturnType<typeof typedClient.quotes.listLines>>>().toEqualTypeOf<RentmanInvoiceLine[]>();
