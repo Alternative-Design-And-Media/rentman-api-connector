@@ -1261,7 +1261,8 @@ export class RentmanClient {
    * @param parentPath - Parent resource path (prefer `ENDPOINTS.<key>` constants).
    * @param parentId - Numeric ID of the parent resource.
    * @param subPath - Sub-resource path segment, must start with `/`.
-   * @param query - Optional query options; `limit`/`offset` are ignored while auto-paginating.
+   * @param query - Optional query options; `limit` is stripped and `offset` is used as the
+   *   starting position for auto-pagination (defaults to `0`).
    * @param pageSize - Page size per request. Defaults to `300` (Rentman API hard cap).
    * @returns A flattened array containing items from all fetched pages.
    * @throws {RentmanApiError} When any page request returns a non-2xx response.
@@ -1277,7 +1278,7 @@ export class RentmanClient {
     delete queryWithoutPagination.limit;
     delete queryWithoutPagination.offset;
     const results: T[] = [];
-    let offset = 0;
+    let offset = query?.offset ?? 0;
 
     while (true) {
       const page = await this.listSub<T>(parentPath, parentId, subPath, {
