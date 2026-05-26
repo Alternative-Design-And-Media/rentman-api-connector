@@ -638,6 +638,7 @@ export interface RentmanProjectRequest extends RentmanBaseEntity {
   remark?: string | null;
 }
 
+/** Equipment linked to a project request. */
 export interface RentmanProjectRequestEquipment extends RentmanBaseEntity {
   project_request: string;
   quantity?: number | null;
@@ -710,6 +711,7 @@ export interface RentmanRate extends RentmanBaseEntity {
   value?: number | null;
 }
 
+/** Crew rate factor ranges attached to a specific rate. */
 export interface RentmanRateFactor extends RentmanBaseEntity {
   rate_id: string;
   from?: number | null;
@@ -748,6 +750,7 @@ export interface RentmanEquipmentSetContent extends RentmanBaseEntity {
   remark?: string | null;
 }
 
+/** Actual serial content rows for serialized physical combinations. */
 export interface RentmanActualContent extends RentmanBaseEntity {
   displayname?: string | null;
   equipment?: string | null;
@@ -756,6 +759,7 @@ export interface RentmanActualContent extends RentmanBaseEntity {
   combination_serial?: string | null;
 }
 
+/** Serial-number assignments linked to serialized physical combinations. */
 export interface RentmanEquipmentAssignedSerial extends RentmanBaseEntity {
   displayname?: string | null;
   combination?: string | null;
