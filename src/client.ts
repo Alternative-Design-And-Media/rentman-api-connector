@@ -12,21 +12,53 @@
 
 import type {
   RentmanCollectionResponse,
+  RentmanActualContent,
+  RentmanAccessory,
   RentmanProject,
   RentmanSubProject,
   RentmanContact,
   RentmanContactPerson,
+  RentmanContract,
+  RentmanCost,
+  RentmanCrewAvailability,
   DefaultCustomFields,
   RentmanCrewMember,
+  RentmanCrewRate,
+  RentmanEquipmentAssignedSerial,
   RentmanInvoice,
   RentmanInvoiceLine,
+  RentmanFactor,
+  RentmanFactorGroup,
+  RentmanFile,
+  RentmanFileFolder,
+  RentmanFolder,
+  RentmanLedgerCode,
+  RentmanLeaveMutation,
+  RentmanLeaveRequest,
+  RentmanLeaveType,
   RentmanPayment,
+  RentmanProjectEquipmentGroup,
+  RentmanProjectFunctionGroup,
+  RentmanProjectRequest,
+  RentmanProjectRequestEquipment,
+  RentmanProjectType,
+  RentmanRate,
+  RentmanRateFactor,
+  RentmanRepair,
   RentmanQuote,
+  RentmanSerialNumber,
   RentmanAppointment,
   RentmanAppointmentCrew,
+  RentmanStatus,
+  RentmanStockLocation,
+  RentmanStockMovement,
   RentmanVehicle,
   RentmanSubrental,
   RentmanSubrentalEquipment,
+  RentmanSubrentalEquipmentGroup,
+  RentmanTaxClass,
+  RentmanTimeRegistration,
+  RentmanTimeRegistrationActivity,
   RentmanEquipmentItem,
   RentmanEquipmentSetContent,
   RentmanProjectEquipment,
@@ -133,8 +165,10 @@ type SubResourceQuery = Omit<RentmanQueryOptions, 'limit' | 'offset'>;
 
 export interface ProjectsResourceApi extends ResourceApi<RentmanProject> {
   listEquipment(projectId: number, query?: SubResourceQuery): Promise<RentmanProjectEquipment[]>;
+  listEquipmentGroups(projectId: number, query?: SubResourceQuery): Promise<RentmanProjectEquipmentGroup[]>;
   listCrew(projectId: number, query?: SubResourceQuery): Promise<RentmanProjectCrew[]>;
   listFunctions(projectId: number, query?: SubResourceQuery): Promise<RentmanProjectFunction[]>;
+  listFunctionGroups(projectId: number, query?: SubResourceQuery): Promise<RentmanProjectFunctionGroup[]>;
   listVehicles(projectId: number, query?: SubResourceQuery): Promise<RentmanProjectVehicle[]>;
 }
 
@@ -159,6 +193,11 @@ export interface AppointmentsResourceApi extends ResourceApi<RentmanAppointment>
 
 export interface SubrentalsResourceApi extends ResourceApi<RentmanSubrental> {
   listEquipment(subrentalId: number, query?: SubResourceQuery): Promise<RentmanSubrentalEquipment[]>;
+  listEquipmentGroups(subrentalId: number, query?: SubResourceQuery): Promise<RentmanSubrentalEquipmentGroup[]>;
+}
+
+export interface EquipmentResourceApi extends ResourceApi<RentmanEquipmentItem> {
+  listSetContents(equipmentId: number, query?: SubResourceQuery): Promise<RentmanEquipmentSetContent[]>;
 }
 
 function getFirstValue(record: Record<string, unknown>, keys: string[]): unknown {
@@ -226,13 +265,43 @@ export class RentmanClient {
   readonly subProjects: ResourceApi<RentmanSubProject>;
   readonly contacts: ResourceApi<RentmanContact>;
   readonly contactPersons: ResourceApi<RentmanContactPerson>;
-  readonly equipment: ResourceApi<RentmanEquipmentItem>;
+  readonly equipment: EquipmentResourceApi;
   readonly invoices: InvoicesResourceApi;
   readonly quotes: QuotesResourceApi;
   readonly crew: ResourceApi<RentmanCrewMember>;
+  readonly crewAvailabilities: ResourceApi<RentmanCrewAvailability>;
+  readonly crewRates: ResourceApi<RentmanCrewRate>;
   readonly vehicles: ResourceApi<RentmanVehicle>;
+  readonly payments: ResourceApi<RentmanPayment>;
   readonly appointments: AppointmentsResourceApi;
+  readonly files: ResourceApi<RentmanFile>;
+  readonly fileFolders: ResourceApi<RentmanFileFolder>;
+  readonly folders: ResourceApi<RentmanFolder>;
+  readonly contracts: ResourceApi<RentmanContract>;
+  readonly costs: ResourceApi<RentmanCost>;
+  readonly stockMovements: ResourceApi<RentmanStockMovement>;
+  readonly stockLocations: ResourceApi<RentmanStockLocation>;
   readonly subrentals: SubrentalsResourceApi;
+  readonly timeRegistrations: ResourceApi<RentmanTimeRegistration>;
+  readonly timeRegistrationActivities: ResourceApi<RentmanTimeRegistrationActivity>;
+  readonly leaveMutations: ResourceApi<RentmanLeaveMutation>;
+  readonly leaveRequests: ResourceApi<RentmanLeaveRequest>;
+  readonly leaveTypes: ResourceApi<RentmanLeaveType>;
+  readonly repairs: ResourceApi<RentmanRepair>;
+  readonly serialNumbers: ResourceApi<RentmanSerialNumber>;
+  readonly accessories: ResourceApi<RentmanAccessory>;
+  readonly rates: ResourceApi<RentmanRate>;
+  readonly rateFactors: ResourceApi<RentmanRateFactor>;
+  readonly factorGroups: ResourceApi<RentmanFactorGroup>;
+  readonly factors: ResourceApi<RentmanFactor>;
+  readonly projectTypes: ResourceApi<RentmanProjectType>;
+  readonly statuses: ResourceApi<RentmanStatus>;
+  readonly taxClasses: ResourceApi<RentmanTaxClass>;
+  readonly ledgerCodes: ResourceApi<RentmanLedgerCode>;
+  readonly projectRequests: ResourceApi<RentmanProjectRequest>;
+  readonly projectRequestEquipment: ResourceApi<RentmanProjectRequestEquipment>;
+  readonly actualContent: ResourceApi<RentmanActualContent>;
+  readonly equipmentAssignedSerials: ResourceApi<RentmanEquipmentAssignedSerial>;
 
   constructor(private readonly opts: RentmanClientOptions) {
     const resolvedBaseUrl = opts.baseUrl ?? RENTMAN_BASE_URL;
@@ -252,6 +321,12 @@ export class RentmanClient {
         ENDPOINTS.projectEquipment,
         query,
       ),
+      listEquipmentGroups: (projectId, query) => this.listAllSub(
+        ENDPOINTS.projects,
+        projectId,
+        ENDPOINTS.projectEquipmentGroups,
+        query,
+      ),
       listCrew: (projectId, query) => this.listAllSub(
         ENDPOINTS.projects,
         projectId,
@@ -264,6 +339,12 @@ export class RentmanClient {
         ENDPOINTS.projectFunctions,
         query,
       ),
+      listFunctionGroups: (projectId, query) => this.listAllSub(
+        ENDPOINTS.projects,
+        projectId,
+        ENDPOINTS.projectFunctionGroups,
+        query,
+      ),
       listVehicles: (projectId, query) => this.listAllSub(
         ENDPOINTS.projects,
         projectId,
@@ -274,7 +355,16 @@ export class RentmanClient {
     this.subProjects = this.createResourceApi<RentmanSubProject>(ENDPOINTS.subProjects);
     this.contacts = this.createResourceApi<RentmanContact>(ENDPOINTS.contacts);
     this.contactPersons = this.createResourceApi<RentmanContactPerson>(ENDPOINTS.contactPersons);
-    this.equipment = this.createResourceApi<RentmanEquipmentItem>(ENDPOINTS.equipment);
+    const equipmentApi = this.createResourceApi<RentmanEquipmentItem>(ENDPOINTS.equipment);
+    this.equipment = {
+      ...equipmentApi,
+      listSetContents: (equipmentId, query) => this.listAllSub(
+        ENDPOINTS.equipment,
+        equipmentId,
+        ENDPOINTS.equipmentSetsContent,
+        query,
+      ),
+    };
     const invoicesApi = this.createResourceApi<RentmanInvoice>(ENDPOINTS.invoices);
     this.invoices = {
       ...invoicesApi,
@@ -302,7 +392,10 @@ export class RentmanClient {
       ),
     };
     this.crew = this.createResourceApi<RentmanCrewMember>(ENDPOINTS.crew);
+    this.crewAvailabilities = this.createResourceApi<RentmanCrewAvailability>(ENDPOINTS.crewAvailabilities);
+    this.crewRates = this.createResourceApi<RentmanCrewRate>(ENDPOINTS.crewRates);
     this.vehicles = this.createResourceApi<RentmanVehicle>(ENDPOINTS.vehicles);
+    this.payments = this.createResourceApi<RentmanPayment>(ENDPOINTS.payments);
     const appointmentsApi = this.createResourceApi<RentmanAppointment>(ENDPOINTS.appointments);
     this.appointments = {
       ...appointmentsApi,
@@ -322,7 +415,46 @@ export class RentmanClient {
         ENDPOINTS.subrentalEquipment,
         query,
       ),
+      listEquipmentGroups: (subrentalId, query) => this.listAllSub(
+        ENDPOINTS.subrentals,
+        subrentalId,
+        ENDPOINTS.subrentalEquipmentGroups,
+        query,
+      ),
     };
+    this.files = this.createResourceApi<RentmanFile>(ENDPOINTS.files);
+    this.fileFolders = this.createResourceApi<RentmanFileFolder>(ENDPOINTS.fileFolders);
+    this.folders = this.createResourceApi<RentmanFolder>(ENDPOINTS.folders);
+    this.contracts = this.createResourceApi<RentmanContract>(ENDPOINTS.contracts);
+    this.costs = this.createResourceApi<RentmanCost>(ENDPOINTS.costs);
+    this.stockMovements = this.createResourceApi<RentmanStockMovement>(ENDPOINTS.stockMovements);
+    this.stockLocations = this.createResourceApi<RentmanStockLocation>(ENDPOINTS.stockLocations);
+    this.timeRegistrations = this.createResourceApi<RentmanTimeRegistration>(ENDPOINTS.timeRegistrations);
+    this.timeRegistrationActivities = this.createResourceApi<RentmanTimeRegistrationActivity>(
+      ENDPOINTS.timeRegistrationActivities,
+    );
+    this.leaveMutations = this.createResourceApi<RentmanLeaveMutation>(ENDPOINTS.leaveMutations);
+    this.leaveRequests = this.createResourceApi<RentmanLeaveRequest>(ENDPOINTS.leaveRequests);
+    this.leaveTypes = this.createResourceApi<RentmanLeaveType>(ENDPOINTS.leaveTypes);
+    this.repairs = this.createResourceApi<RentmanRepair>(ENDPOINTS.repairs);
+    this.serialNumbers = this.createResourceApi<RentmanSerialNumber>(ENDPOINTS.serialNumbers);
+    this.accessories = this.createResourceApi<RentmanAccessory>(ENDPOINTS.accessories);
+    this.rates = this.createResourceApi<RentmanRate>(ENDPOINTS.rates);
+    this.rateFactors = this.createResourceApi<RentmanRateFactor>(ENDPOINTS.rateFactors);
+    this.factorGroups = this.createResourceApi<RentmanFactorGroup>(ENDPOINTS.factorGroups);
+    this.factors = this.createResourceApi<RentmanFactor>(ENDPOINTS.factors);
+    this.projectTypes = this.createResourceApi<RentmanProjectType>(ENDPOINTS.projectTypes);
+    this.statuses = this.createResourceApi<RentmanStatus>(ENDPOINTS.statuses);
+    this.taxClasses = this.createResourceApi<RentmanTaxClass>(ENDPOINTS.taxClasses);
+    this.ledgerCodes = this.createResourceApi<RentmanLedgerCode>(ENDPOINTS.ledgerCodes);
+    this.projectRequests = this.createResourceApi<RentmanProjectRequest>(ENDPOINTS.projectRequests);
+    this.projectRequestEquipment = this.createResourceApi<RentmanProjectRequestEquipment>(
+      ENDPOINTS.projectRequestEquipment,
+    );
+    this.actualContent = this.createResourceApi<RentmanActualContent>(ENDPOINTS.actualContent);
+    this.equipmentAssignedSerials = this.createResourceApi<RentmanEquipmentAssignedSerial>(
+      ENDPOINTS.equipmentAssignedSerials,
+    );
   }
 
   private createResourceApi<T, TCreate = Partial<T>>(path: RentmanEndpoint): ResourceApi<T, TCreate> {
@@ -637,11 +769,7 @@ export function listEquipmentSetContents(
   client: RentmanClient,
   kitId: number,
 ): Promise<RentmanEquipmentSetContent[]> {
-  return client.listAllSub<RentmanEquipmentSetContent>(
-    ENDPOINTS.equipment,
-    kitId,
-    ENDPOINTS.equipmentSetsContent,
-  );
+  return client.equipment.listSetContents(kitId);
 }
 
 /**
@@ -746,25 +874,86 @@ export type TypedRentmanClient<TCF extends CustomFieldMap> = Omit<
   | 'invoices'
   | 'quotes'
   | 'crew'
+  | 'crewAvailabilities'
+  | 'crewRates'
   | 'vehicles'
+  | 'payments'
   | 'appointments'
   | 'subrentals'
+  | 'files'
+  | 'fileFolders'
+  | 'folders'
+  | 'contracts'
+  | 'costs'
+  | 'stockMovements'
+  | 'stockLocations'
+  | 'timeRegistrations'
+  | 'timeRegistrationActivities'
+  | 'leaveMutations'
+  | 'leaveRequests'
+  | 'leaveTypes'
+  | 'repairs'
+  | 'serialNumbers'
+  | 'accessories'
+  | 'rates'
+  | 'rateFactors'
+  | 'factorGroups'
+  | 'factors'
+  | 'projectTypes'
+  | 'statuses'
+  | 'taxClasses'
+  | 'ledgerCodes'
+  | 'projectRequests'
+  | 'projectRequestEquipment'
+  | 'actualContent'
+  | 'equipmentAssignedSerials'
 > & {
   readonly projects: ResourceApi<WithCustomFields<RentmanProject, CFOrNever<TCF, 'projects'>>> &
-    Pick<ProjectsResourceApi, 'listEquipment' | 'listCrew' | 'listFunctions' | 'listVehicles'>;
+    Pick<ProjectsResourceApi, 'listEquipment' | 'listEquipmentGroups' | 'listCrew' | 'listFunctions' | 'listFunctionGroups' | 'listVehicles'>;
   readonly subProjects: ResourceApi<WithCustomFields<RentmanSubProject, CFOrNever<TCF, 'subProjects'>>>;
   readonly contacts: ResourceApi<WithCustomFields<RentmanContact, CFOrNever<TCF, 'contacts'>>>;
-  readonly equipment: ResourceApi<WithCustomFields<RentmanEquipmentItem, CFOrNever<TCF, 'equipment'>>>;
+  readonly equipment: ResourceApi<WithCustomFields<RentmanEquipmentItem, CFOrNever<TCF, 'equipment'>>> &
+    Pick<EquipmentResourceApi, 'listSetContents'>;
   readonly invoices: ResourceApi<WithCustomFields<RentmanInvoice, CFOrNever<TCF, 'invoices'>>> &
     Pick<InvoicesResourceApi, 'listLines' | 'listMoments'>;
   readonly quotes: ResourceApi<WithCustomFields<RentmanQuote, CFOrNever<TCF, 'quotes'>>> &
     Pick<QuotesResourceApi, 'listLines'>;
   readonly crew: ResourceApi<WithCustomFields<RentmanCrewMember, CFOrNever<TCF, 'crew'>>>;
+  readonly crewAvailabilities: ResourceApi<RentmanCrewAvailability>;
+  readonly crewRates: ResourceApi<RentmanCrewRate>;
   readonly vehicles: ResourceApi<WithCustomFields<RentmanVehicle, CFOrNever<TCF, 'vehicles'>>>;
+  readonly payments: ResourceApi<RentmanPayment>;
   readonly appointments: ResourceApi<WithCustomFields<RentmanAppointment, CFOrNever<TCF, 'appointments'>>> &
     Pick<AppointmentsResourceApi, 'listCrew'>;
   readonly subrentals: ResourceApi<WithCustomFields<RentmanSubrental, CFOrNever<TCF, 'subrentals'>>> &
-    Pick<SubrentalsResourceApi, 'listEquipment'>;
+    Pick<SubrentalsResourceApi, 'listEquipment' | 'listEquipmentGroups'>;
+  readonly files: ResourceApi<RentmanFile>;
+  readonly fileFolders: ResourceApi<RentmanFileFolder>;
+  readonly folders: ResourceApi<RentmanFolder>;
+  readonly contracts: ResourceApi<RentmanContract>;
+  readonly costs: ResourceApi<RentmanCost>;
+  readonly stockMovements: ResourceApi<RentmanStockMovement>;
+  readonly stockLocations: ResourceApi<RentmanStockLocation>;
+  readonly timeRegistrations: ResourceApi<WithCustomFields<RentmanTimeRegistration, CFOrNever<TCF, 'timeRegistrations'>>>;
+  readonly timeRegistrationActivities: ResourceApi<RentmanTimeRegistrationActivity>;
+  readonly leaveMutations: ResourceApi<RentmanLeaveMutation>;
+  readonly leaveRequests: ResourceApi<RentmanLeaveRequest>;
+  readonly leaveTypes: ResourceApi<RentmanLeaveType>;
+  readonly repairs: ResourceApi<WithCustomFields<RentmanRepair, CFOrNever<TCF, 'repairs'>>>;
+  readonly serialNumbers: ResourceApi<WithCustomFields<RentmanSerialNumber, CFOrNever<TCF, 'serialNumbers'>>>;
+  readonly accessories: ResourceApi<RentmanAccessory>;
+  readonly rates: ResourceApi<RentmanRate>;
+  readonly rateFactors: ResourceApi<RentmanRateFactor>;
+  readonly factorGroups: ResourceApi<RentmanFactorGroup>;
+  readonly factors: ResourceApi<RentmanFactor>;
+  readonly projectTypes: ResourceApi<RentmanProjectType>;
+  readonly statuses: ResourceApi<RentmanStatus>;
+  readonly taxClasses: ResourceApi<RentmanTaxClass>;
+  readonly ledgerCodes: ResourceApi<RentmanLedgerCode>;
+  readonly projectRequests: ResourceApi<RentmanProjectRequest>;
+  readonly projectRequestEquipment: ResourceApi<RentmanProjectRequestEquipment>;
+  readonly actualContent: ResourceApi<RentmanActualContent>;
+  readonly equipmentAssignedSerials: ResourceApi<RentmanEquipmentAssignedSerial>;
 };
 
 /**

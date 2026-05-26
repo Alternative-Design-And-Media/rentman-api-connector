@@ -92,14 +92,18 @@ expectTypeOf<typeof crewCustomKey>().toEqualTypeOf<never>();
 // ---------------------------------------------------------------------------
 
 expectTypeOf(typedClient.projects.listEquipment).toBeFunction();
+expectTypeOf(typedClient.projects.listEquipmentGroups).toBeFunction();
 expectTypeOf(typedClient.projects.listCrew).toBeFunction();
 expectTypeOf(typedClient.projects.listFunctions).toBeFunction();
+expectTypeOf(typedClient.projects.listFunctionGroups).toBeFunction();
 expectTypeOf(typedClient.projects.listVehicles).toBeFunction();
+expectTypeOf(typedClient.equipment.listSetContents).toBeFunction();
 expectTypeOf(typedClient.invoices.listLines).toBeFunction();
 expectTypeOf(typedClient.invoices.listMoments).toBeFunction();
 expectTypeOf(typedClient.quotes.listLines).toBeFunction();
 expectTypeOf(typedClient.appointments.listCrew).toBeFunction();
 expectTypeOf(typedClient.subrentals.listEquipment).toBeFunction();
+expectTypeOf(typedClient.subrentals.listEquipmentGroups).toBeFunction();
 
 // ---------------------------------------------------------------------------
 // Low-level API methods are still present on typed client

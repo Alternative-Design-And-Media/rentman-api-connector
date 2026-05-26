@@ -21,7 +21,7 @@ v2.0.0
 - ✅ Token normalization helper (`normalizeToken`) — accepts bare JWTs and `"Bearer ..."` tokens
 - ✅ Edge-runtime compatible — uses native `fetch` only (Node.js 18+, Cloudflare Workers)
 - ✅ Token rotation via callback — no need to recreate the client on token refresh
-- ✅ Kit/set content helper (`listEquipmentSetContents`) for `/equipment/{id}/equipmentsetscontent`
+- ✅ Kit/set content via `rentman.equipment.listSetContents()` (+ helper alias `listEquipmentSetContents`)
 - ✅ Equipment field normalizer (`normalizeEquipmentItem`) for mixed OAS/legacy payloads
 - ✅ Typed custom fields — narrow `custom_<number>` keys per entity at compile time
 - ✅ **Prisma-style typed client** — `createTypedClient` integrates account-specific custom fields into the OOP facade
@@ -148,13 +148,43 @@ const lines = await rentman.invoices.listLines(42);
 | `rentman.subProjects` | `ResourceApi<RentmanSubProject>` | — |
 | `rentman.contacts` | `ResourceApi<RentmanContact>` | — |
 | `rentman.contactPersons` | `ResourceApi<RentmanContactPerson>` | — |
-| `rentman.equipment` | `ResourceApi<RentmanEquipmentItem>` | — |
+| `rentman.equipment` | `ResourceApi<RentmanEquipmentItem>` | `listSetContents` |
 | `rentman.invoices` | `ResourceApi<RentmanInvoice>` | `listLines`, `listMoments` |
 | `rentman.quotes` | `ResourceApi<RentmanQuote>` | `listLines` |
 | `rentman.crew` | `ResourceApi<RentmanCrewMember>` | — |
+| `rentman.crewAvailabilities` | `ResourceApi<RentmanCrewAvailability>` | — |
+| `rentman.crewRates` | `ResourceApi<RentmanCrewRate>` | — |
 | `rentman.vehicles` | `ResourceApi<RentmanVehicle>` | — |
+| `rentman.payments` | `ResourceApi<RentmanPayment>` | — |
 | `rentman.appointments` | `ResourceApi<RentmanAppointment>` | `listCrew` |
-| `rentman.subrentals` | `ResourceApi<RentmanSubrental>` | `listEquipment` |
+| `rentman.subrentals` | `ResourceApi<RentmanSubrental>` | `listEquipment`, `listEquipmentGroups` |
+| `rentman.files` | `ResourceApi<RentmanFile>` | — |
+| `rentman.fileFolders` | `ResourceApi<RentmanFileFolder>` | — |
+| `rentman.folders` | `ResourceApi<RentmanFolder>` | — |
+| `rentman.contracts` | `ResourceApi<RentmanContract>` | — |
+| `rentman.costs` | `ResourceApi<RentmanCost>` | — |
+| `rentman.stockMovements` | `ResourceApi<RentmanStockMovement>` | — |
+| `rentman.stockLocations` | `ResourceApi<RentmanStockLocation>` | — |
+| `rentman.timeRegistrations` | `ResourceApi<RentmanTimeRegistration>` | — |
+| `rentman.timeRegistrationActivities` | `ResourceApi<RentmanTimeRegistrationActivity>` | — |
+| `rentman.leaveMutations` | `ResourceApi<RentmanLeaveMutation>` | — |
+| `rentman.leaveRequests` | `ResourceApi<RentmanLeaveRequest>` | — |
+| `rentman.leaveTypes` | `ResourceApi<RentmanLeaveType>` | — |
+| `rentman.repairs` | `ResourceApi<RentmanRepair>` | — |
+| `rentman.serialNumbers` | `ResourceApi<RentmanSerialNumber>` | — |
+| `rentman.accessories` | `ResourceApi<RentmanAccessory>` | — |
+| `rentman.rates` | `ResourceApi<RentmanRate>` | — |
+| `rentman.rateFactors` | `ResourceApi<RentmanRateFactor>` | — |
+| `rentman.factorGroups` | `ResourceApi<RentmanFactorGroup>` | — |
+| `rentman.factors` | `ResourceApi<RentmanFactor>` | — |
+| `rentman.projectTypes` | `ResourceApi<RentmanProjectType>` | — |
+| `rentman.statuses` | `ResourceApi<RentmanStatus>` | — |
+| `rentman.taxClasses` | `ResourceApi<RentmanTaxClass>` | — |
+| `rentman.ledgerCodes` | `ResourceApi<RentmanLedgerCode>` | — |
+| `rentman.projectRequests` | `ResourceApi<RentmanProjectRequest>` | — |
+| `rentman.projectRequestEquipment` | `ResourceApi<RentmanProjectRequestEquipment>` | — |
+| `rentman.actualContent` | `ResourceApi<RentmanActualContent>` | — |
+| `rentman.equipmentAssignedSerials` | `ResourceApi<RentmanEquipmentAssignedSerial>` | — |
 
 Every `ResourceApi<T>` exposes:
 
@@ -788,7 +818,7 @@ Auto-paginate through all items for a path-level sub-resource collection.
 
 ### `listEquipmentSetContents(client, kitId)`
 
-Convenience wrapper around `client.listAllSub()` for kit/set components.
+Backward-compatible wrapper around `client.equipment.listSetContents(kitId)`.
 
 ```ts
 import {

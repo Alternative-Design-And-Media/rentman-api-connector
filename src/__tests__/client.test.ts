@@ -468,9 +468,39 @@ describe('RentmanClient', () => {
     { key: 'invoices', endpoint: ENDPOINTS.invoices },
     { key: 'quotes', endpoint: ENDPOINTS.quotes },
     { key: 'crew', endpoint: ENDPOINTS.crew },
+    { key: 'crewAvailabilities', endpoint: ENDPOINTS.crewAvailabilities },
+    { key: 'crewRates', endpoint: ENDPOINTS.crewRates },
     { key: 'vehicles', endpoint: ENDPOINTS.vehicles },
+    { key: 'payments', endpoint: ENDPOINTS.payments },
     { key: 'appointments', endpoint: ENDPOINTS.appointments },
     { key: 'subrentals', endpoint: ENDPOINTS.subrentals },
+    { key: 'files', endpoint: ENDPOINTS.files },
+    { key: 'fileFolders', endpoint: ENDPOINTS.fileFolders },
+    { key: 'folders', endpoint: ENDPOINTS.folders },
+    { key: 'contracts', endpoint: ENDPOINTS.contracts },
+    { key: 'costs', endpoint: ENDPOINTS.costs },
+    { key: 'stockMovements', endpoint: ENDPOINTS.stockMovements },
+    { key: 'stockLocations', endpoint: ENDPOINTS.stockLocations },
+    { key: 'timeRegistrations', endpoint: ENDPOINTS.timeRegistrations },
+    { key: 'timeRegistrationActivities', endpoint: ENDPOINTS.timeRegistrationActivities },
+    { key: 'leaveMutations', endpoint: ENDPOINTS.leaveMutations },
+    { key: 'leaveRequests', endpoint: ENDPOINTS.leaveRequests },
+    { key: 'leaveTypes', endpoint: ENDPOINTS.leaveTypes },
+    { key: 'repairs', endpoint: ENDPOINTS.repairs },
+    { key: 'serialNumbers', endpoint: ENDPOINTS.serialNumbers },
+    { key: 'accessories', endpoint: ENDPOINTS.accessories },
+    { key: 'rates', endpoint: ENDPOINTS.rates },
+    { key: 'rateFactors', endpoint: ENDPOINTS.rateFactors },
+    { key: 'factorGroups', endpoint: ENDPOINTS.factorGroups },
+    { key: 'factors', endpoint: ENDPOINTS.factors },
+    { key: 'projectTypes', endpoint: ENDPOINTS.projectTypes },
+    { key: 'statuses', endpoint: ENDPOINTS.statuses },
+    { key: 'taxClasses', endpoint: ENDPOINTS.taxClasses },
+    { key: 'ledgerCodes', endpoint: ENDPOINTS.ledgerCodes },
+    { key: 'projectRequests', endpoint: ENDPOINTS.projectRequests },
+    { key: 'projectRequestEquipment', endpoint: ENDPOINTS.projectRequestEquipment },
+    { key: 'actualContent', endpoint: ENDPOINTS.actualContent },
+    { key: 'equipmentAssignedSerials', endpoint: ENDPOINTS.equipmentAssignedSerials },
   ] as const;
 
   it.each(resourceFacades)('$key facade delegates all methods to base client methods', async ({ key, endpoint }) => {
@@ -515,6 +545,12 @@ describe('RentmanClient', () => {
     },
     {
       facade: 'projects',
+      method: 'listEquipmentGroups',
+      parentEndpoint: ENDPOINTS.projects,
+      subPath: ENDPOINTS.projectEquipmentGroups,
+    },
+    {
+      facade: 'projects',
       method: 'listCrew',
       parentEndpoint: ENDPOINTS.projects,
       subPath: ENDPOINTS.projectCrew,
@@ -524,6 +560,12 @@ describe('RentmanClient', () => {
       method: 'listFunctions',
       parentEndpoint: ENDPOINTS.projects,
       subPath: ENDPOINTS.projectFunctions,
+    },
+    {
+      facade: 'projects',
+      method: 'listFunctionGroups',
+      parentEndpoint: ENDPOINTS.projects,
+      subPath: ENDPOINTS.projectFunctionGroups,
     },
     {
       facade: 'projects',
@@ -556,10 +598,22 @@ describe('RentmanClient', () => {
       subPath: ENDPOINTS.subrentalEquipment,
     },
     {
+      facade: 'subrentals',
+      method: 'listEquipmentGroups',
+      parentEndpoint: ENDPOINTS.subrentals,
+      subPath: ENDPOINTS.subrentalEquipmentGroups,
+    },
+    {
       facade: 'appointments',
       method: 'listCrew',
       parentEndpoint: ENDPOINTS.appointments,
       subPath: ENDPOINTS.appointmentCrew,
+    },
+    {
+      facade: 'equipment',
+      method: 'listSetContents',
+      parentEndpoint: ENDPOINTS.equipment,
+      subPath: ENDPOINTS.equipmentSetsContent,
     },
   ] as const;
 
@@ -622,11 +676,19 @@ describe('createTypedClient', () => {
     const listAllSubSpy = vi.spyOn(base, 'listAllSub').mockResolvedValue([]);
 
     await typed.projects.listEquipment(10, { fields: ['id'] });
+    await typed.projects.listEquipmentGroups(10);
+    await typed.projects.listFunctionGroups(10);
+    await typed.equipment.listSetContents(42);
     await typed.invoices.listLines(5);
     await typed.appointments.listCrew(7);
+    await typed.subrentals.listEquipmentGroups(11);
 
     expect(listAllSubSpy).toHaveBeenCalledWith(ENDPOINTS.projects, 10, ENDPOINTS.projectEquipment, { fields: ['id'] });
+    expect(listAllSubSpy).toHaveBeenCalledWith(ENDPOINTS.projects, 10, ENDPOINTS.projectEquipmentGroups, undefined);
+    expect(listAllSubSpy).toHaveBeenCalledWith(ENDPOINTS.projects, 10, ENDPOINTS.projectFunctionGroups, undefined);
+    expect(listAllSubSpy).toHaveBeenCalledWith(ENDPOINTS.equipment, 42, ENDPOINTS.equipmentSetsContent, undefined);
     expect(listAllSubSpy).toHaveBeenCalledWith(ENDPOINTS.invoices, 5, ENDPOINTS.invoiceLines, undefined);
     expect(listAllSubSpy).toHaveBeenCalledWith(ENDPOINTS.appointments, 7, ENDPOINTS.appointmentCrew, undefined);
+    expect(listAllSubSpy).toHaveBeenCalledWith(ENDPOINTS.subrentals, 11, ENDPOINTS.subrentalEquipmentGroups, undefined);
   });
 });
