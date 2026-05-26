@@ -818,7 +818,11 @@ const { data } = await rentman.listSub(
 
 ### `client.listAllSub<T>(parentPath, parentId, subPath, query?, pageSize?)`
 
-Auto-paginate through all items for a path-level sub-resource collection.
+Backward-compatible sub-resource list helper. When `query.limit` is omitted, auto-paginates
+through all items starting from `query.offset` (defaults to `0`) and returns a flat array.
+When `query.limit` is provided, returns only that single page's `data` array without
+auto-paginating. Use the explicit `*Paged` methods when page metadata (e.g. `itemCount`) is
+required.
 
 ### `listEquipmentSetContents(client, kitId)`
 

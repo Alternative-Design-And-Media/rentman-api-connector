@@ -459,6 +459,68 @@ describe('RentmanClient', () => {
     expect(firstCallUrl).toContain('/equipment/3473/equipmentsetscontent?limit=1&offset=0');
   });
 
+  it('projects.listEquipment keeps auto-pagination behavior when no limit is provided', async () => {
+    const page1: RentmanCollectionResponse<typeof mockEquipment> = {
+      data: [mockEquipment],
+      itemCount: 2,
+      limit: 1,
+      offset: 0,
+    };
+    const page2: RentmanCollectionResponse<typeof mockEquipment> = {
+      data: [{ ...mockEquipment, id: 2, name: 'Truss' }],
+      itemCount: 2,
+      limit: 1,
+      offset: 1,
+    };
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve(page1) })
+      .mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve(page2) });
+    const client = createRentmanClient({ token: 't', fetch: fetchMock as unknown as typeof fetch });
+
+    const all = await client.projects.listEquipment(3473);
+
+    expect(all).toEqual([mockEquipment, { ...mockEquipment, id: 2, name: 'Truss' }]);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect((fetchMock.mock.calls[0] as [string])[0]).toContain('/projects/3473/projectequipment?limit=300&offset=0');
+  });
+
+  it('projects.listEquipment with limit returns only the requested page', async () => {
+    const page: RentmanCollectionResponse<typeof mockEquipment> = {
+      data: [mockEquipment],
+      itemCount: 100,
+      limit: 10,
+      offset: 0,
+    };
+    const fetchMock = makeFetch(200, page);
+    const client = createRentmanClient({ token: 't', fetch: fetchMock as unknown as typeof fetch });
+
+    const items = await client.projects.listEquipment(3473, { limit: 10 });
+
+    expect(items).toEqual([mockEquipment]);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect((fetchMock.mock.calls[0] as [string])[0]).toContain('/projects/3473/projectequipment?limit=10');
+  });
+
+  it('projects.listEquipmentPaged returns page metadata and supports offset', async () => {
+    const page: RentmanCollectionResponse<typeof mockEquipment> = {
+      data: [mockEquipment],
+      itemCount: 100,
+      limit: 10,
+      offset: 20,
+    };
+    const fetchMock = makeFetch(200, page);
+    const client = createRentmanClient({ token: 't', fetch: fetchMock as unknown as typeof fetch });
+
+    const result = await client.projects.listEquipmentPaged(3473, { limit: 10, offset: 20 });
+
+    expect(result.data).toEqual([mockEquipment]);
+    expect(result.itemCount).toBe(100);
+    expect(result.limit).toBe(10);
+    expect(result.offset).toBe(20);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect((fetchMock.mock.calls[0] as [string])[0]).toContain('/projects/3473/projectequipment?limit=10&offset=20');
+  });
+
   const resourceFacades = [
     { key: 'projects', endpoint: ENDPOINTS.projects },
     { key: 'subProjects', endpoint: ENDPOINTS.subProjects },

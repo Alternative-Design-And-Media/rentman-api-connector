@@ -12,7 +12,14 @@ import {
   type TypedRentmanClient,
 } from '../client.js';
 import type { CustomFieldMap, WithCustomFields } from '../custom-fields.js';
-import type { RentmanCrewMember, RentmanInvoiceLine, RentmanPayment, RentmanProject } from '../types.js';
+import type {
+  RentmanCollectionResponse,
+  RentmanCrewMember,
+  RentmanInvoiceLine,
+  RentmanPayment,
+  RentmanProject,
+  RentmanProjectEquipment,
+} from '../types.js';
 
 // ---------------------------------------------------------------------------
 // Test fixtures
@@ -96,23 +103,35 @@ expectTypeOf<typeof hasDrivingLicense>().toEqualTypeOf<boolean>();
 // ---------------------------------------------------------------------------
 
 expectTypeOf(typedClient.projects.listEquipment).toBeFunction();
+expectTypeOf(typedClient.projects.listEquipmentPaged).toBeFunction();
 expectTypeOf(typedClient.projects.listEquipmentGroups).toBeFunction();
+expectTypeOf(typedClient.projects.listEquipmentGroupsPaged).toBeFunction();
 expectTypeOf(typedClient.projects.listCrew).toBeFunction();
+expectTypeOf(typedClient.projects.listCrewPaged).toBeFunction();
 expectTypeOf(typedClient.projects.listFunctions).toBeFunction();
+expectTypeOf(typedClient.projects.listFunctionsPaged).toBeFunction();
 expectTypeOf(typedClient.projects.listFunctionGroups).toBeFunction();
+expectTypeOf(typedClient.projects.listFunctionGroupsPaged).toBeFunction();
 expectTypeOf(typedClient.projects.listVehicles).toBeFunction();
+expectTypeOf(typedClient.projects.listVehiclesPaged).toBeFunction();
 expectTypeOf(typedClient.projects.listFiles).toBeFunction();
 expectTypeOf(typedClient.projects.listFileFolders).toBeFunction();
 expectTypeOf(typedClient.projects.listQuotes).toBeFunction();
 expectTypeOf(typedClient.projects.listSubProjects).toBeFunction();
 expectTypeOf(typedClient.equipment.listSetContents).toBeFunction();
 expectTypeOf(typedClient.invoices.listLines).toBeFunction();
+expectTypeOf(typedClient.invoices.listLinesPaged).toBeFunction();
 expectTypeOf(typedClient.invoices.listMoments).toBeFunction();
+expectTypeOf(typedClient.invoices.listMomentsPaged).toBeFunction();
 expectTypeOf(typedClient.quotes.listLines).toBeFunction();
+expectTypeOf(typedClient.quotes.listLinesPaged).toBeFunction();
 expectTypeOf(typedClient.quotes.listFiles).toBeFunction();
 expectTypeOf(typedClient.appointments.listCrew).toBeFunction();
+expectTypeOf(typedClient.appointments.listCrewPaged).toBeFunction();
 expectTypeOf(typedClient.subrentals.listEquipment).toBeFunction();
+expectTypeOf(typedClient.subrentals.listEquipmentPaged).toBeFunction();
 expectTypeOf(typedClient.subrentals.listEquipmentGroups).toBeFunction();
+expectTypeOf(typedClient.subrentals.listEquipmentGroupsPaged).toBeFunction();
 expectTypeOf(typedClient.subrentalEquipmentGroups.listEquipment).toBeFunction();
 
 // ---------------------------------------------------------------------------
@@ -141,3 +160,5 @@ expectTypeOf<typeof emptyProjectCustomKey>().toEqualTypeOf<never>();
 // listMoments/listLines compatibility aliases return OAS-backed types
 expectTypeOf<Awaited<ReturnType<typeof typedClient.invoices.listMoments>>>().toEqualTypeOf<RentmanPayment[]>();
 expectTypeOf<Awaited<ReturnType<typeof typedClient.quotes.listLines>>>().toEqualTypeOf<RentmanInvoiceLine[]>();
+expectTypeOf<Awaited<ReturnType<typeof typedClient.projects.listEquipmentPaged>>>()
+  .toEqualTypeOf<RentmanCollectionResponse<RentmanProjectEquipment>>();
