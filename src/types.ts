@@ -246,7 +246,11 @@ export interface RentmanContactPerson<TCustom = DefaultCustomFields>
 // Crew
 // ---------------------------------------------------------------------------
 
-export interface RentmanCrewMember extends RentmanBaseEntity {
+/**
+ * @typeParam TCustom - Shape of the `custom` object. Default: `DefaultCustomFields`.
+ */
+export interface RentmanCrewMember<TCustom = DefaultCustomFields>
+  extends RentmanBaseEntityWithCustom<TCustom> {
   displayname: string;
   firstname?: string | null;
   middle?: string | null;
