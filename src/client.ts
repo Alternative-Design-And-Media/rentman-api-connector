@@ -1263,7 +1263,7 @@ export class RentmanClient {
    * @param subPath - Sub-resource path segment, must start with `/`.
    * @param query - Optional query options; `limit`/`offset` are ignored while auto-paginating.
    * @param pageSize - Page size per request. Defaults to `300` (Rentman API hard cap).
-   * @returns A flattened array containing items from fetched pages.
+   * @returns A flattened array containing items from all fetched pages.
    * @throws {RentmanApiError} When any page request returns a non-2xx response.
    */
   private async listAllSubResource<T>(
@@ -1306,6 +1306,7 @@ export class RentmanClient {
   /**
    * Backward-compatible sub-resource list helper.
    * Auto-paginates when `query.limit` is omitted; otherwise returns a single page's `data`.
+   * Prefer facade `...Paged` methods when page metadata is required.
    */
   async listAllSub<T>(
     parentPath: RentmanEndpoint,
