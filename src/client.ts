@@ -172,6 +172,10 @@ export interface ProjectsResourceApi extends ResourceApi<RentmanProject> {
   listVehicles(projectId: number, query?: SubResourceQuery): Promise<RentmanProjectVehicle[]>;
   listContracts(projectId: number, query?: SubResourceQuery): Promise<RentmanContract[]>;
   listCosts(projectId: number, query?: SubResourceQuery): Promise<RentmanCost[]>;
+  listFiles(projectId: number, query?: SubResourceQuery): Promise<RentmanFile[]>;
+  listFileFolders(projectId: number, query?: SubResourceQuery): Promise<RentmanFileFolder[]>;
+  listQuotes(projectId: number, query?: SubResourceQuery): Promise<RentmanQuote[]>;
+  listSubProjects(projectId: number, query?: SubResourceQuery): Promise<RentmanSubProject[]>;
 }
 
 export interface SubProjectsResourceApi extends ResourceApi<RentmanSubProject> {
@@ -208,6 +212,7 @@ export interface InvoicesResourceApi extends ResourceApi<RentmanInvoice> {
 
 export interface QuotesResourceApi extends ResourceApi<RentmanQuote> {
   listLines(quoteId: number, query?: SubResourceQuery): Promise<RentmanInvoiceLine[]>;
+  listFiles(quoteId: number, query?: SubResourceQuery): Promise<RentmanFile[]>;
 }
 
 export interface AppointmentsResourceApi extends ResourceApi<RentmanAppointment> {
@@ -265,6 +270,10 @@ export interface SubrentalsResourceApi extends ResourceApi<RentmanSubrental> {
   listEquipmentGroups(subrentalId: number, query?: SubResourceQuery): Promise<RentmanSubrentalEquipmentGroup[]>;
   listFiles(id: number, query?: SubResourceQuery): Promise<RentmanFile[]>;
   listFileFolders(id: number, query?: SubResourceQuery): Promise<RentmanFileFolder[]>;
+}
+
+export interface SubrentalEquipmentGroupsResourceApi extends ResourceApi<RentmanSubrentalEquipmentGroup> {
+  listEquipment(id: number, query?: SubResourceQuery): Promise<RentmanSubrentalEquipment[]>;
 }
 
 export interface TimeRegistrationsResourceApi extends ResourceApi<RentmanTimeRegistration> {
@@ -399,6 +408,7 @@ export class RentmanClient {
   readonly stockMovements: ResourceApi<RentmanStockMovement>;
   readonly stockLocations: StockLocationsResourceApi;
   readonly subrentals: SubrentalsResourceApi;
+  readonly subrentalEquipmentGroups: SubrentalEquipmentGroupsResourceApi;
   readonly timeRegistrations: TimeRegistrationsResourceApi;
   readonly timeRegistrationActivities: ResourceApi<RentmanTimeRegistrationActivity>;
   readonly leaveMutations: ResourceApi<RentmanLeaveMutation>;
@@ -481,6 +491,30 @@ export class RentmanClient {
         ENDPOINTS.projects,
         projectId,
         ENDPOINTS.costs,
+        query,
+      ),
+      listFiles: (projectId, query) => this.listAllSub(
+        ENDPOINTS.projects,
+        projectId,
+        ENDPOINTS.files,
+        query,
+      ),
+      listFileFolders: (projectId, query) => this.listAllSub(
+        ENDPOINTS.projects,
+        projectId,
+        ENDPOINTS.fileFolders,
+        query,
+      ),
+      listQuotes: (projectId, query) => this.listAllSub(
+        ENDPOINTS.projects,
+        projectId,
+        ENDPOINTS.quotes,
+        query,
+      ),
+      listSubProjects: (projectId, query) => this.listAllSub(
+        ENDPOINTS.projects,
+        projectId,
+        ENDPOINTS.subProjects,
         query,
       ),
     };
@@ -639,6 +673,12 @@ export class RentmanClient {
         ENDPOINTS.invoiceLines,
         query,
       ),
+      listFiles: (quoteId, query) => this.listAllSub(
+        ENDPOINTS.quotes,
+        quoteId,
+        ENDPOINTS.files,
+        query,
+      ),
     };
     const crewBase = this.createCrewResourceApi(ENDPOINTS.crew);
     this.crew = {
@@ -728,6 +768,18 @@ export class RentmanClient {
         ENDPOINTS.subrentals,
         id,
         ENDPOINTS.fileFolders,
+        query,
+      ),
+    };
+    const subrentalEquipmentGroupsApi = this.createResourceApi<RentmanSubrentalEquipmentGroup>(
+      ENDPOINTS.subrentalEquipmentGroups,
+    );
+    this.subrentalEquipmentGroups = {
+      ...subrentalEquipmentGroupsApi,
+      listEquipment: (id, query) => this.listAllSub(
+        ENDPOINTS.subrentalEquipmentGroups,
+        id,
+        ENDPOINTS.subrentalEquipment,
         query,
       ),
     };
@@ -1366,6 +1418,7 @@ export type TypedRentmanClient<TCF extends CustomFieldMap> = Omit<
   | 'payments'
   | 'appointments'
   | 'subrentals'
+  | 'subrentalEquipmentGroups'
   | 'files'
   | 'fileFolders'
   | 'folders'
@@ -1398,7 +1451,7 @@ export type TypedRentmanClient<TCF extends CustomFieldMap> = Omit<
   | 'equipmentAssignedSerials'
 > & {
   readonly projects: ResourceApi<WithCustomFields<RentmanProject, CFOrNever<TCF, 'projects'>>> &
-    Pick<ProjectsResourceApi, 'listEquipment' | 'listEquipmentGroups' | 'listCrew' | 'listFunctions' | 'listFunctionGroups' | 'listVehicles' | 'listContracts' | 'listCosts'>;
+    Pick<ProjectsResourceApi, 'listEquipment' | 'listEquipmentGroups' | 'listCrew' | 'listFunctions' | 'listFunctionGroups' | 'listVehicles' | 'listContracts' | 'listCosts' | 'listFiles' | 'listFileFolders' | 'listQuotes' | 'listSubProjects'>;
   readonly subProjects: ResourceApi<WithCustomFields<RentmanSubProject, CFOrNever<TCF, 'subProjects'>>> &
     Pick<SubProjectsResourceApi, 'listCrew' | 'listEquipment' | 'listEquipmentGroups' | 'listFunctionGroups' | 'listVehicles' | 'listFileFolders'>;
   readonly contacts: ResourceApi<WithCustomFields<RentmanContact, CFOrNever<TCF, 'contacts'>>> &
@@ -1410,7 +1463,7 @@ export type TypedRentmanClient<TCF extends CustomFieldMap> = Omit<
   readonly invoices: ResourceApi<WithCustomFields<RentmanInvoice, CFOrNever<TCF, 'invoices'>>> &
     Pick<InvoicesResourceApi, 'listLines' | 'listMoments' | 'listFiles'>;
   readonly quotes: ResourceApi<WithCustomFields<RentmanQuote, CFOrNever<TCF, 'quotes'>>> &
-    Pick<QuotesResourceApi, 'listLines'>;
+    Pick<QuotesResourceApi, 'listLines' | 'listFiles'>;
   readonly crew: CrewResourceApi<CFOrNever<TCF, 'crew'>>;
   readonly crewAvailabilities: ResourceApi<RentmanCrewAvailability>;
   readonly crewRates: ResourceApi<RentmanCrewRate>;
@@ -1421,6 +1474,7 @@ export type TypedRentmanClient<TCF extends CustomFieldMap> = Omit<
     Pick<AppointmentsResourceApi, 'listCrew'>;
   readonly subrentals: ResourceApi<WithCustomFields<RentmanSubrental, CFOrNever<TCF, 'subrentals'>>> &
     Pick<SubrentalsResourceApi, 'listEquipment' | 'listEquipmentGroups' | 'listFiles' | 'listFileFolders'>;
+  readonly subrentalEquipmentGroups: SubrentalEquipmentGroupsResourceApi;
   readonly files: ResourceApi<RentmanFile>;
   readonly fileFolders: ResourceApi<RentmanFileFolder>;
   readonly folders: ResourceApi<RentmanFolder>;

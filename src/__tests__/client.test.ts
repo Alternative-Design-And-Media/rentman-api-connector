@@ -474,6 +474,7 @@ describe('RentmanClient', () => {
     { key: 'payments', endpoint: ENDPOINTS.payments },
     { key: 'appointments', endpoint: ENDPOINTS.appointments },
     { key: 'subrentals', endpoint: ENDPOINTS.subrentals },
+    { key: 'subrentalEquipmentGroups', endpoint: ENDPOINTS.subrentalEquipmentGroups },
     { key: 'files', endpoint: ENDPOINTS.files },
     { key: 'fileFolders', endpoint: ENDPOINTS.fileFolders },
     { key: 'folders', endpoint: ENDPOINTS.folders },
@@ -586,6 +587,30 @@ describe('RentmanClient', () => {
       subPath: ENDPOINTS.costs,
     },
     {
+      facade: 'projects',
+      method: 'listFiles',
+      parentEndpoint: ENDPOINTS.projects,
+      subPath: ENDPOINTS.files,
+    },
+    {
+      facade: 'projects',
+      method: 'listFileFolders',
+      parentEndpoint: ENDPOINTS.projects,
+      subPath: ENDPOINTS.fileFolders,
+    },
+    {
+      facade: 'projects',
+      method: 'listQuotes',
+      parentEndpoint: ENDPOINTS.projects,
+      subPath: ENDPOINTS.quotes,
+    },
+    {
+      facade: 'projects',
+      method: 'listSubProjects',
+      parentEndpoint: ENDPOINTS.projects,
+      subPath: ENDPOINTS.subProjects,
+    },
+    {
       facade: 'subProjects',
       method: 'listCrew',
       parentEndpoint: ENDPOINTS.subProjects,
@@ -676,6 +701,12 @@ describe('RentmanClient', () => {
       subPath: ENDPOINTS.invoiceLines,
     },
     {
+      facade: 'quotes',
+      method: 'listFiles',
+      parentEndpoint: ENDPOINTS.quotes,
+      subPath: ENDPOINTS.files,
+    },
+    {
       facade: 'subrentals',
       method: 'listEquipment',
       parentEndpoint: ENDPOINTS.subrentals,
@@ -698,6 +729,12 @@ describe('RentmanClient', () => {
       method: 'listFileFolders',
       parentEndpoint: ENDPOINTS.subrentals,
       subPath: ENDPOINTS.fileFolders,
+    },
+    {
+      facade: 'subrentalEquipmentGroups',
+      method: 'listEquipment',
+      parentEndpoint: ENDPOINTS.subrentalEquipmentGroups,
+      subPath: ENDPOINTS.subrentalEquipment,
     },
     {
       facade: 'appointments',
@@ -965,18 +1002,30 @@ describe('createTypedClient', () => {
 
     await typed.projects.listEquipment(10, { fields: ['id'] });
     await typed.projects.listEquipmentGroups(10);
+    await typed.projects.listFiles(10);
+    await typed.projects.listFileFolders(10);
     await typed.projects.listFunctionGroups(10);
+    await typed.projects.listQuotes(10);
+    await typed.projects.listSubProjects(10);
     await typed.equipment.listSetContents(42);
     await typed.invoices.listLines(5);
+    await typed.quotes.listFiles(5);
     await typed.appointments.listCrew(7);
     await typed.subrentals.listEquipmentGroups(11);
+    await typed.subrentalEquipmentGroups.listEquipment(11);
 
     expect(listAllSubSpy).toHaveBeenCalledWith(ENDPOINTS.projects, 10, ENDPOINTS.projectEquipment, { fields: ['id'] });
     expect(listAllSubSpy).toHaveBeenCalledWith(ENDPOINTS.projects, 10, ENDPOINTS.projectEquipmentGroups, undefined);
+    expect(listAllSubSpy).toHaveBeenCalledWith(ENDPOINTS.projects, 10, ENDPOINTS.files, undefined);
+    expect(listAllSubSpy).toHaveBeenCalledWith(ENDPOINTS.projects, 10, ENDPOINTS.fileFolders, undefined);
     expect(listAllSubSpy).toHaveBeenCalledWith(ENDPOINTS.projects, 10, ENDPOINTS.projectFunctionGroups, undefined);
+    expect(listAllSubSpy).toHaveBeenCalledWith(ENDPOINTS.projects, 10, ENDPOINTS.quotes, undefined);
+    expect(listAllSubSpy).toHaveBeenCalledWith(ENDPOINTS.projects, 10, ENDPOINTS.subProjects, undefined);
     expect(listAllSubSpy).toHaveBeenCalledWith(ENDPOINTS.equipment, 42, ENDPOINTS.equipmentSetsContent, undefined);
     expect(listAllSubSpy).toHaveBeenCalledWith(ENDPOINTS.invoices, 5, ENDPOINTS.invoiceLines, undefined);
+    expect(listAllSubSpy).toHaveBeenCalledWith(ENDPOINTS.quotes, 5, ENDPOINTS.files, undefined);
     expect(listAllSubSpy).toHaveBeenCalledWith(ENDPOINTS.appointments, 7, ENDPOINTS.appointmentCrew, undefined);
     expect(listAllSubSpy).toHaveBeenCalledWith(ENDPOINTS.subrentals, 11, ENDPOINTS.subrentalEquipmentGroups, undefined);
+    expect(listAllSubSpy).toHaveBeenCalledWith(ENDPOINTS.subrentalEquipmentGroups, 11, ENDPOINTS.subrentalEquipment, undefined);
   });
 });
