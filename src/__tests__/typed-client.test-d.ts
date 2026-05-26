@@ -12,7 +12,7 @@ import {
   type TypedRentmanClient,
 } from '../client.js';
 import type { CustomFieldMap, WithCustomFields } from '../custom-fields.js';
-import type { RentmanInvoiceLine, RentmanPayment, RentmanProject } from '../types.js';
+import type { RentmanCrewMember, RentmanInvoiceLine, RentmanPayment, RentmanProject } from '../types.js';
 
 // ---------------------------------------------------------------------------
 // Test fixtures
@@ -22,6 +22,7 @@ interface MyCustomFields extends CustomFieldMap {
   projects:  { budget: number; category: string; is_vip: boolean };
   equipment: { serial_prefix?: string; warehouse_zone?: string };
   contacts:  { vat_number: string; credit_limit: number };
+  crew: { shirt_size?: string; has_driving_license: boolean };
 }
 
 declare const baseClient: ReturnType<typeof createRentmanClient>;
@@ -76,16 +77,19 @@ declare const vatNumber: NonNullable<ContactItem['custom']>['vat_number'];
 expectTypeOf<typeof vatNumber>().toEqualTypeOf<string>();
 
 // ---------------------------------------------------------------------------
-// Entity with no custom fields in TCF → accessing any key on custom returns never
+// crew: custom fields typed correctly
 // ---------------------------------------------------------------------------
 
 declare const crewItems: Awaited<ReturnType<typeof typedClient.crew.listAll>>;
 type CrewItem = (typeof crewItems)[number];
 
-// crew has no custom fields in MyCustomFields → fallback to Record<string, never>
-// Any string-keyed access on the custom object returns never (no valid fields)
-declare const crewCustomKey: NonNullable<CrewItem['custom']>[string];
-expectTypeOf<typeof crewCustomKey>().toEqualTypeOf<never>();
+expectTypeOf<CrewItem>().toMatchTypeOf<RentmanCrewMember<{ shirt_size?: string; has_driving_license: boolean }>>();
+
+declare const shirtSize: NonNullable<CrewItem['custom']>['shirt_size'];
+expectTypeOf<typeof shirtSize>().toEqualTypeOf<string | undefined>();
+
+declare const hasDrivingLicense: NonNullable<CrewItem['custom']>['has_driving_license'];
+expectTypeOf<typeof hasDrivingLicense>().toEqualTypeOf<boolean>();
 
 // ---------------------------------------------------------------------------
 // Extended sub-resource methods are still present on typed client

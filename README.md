@@ -151,7 +151,7 @@ const lines = await rentman.invoices.listLines(42);
 | `rentman.equipment` | `ResourceApi<RentmanEquipmentItem>` | `listSetContents` |
 | `rentman.invoices` | `ResourceApi<RentmanInvoice>` | `listLines`, `listMoments` |
 | `rentman.quotes` | `ResourceApi<RentmanQuote>` | `listLines` |
-| `rentman.crew` | `ResourceApi<RentmanCrewMember>` | — |
+| `rentman.crew` | `CrewResourceApi` | — |
 | `rentman.crewAvailabilities` | `ResourceApi<RentmanCrewAvailability>` | — |
 | `rentman.crewRates` | `ResourceApi<RentmanCrewRate>` | — |
 | `rentman.vehicles` | `ResourceApi<RentmanVehicle>` | — |
@@ -526,6 +526,7 @@ The same pattern works on any entity that extends `RentmanBaseEntityWithCustom`:
 | `RentmanEquipmentItem` | ✅ |
 | `RentmanContact` | ✅ |
 | `RentmanContactPerson` | ✅ |
+| `RentmanCrewMember` | ✅ |
 | `RentmanProject` | ✅ |
 | `RentmanSubProject` | ✅ |
 | `RentmanVehicle` | ✅ |
@@ -618,6 +619,9 @@ projects[0].custom?.category; // ✅ 'Conference' | 'Wedding'
 
 const items = await rentman.equipment.listAll();
 items[0].custom?.serial_prefix; // ✅ string | undefined
+
+const crew = await rentman.crew.listAll();
+crew[0].custom?.has_driving_license; // ✅ boolean
 
 // Low-level API still works (backward compatible)
 const raw = await rentman.list(ENDPOINTS.projects);

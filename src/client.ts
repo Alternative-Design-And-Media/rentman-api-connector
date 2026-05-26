@@ -196,6 +196,27 @@ export interface SubrentalsResourceApi extends ResourceApi<RentmanSubrental> {
   listEquipmentGroups(subrentalId: number, query?: SubResourceQuery): Promise<RentmanSubrentalEquipmentGroup[]>;
 }
 
+export interface CrewResourceApi<TCustom = DefaultCustomFields> {
+  list(
+    query?: RentmanQueryOptions,
+  ): Promise<RentmanCollectionResponse<RentmanCrewMember<TCustom>>>;
+  listAll(
+    query?: Omit<RentmanQueryOptions, 'limit' | 'offset'>,
+  ): Promise<RentmanCrewMember<TCustom>[]>;
+  getById(
+    id: number,
+    query?: Pick<RentmanQueryOptions, 'fields'>,
+  ): Promise<RentmanItemResponse<RentmanCrewMember<TCustom>>>;
+  create(
+    body: Partial<RentmanCrewMember<TCustom>>,
+  ): Promise<RentmanItemResponse<RentmanCrewMember<TCustom>>>;
+  update(
+    id: number,
+    body: Partial<RentmanCrewMember<TCustom>>,
+  ): Promise<RentmanItemResponse<RentmanCrewMember<TCustom>>>;
+  delete(id: number): Promise<void>;
+}
+
 export interface EquipmentResourceApi extends ResourceApi<RentmanEquipmentItem> {
   listSetContents(equipmentId: number, query?: SubResourceQuery): Promise<RentmanEquipmentSetContent[]>;
 }
@@ -268,7 +289,7 @@ export class RentmanClient {
   readonly equipment: EquipmentResourceApi;
   readonly invoices: InvoicesResourceApi;
   readonly quotes: QuotesResourceApi;
-  readonly crew: ResourceApi<RentmanCrewMember>;
+  readonly crew: CrewResourceApi;
   readonly crewAvailabilities: ResourceApi<RentmanCrewAvailability>;
   readonly crewRates: ResourceApi<RentmanCrewRate>;
   readonly vehicles: ResourceApi<RentmanVehicle>;
@@ -391,7 +412,7 @@ export class RentmanClient {
         query,
       ),
     };
-    this.crew = this.createResourceApi<RentmanCrewMember>(ENDPOINTS.crew);
+    this.crew = this.createCrewResourceApi(ENDPOINTS.crew);
     this.crewAvailabilities = this.createResourceApi<RentmanCrewAvailability>(ENDPOINTS.crewAvailabilities);
     this.crewRates = this.createResourceApi<RentmanCrewRate>(ENDPOINTS.crewRates);
     this.vehicles = this.createResourceApi<RentmanVehicle>(ENDPOINTS.vehicles);
@@ -464,6 +485,25 @@ export class RentmanClient {
       getById: (id: number, query?: Pick<RentmanQueryOptions, 'fields'>) => this.get<T>(path, id, query),
       create: (body: TCreate) => this.create<TCreate, T>(path, body),
       update: (id: number, body: TCreate) => this.update<TCreate, T>(path, id, body),
+      delete: (id: number) => this.delete(path, id),
+    };
+  }
+
+  private createCrewResourceApi<TCustom = DefaultCustomFields>(path: RentmanEndpoint): CrewResourceApi<TCustom> {
+    return {
+      list: (query?: RentmanQueryOptions) => this.list<RentmanCrewMember<TCustom>>(path, query),
+      listAll: (query?: Omit<RentmanQueryOptions, 'limit' | 'offset'>) => (
+        this.listAll<RentmanCrewMember<TCustom>>(path, query)
+      ),
+      getById: (id: number, query?: Pick<RentmanQueryOptions, 'fields'>) => (
+        this.get<RentmanCrewMember<TCustom>>(path, id, query)
+      ),
+      create: (body: Partial<RentmanCrewMember<TCustom>>) => (
+        this.create<Partial<RentmanCrewMember<TCustom>>, RentmanCrewMember<TCustom>>(path, body)
+      ),
+      update: (id: number, body: Partial<RentmanCrewMember<TCustom>>) => (
+        this.update<Partial<RentmanCrewMember<TCustom>>, RentmanCrewMember<TCustom>>(path, id, body)
+      ),
       delete: (id: number) => this.delete(path, id),
     };
   }
@@ -918,7 +958,7 @@ export type TypedRentmanClient<TCF extends CustomFieldMap> = Omit<
     Pick<InvoicesResourceApi, 'listLines' | 'listMoments'>;
   readonly quotes: ResourceApi<WithCustomFields<RentmanQuote, CFOrNever<TCF, 'quotes'>>> &
     Pick<QuotesResourceApi, 'listLines'>;
-  readonly crew: ResourceApi<WithCustomFields<RentmanCrewMember, CFOrNever<TCF, 'crew'>>>;
+  readonly crew: CrewResourceApi<CFOrNever<TCF, 'crew'>>;
   readonly crewAvailabilities: ResourceApi<RentmanCrewAvailability>;
   readonly crewRates: ResourceApi<RentmanCrewRate>;
   readonly vehicles: ResourceApi<WithCustomFields<RentmanVehicle, CFOrNever<TCF, 'vehicles'>>>;
