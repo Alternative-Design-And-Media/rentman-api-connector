@@ -306,6 +306,10 @@ export interface RentmanProject<TCustom = DefaultCustomFields>
   account_manager?: string | null;
   projecttype?: string | null;
   tags?: string | null;
+  in_archive: boolean;
+  location?: string | null;
+  discount?: number | null;
+  weight?: number | null;
   /** GENERATED FIELD */
   price?: number | null;
 }

@@ -176,6 +176,18 @@ export class ProjectQueryBuilder extends BaseQueryBuilder {
   sortByName(dir: QuerySortDirection = 'asc'): this {
     return this.sortByField('name', dir);
   }
+
+  sortByNumber(dir: QuerySortDirection = 'asc'): this {
+    return this.sortByField('number', dir);
+  }
+
+  forAccountManager(accountManagerId: number): this {
+    return this.setFilter('account_manager', accountManagerId);
+  }
+
+  onlyArchived(): this {
+    return this.setFilter('in_archive[eq]', true);
+  }
 }
 
 export class EquipmentQueryBuilder extends BaseQueryBuilder {
