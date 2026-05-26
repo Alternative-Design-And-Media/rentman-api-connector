@@ -278,6 +278,32 @@ describe('projectQuery', () => {
       ],
     });
   });
+
+  it('onlyArchived sets in_archive[eq] to true', () => {
+    expect(projectQuery().onlyArchived().build()).toEqual({
+      filters: { 'in_archive[eq]': true },
+    });
+  });
+
+  it('notArchived sets in_archive[eq] to false', () => {
+    expect(projectQuery().notArchived().build()).toEqual({
+      filters: { 'in_archive[eq]': false },
+    });
+  });
+
+  it('sortByNumber defaults to ascending', () => {
+    expect(projectQuery().sortByNumber().build()).toEqual({ sort: '+number' });
+  });
+
+  it('sortByNumber descending', () => {
+    expect(projectQuery().sortByNumber('desc').build()).toEqual({ sort: '-number' });
+  });
+
+  it('forAccountManager sets account_manager filter', () => {
+    expect(projectQuery().forAccountManager(7).build()).toEqual({
+      filters: { account_manager: 7 },
+    });
+  });
 });
 
 describe('equipmentQuery', () => {
