@@ -638,6 +638,22 @@ export interface RentmanProjectRequest extends RentmanBaseEntity {
   remark?: string | null;
 }
 
+export interface RentmanProjectRequestEquipment extends RentmanBaseEntity {
+  project_request: string;
+  quantity?: number | null;
+  quantity_total?: number | null;
+  is_comment?: boolean;
+  is_kit?: boolean;
+  discount?: number | null;
+  linked_equipment?: string | null;
+  name?: string | null;
+  external_remark?: string | null;
+  parent?: string | null;
+  unit_price?: number | null;
+  factor?: string | null;
+  order?: string | null;
+}
+
 export interface RentmanProjectType extends RentmanBaseEntity {
   name: string;
   color?: string | null;
@@ -694,6 +710,14 @@ export interface RentmanRate extends RentmanBaseEntity {
   value?: number | null;
 }
 
+export interface RentmanRateFactor extends RentmanBaseEntity {
+  rate_id: string;
+  from?: number | null;
+  to?: number | null;
+  variable?: number | null;
+  fixed?: number | null;
+}
+
 export interface RentmanFactorGroup extends RentmanBaseEntity {
   name: string;
   remark?: string | null;
@@ -724,10 +748,28 @@ export interface RentmanEquipmentSetContent extends RentmanBaseEntity {
   remark?: string | null;
 }
 
+export interface RentmanActualContent extends RentmanBaseEntity {
+  displayname?: string | null;
+  equipment?: string | null;
+  serial?: string | null;
+  quantity?: string | null;
+  combination_serial?: string | null;
+}
+
+export interface RentmanEquipmentAssignedSerial extends RentmanBaseEntity {
+  displayname?: string | null;
+  combination?: string | null;
+  serialnumber?: string | null;
+}
+
 // ---------------------------------------------------------------------------
 // Planning (project equipment planning entries)
 // ---------------------------------------------------------------------------
 
+/**
+ * @deprecated This type is kept for backwards compatibility only.
+ * The `/planning` top-level endpoint is not present in OAS v1.7.0.
+ */
 export interface RentmanPlanning extends RentmanBaseEntity {
   /** Path reference to the project, e.g. `/projects/123`. */
   project: string;
@@ -744,6 +786,10 @@ export interface RentmanPlanning extends RentmanBaseEntity {
 // Crew activities (Tijd module)
 // ---------------------------------------------------------------------------
 
+/**
+ * @deprecated This type is kept for backwards compatibility only.
+ * The `/activities` top-level endpoint is not present in OAS v1.7.0.
+ */
 export interface RentmanCrewActivity extends RentmanBaseEntity {
   name: string;
   color?: string | null;
@@ -754,6 +800,10 @@ export interface RentmanCrewActivity extends RentmanBaseEntity {
 // Functions & function groups (crew function lookup tables)
 // ---------------------------------------------------------------------------
 
+/**
+ * @deprecated This type is kept for backwards compatibility only.
+ * The `/functions` top-level endpoint is not present in OAS v1.7.0.
+ */
 export interface RentmanFunction extends RentmanBaseEntity {
   name: string;
   displayname?: string | null;
@@ -761,6 +811,10 @@ export interface RentmanFunction extends RentmanBaseEntity {
   remark?: string | null;
 }
 
+/**
+ * @deprecated This type is kept for backwards compatibility only.
+ * The `/functiongroups` top-level endpoint is not present in OAS v1.7.0.
+ */
 export interface RentmanFunctionGroup extends RentmanBaseEntity {
   name: string;
   remark?: string | null;
@@ -770,6 +824,10 @@ export interface RentmanFunctionGroup extends RentmanBaseEntity {
 // Invoice moments (payment moment lookup values)
 // ---------------------------------------------------------------------------
 
+/**
+ * @deprecated This type is kept for backwards compatibility only.
+ * The `/invoicemoments` top-level endpoint is not present in OAS v1.7.0.
+ */
 export interface RentmanInvoiceMoment extends RentmanBaseEntity {
   name: string;
   remark?: string | null;
@@ -779,6 +837,10 @@ export interface RentmanInvoiceMoment extends RentmanBaseEntity {
 // Tag links (tag-to-resource junction table)
 // ---------------------------------------------------------------------------
 
+/**
+ * @deprecated This type is kept for backwards compatibility only.
+ * The `/taglinks` top-level endpoint is not present in OAS v1.7.0.
+ */
 export interface RentmanTaglink extends RentmanBaseEntity {
   /** Path reference to the tag, e.g. `/tags/7`. */
   tag: string;
@@ -791,6 +853,10 @@ export interface RentmanTaglink extends RentmanBaseEntity {
 // Briefpapier / letterpaper
 // ---------------------------------------------------------------------------
 
+/**
+ * @deprecated This type is kept for backwards compatibility only.
+ * The `/briefpapier` top-level endpoint is not present in OAS v1.7.0.
+ */
 export interface RentmanBriefpapier extends RentmanBaseEntity {
   name: string;
   remark?: string | null;
@@ -800,6 +866,10 @@ export interface RentmanBriefpapier extends RentmanBaseEntity {
 // Number series (invoice / quote number series)
 // ---------------------------------------------------------------------------
 
+/**
+ * @deprecated This type is kept for backwards compatibility only.
+ * The `/numberseries` top-level endpoint is not present in OAS v1.7.0.
+ */
 export interface RentmanNumberSeries extends RentmanBaseEntity {
   name: string;
   prefix?: string | null;
@@ -812,6 +882,10 @@ export interface RentmanNumberSeries extends RentmanBaseEntity {
 // Templates (document template metadata)
 // ---------------------------------------------------------------------------
 
+/**
+ * @deprecated This type is kept for backwards compatibility only.
+ * The `/templates` top-level endpoint is not present in OAS v1.7.0.
+ */
 export interface RentmanTemplate extends RentmanBaseEntity {
   name: string;
   type?: string | null;

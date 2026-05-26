@@ -541,13 +541,13 @@ describe('RentmanClient', () => {
       facade: 'invoices',
       method: 'listMoments',
       parentEndpoint: ENDPOINTS.invoices,
-      subPath: ENDPOINTS.invoiceMoments,
+      subPath: ENDPOINTS.payments,
     },
     {
       facade: 'quotes',
       method: 'listLines',
       parentEndpoint: ENDPOINTS.quotes,
-      subPath: ENDPOINTS.quoteLines,
+      subPath: ENDPOINTS.invoiceLines,
     },
     {
       facade: 'subrentals',

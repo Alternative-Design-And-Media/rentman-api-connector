@@ -504,6 +504,8 @@ try {
 
 - `equipment` -> `/equipment` -> `RentmanEquipmentItem`
 - `equipmentSetsContent` -> `/equipmentsetscontent` -> `RentmanEquipmentSetContent`
+- `actualContent` -> `/actualcontent` -> `RentmanActualContent`
+- `equipmentAssignedSerials` -> `/equipmentassignedserials` -> `RentmanEquipmentAssignedSerial`
 - `accessories` -> `/accessories` -> `RentmanAccessory`
 - `stockMovements` -> `/stockmovements` -> `RentmanStockMovement`
 - `stockLocations` -> `/stocklocations` -> `RentmanStockLocation`
@@ -515,7 +517,7 @@ try {
 - `contacts` -> `/contacts` -> `RentmanContact`
 - `contactPersons` -> `/contactpersons` -> `RentmanContactPerson`
 - `crew` -> `/crew` -> `RentmanCrewMember`
-- `crewAvailabilities` -> `/crewavailabilities` -> `RentmanCrewAvailability`
+- `crewAvailabilities` -> `/crewavailability` -> `RentmanCrewAvailability`
 - `crewRates` -> `/crewrates` -> `RentmanCrewRate`
 
 ### Projects
@@ -523,26 +525,26 @@ try {
 - `projects` -> `/projects` -> `RentmanProject`
 - `subProjects` -> `/subprojects` -> `RentmanSubProject`
 - `projectEquipment` -> `/projectequipment` -> `RentmanProjectEquipment`
-- `projectEquipmentGroups` -> `/projectequipmentgroups` -> `RentmanProjectEquipmentGroup`
+- `projectEquipmentGroups` -> `/projectequipmentgroup` -> `RentmanProjectEquipmentGroup`
 - `projectFunctions` -> `/projectfunctions` -> `RentmanProjectFunction`
 - `projectFunctionGroups` -> `/projectfunctiongroups` -> `RentmanProjectFunctionGroup`
 - `projectCrew` -> `/projectcrew` -> `RentmanProjectCrew`
 - `projectVehicles` -> `/projectvehicles` -> `RentmanProjectVehicle`
 - `projectRequests` -> `/projectrequests` -> `RentmanProjectRequest`
+- `projectRequestEquipment` -> `/projectrequestequipment` -> `RentmanProjectRequestEquipment`
 - `projectTypes` -> `/projecttypes` -> `RentmanProjectType`
-- `planning` -> `/planning` -> `RentmanPlanning`
 
 ### Finance
 
 - `invoices` -> `/invoices` -> `RentmanInvoice`
 - `invoiceLines` -> `/invoicelines` -> `RentmanInvoiceLine`
-- `invoiceMoments` -> `/invoicemoments` -> `RentmanInvoiceMoment`
 - `quotes` -> `/quotes` -> `RentmanQuote`
 - `payments` -> `/payments` -> `RentmanPayment`
 - `costs` -> `/costs` -> `RentmanCost`
 - `taxClasses` -> `/taxclasses` -> `RentmanTaxClass`
 - `ledgerCodes` -> `/ledgercodes` -> `RentmanLedgerCode`
 - `rates` -> `/rates` -> `RentmanRate`
+- `rateFactors` -> `/ratefactors` -> `RentmanRateFactor`
 - `factors` -> `/factors` -> `RentmanFactor`
 - `factorGroups` -> `/factorgroups` -> `RentmanFactorGroup`
 
@@ -550,7 +552,7 @@ try {
 
 - `subrentals` -> `/subrentals` -> `RentmanSubrental`
 - `subrentalEquipment` -> `/subrentalequipment` -> `RentmanSubrentalEquipment`
-- `subrentalEquipmentGroups` -> `/subrentalequipmentgroups` -> `RentmanSubrentalEquipmentGroup`
+- `subrentalEquipmentGroups` -> `/subrentalequipmentgroup` -> `RentmanSubrentalEquipmentGroup`
 
 ### Appointments & vehicles
 
@@ -560,29 +562,22 @@ try {
 
 ### Time & leave
 
-- `timeRegistrations` -> `/timeregistrations` -> `RentmanTimeRegistration`
+- `timeRegistrations` -> `/timeregistration` -> `RentmanTimeRegistration`
 - `timeRegistrationActivities` -> `/timeregistrationactivities` -> `RentmanTimeRegistrationActivity`
-- `leaveMutations` -> `/leavemutations` -> `RentmanLeaveMutation`
-- `leaveRequests` -> `/leaverequests` -> `RentmanLeaveRequest`
+- `leaveMutations` -> `/leavemutation` -> `RentmanLeaveMutation`
+- `leaveRequests` -> `/leaverequest` -> `RentmanLeaveRequest`
 - `leaveTypes` -> `/leavetypes` -> `RentmanLeaveType`
-- `activities` -> `/activities` -> `RentmanCrewActivity`
 
 ### Files & folders
 
 - `files` -> `/files` -> `RentmanFile`
-- `fileFolders` -> `/filefolders` -> `RentmanFileFolder`
+- `fileFolders` -> `/file_folders` -> `RentmanFileFolder`
 - `folders` -> `/folders` -> `RentmanFolder`
 
 ### Reference / lookup
 
-- `functions` -> `/functions` -> `RentmanFunction`
-- `functionGroups` -> `/functiongroups` -> `RentmanFunctionGroup`
 - `statuses` -> `/statuses` -> `RentmanStatus`
 - `contracts` -> `/contracts` -> `RentmanContract`
-- `taglinks` -> `/taglinks` -> `RentmanTaglink`
-- `briefpapier` -> `/briefpapier` -> `RentmanBriefpapier`
-- `numberSeries` -> `/numberseries` -> `RentmanNumberSeries`
-- `templates` -> `/templates` -> `RentmanTemplate`
 
 ## Lookup cache helpers
 

@@ -58,6 +58,8 @@ const endpointMap = Object.fromEntries(
 const ENDPOINT_TYPES = {
   equipment: 'RentmanEquipmentItem',
   equipmentSetsContent: 'RentmanEquipmentSetContent',
+  actualContent: 'RentmanActualContent',
+  equipmentAssignedSerials: 'RentmanEquipmentAssignedSerial',
   accessories: 'RentmanAccessory',
   stockMovements: 'RentmanStockMovement',
   stockLocations: 'RentmanStockLocation',
@@ -77,17 +79,17 @@ const ENDPOINT_TYPES = {
   projectCrew: 'RentmanProjectCrew',
   projectVehicles: 'RentmanProjectVehicle',
   projectRequests: 'RentmanProjectRequest',
+  projectRequestEquipment: 'RentmanProjectRequestEquipment',
   projectTypes: 'RentmanProjectType',
-  planning: 'RentmanPlanning',
   invoices: 'RentmanInvoice',
   invoiceLines: 'RentmanInvoiceLine',
-  invoiceMoments: 'RentmanInvoiceMoment',
   quotes: 'RentmanQuote',
   payments: 'RentmanPayment',
   costs: 'RentmanCost',
   taxClasses: 'RentmanTaxClass',
   ledgerCodes: 'RentmanLedgerCode',
   rates: 'RentmanRate',
+  rateFactors: 'RentmanRateFactor',
   factors: 'RentmanFactor',
   factorGroups: 'RentmanFactorGroup',
   subrentals: 'RentmanSubrental',
@@ -101,25 +103,18 @@ const ENDPOINT_TYPES = {
   leaveMutations: 'RentmanLeaveMutation',
   leaveRequests: 'RentmanLeaveRequest',
   leaveTypes: 'RentmanLeaveType',
-  activities: 'RentmanCrewActivity',
   files: 'RentmanFile',
   fileFolders: 'RentmanFileFolder',
   folders: 'RentmanFolder',
-  functions: 'RentmanFunction',
-  functionGroups: 'RentmanFunctionGroup',
   statuses: 'RentmanStatus',
   contracts: 'RentmanContract',
-  taglinks: 'RentmanTaglink',
-  briefpapier: 'RentmanBriefpapier',
-  numberSeries: 'RentmanNumberSeries',
-  templates: 'RentmanTemplate',
 };
 
 /** Ordered categories for grouped endpoint listings in llms-full.txt. */
 const ENDPOINT_CATEGORIES = [
   {
     title: 'Equipment & inventory',
-    keys: ['equipment', 'equipmentSetsContent', 'accessories', 'stockMovements', 'stockLocations', 'serialNumbers', 'repairs'],
+    keys: ['equipment', 'equipmentSetsContent', 'actualContent', 'equipmentAssignedSerials', 'accessories', 'stockMovements', 'stockLocations', 'serialNumbers', 'repairs'],
   },
   {
     title: 'Contacts & people',
@@ -127,11 +122,11 @@ const ENDPOINT_CATEGORIES = [
   },
   {
     title: 'Projects',
-    keys: ['projects', 'subProjects', 'projectEquipment', 'projectEquipmentGroups', 'projectFunctions', 'projectFunctionGroups', 'projectCrew', 'projectVehicles', 'projectRequests', 'projectTypes', 'planning'],
+    keys: ['projects', 'subProjects', 'projectEquipment', 'projectEquipmentGroups', 'projectFunctions', 'projectFunctionGroups', 'projectCrew', 'projectVehicles', 'projectRequests', 'projectRequestEquipment', 'projectTypes'],
   },
   {
     title: 'Finance',
-    keys: ['invoices', 'invoiceLines', 'invoiceMoments', 'quotes', 'payments', 'costs', 'taxClasses', 'ledgerCodes', 'rates', 'factors', 'factorGroups'],
+    keys: ['invoices', 'invoiceLines', 'quotes', 'payments', 'costs', 'taxClasses', 'ledgerCodes', 'rates', 'rateFactors', 'factors', 'factorGroups'],
   },
   {
     title: 'Subrentals',
@@ -143,7 +138,7 @@ const ENDPOINT_CATEGORIES = [
   },
   {
     title: 'Time & leave',
-    keys: ['timeRegistrations', 'timeRegistrationActivities', 'leaveMutations', 'leaveRequests', 'leaveTypes', 'activities'],
+    keys: ['timeRegistrations', 'timeRegistrationActivities', 'leaveMutations', 'leaveRequests', 'leaveTypes'],
   },
   {
     title: 'Files & folders',
@@ -151,7 +146,7 @@ const ENDPOINT_CATEGORIES = [
   },
   {
     title: 'Reference / lookup',
-    keys: ['functions', 'functionGroups', 'statuses', 'contracts', 'taglinks', 'briefpapier', 'numberSeries', 'templates'],
+    keys: ['statuses', 'contracts'],
   },
 ];
 

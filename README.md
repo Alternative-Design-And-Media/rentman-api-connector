@@ -188,7 +188,7 @@ All builders also inherit `fields(...)`, `sort(...)`, `limit(n)`, `offset(n)`, a
 
 ## Implemented API Connectors
 
-All 55+ endpoints from OAS v1.7.0 are available as typed constants in `ENDPOINTS`.
+All 52 top-level collection endpoints from OAS v1.7.0 are available as typed constants in `ENDPOINTS`.
 
 ### Equipment & Inventory
 
@@ -196,6 +196,8 @@ All 55+ endpoints from OAS v1.7.0 are available as typed constants in `ENDPOINTS
 |---|---|---|---|
 | `equipment` | `/equipment` | `RentmanEquipmentItem` | Equipment items (gear, props, sets) |
 | `equipmentSetsContent` | `/equipmentsetscontent` | `RentmanEquipmentSetContent` | Kit / set components |
+| `actualContent` | `/actualcontent` | `RentmanActualContent` | Actual serial content of combinations |
+| `equipmentAssignedSerials` | `/equipmentassignedserials` | `RentmanEquipmentAssignedSerial` | Assigned serial links for combinations |
 | `accessories` | `/accessories` | `RentmanAccessory` | Equipment accessories |
 | `stockMovements` | `/stockmovements` | `RentmanStockMovement` | Inventory in/out movements |
 | `stockLocations` | `/stocklocations` | `RentmanStockLocation` | Warehouse stock locations |
@@ -209,7 +211,7 @@ All 55+ endpoints from OAS v1.7.0 are available as typed constants in `ENDPOINTS
 | `contacts` | `/contacts` | `RentmanContact` | Companies and persons |
 | `contactPersons` | `/contactpersons` | `RentmanContactPerson` | Persons linked to a contact |
 | `crew` | `/crew` | `RentmanCrewMember` | Crew / staff members |
-| `crewAvailabilities` | `/crewavailabilities` | `RentmanCrewAvailability` | Crew availability windows |
+| `crewAvailabilities` | `/crewavailability` | `RentmanCrewAvailability` | Crew availability windows |
 | `crewRates` | `/crewrates` | `RentmanCrewRate` | Crew rate assignments |
 
 ### Projects
@@ -219,14 +221,14 @@ All 55+ endpoints from OAS v1.7.0 are available as typed constants in `ENDPOINTS
 | `projects` | `/projects` | `RentmanProject` | Top-level projects |
 | `subProjects` | `/subprojects` | `RentmanSubProject` | Sub-projects / sections |
 | `projectEquipment` | `/projectequipment` | `RentmanProjectEquipment` | Equipment lines on a project |
-| `projectEquipmentGroups` | `/projectequipmentgroups` | `RentmanProjectEquipmentGroup` | Equipment line groups |
+| `projectEquipmentGroups` | `/projectequipmentgroup` | `RentmanProjectEquipmentGroup` | Equipment line groups |
 | `projectFunctions` | `/projectfunctions` | `RentmanProjectFunction` | Crew function lines on a project |
 | `projectFunctionGroups` | `/projectfunctiongroups` | `RentmanProjectFunctionGroup` | Function line groups |
 | `projectCrew` | `/projectcrew` | `RentmanProjectCrew` | Crew assignments on a project |
 | `projectVehicles` | `/projectvehicles` | `RentmanProjectVehicle` | Vehicle assignments on a project |
 | `projectRequests` | `/projectrequests` | `RentmanProjectRequest` | Incoming project requests |
+| `projectRequestEquipment` | `/projectrequestequipment` | `RentmanProjectRequestEquipment` | Equipment linked to project requests |
 | `projectTypes` | `/projecttypes` | `RentmanProjectType` | Project type lookup values |
-| `planning` | `/planning` | `RentmanPlanning` | Equipment planning entries |
 
 ### Finance
 
@@ -234,13 +236,13 @@ All 55+ endpoints from OAS v1.7.0 are available as typed constants in `ENDPOINTS
 |---|---|---|---|
 | `invoices` | `/invoices` | `RentmanInvoice` | Invoices |
 | `invoiceLines` | `/invoicelines` | `RentmanInvoiceLine` | Individual invoice lines |
-| `invoiceMoments` | `/invoicemoments` | `RentmanInvoiceMoment` | Payment moment definitions |
 | `quotes` | `/quotes` | `RentmanQuote` | Quotes / offers |
 | `payments` | `/payments` | `RentmanPayment` | Payments against invoices |
 | `costs` | `/costs` | `RentmanCost` | Additional costs on a project |
 | `taxClasses` | `/taxclasses` | `RentmanTaxClass` | VAT / tax class definitions |
 | `ledgerCodes` | `/ledgercodes` | `RentmanLedgerCode` | Accounting ledger codes |
 | `rates` | `/rates` | `RentmanRate` | Rate / pricing rules |
+| `rateFactors` | `/ratefactors` | `RentmanRateFactor` | Crew rate factor ranges |
 | `factors` | `/factors` | `RentmanFactor` | Pricing factors |
 | `factorGroups` | `/factorgroups` | `RentmanFactorGroup` | Factor groups |
 
@@ -250,7 +252,7 @@ All 55+ endpoints from OAS v1.7.0 are available as typed constants in `ENDPOINTS
 |---|---|---|---|
 | `subrentals` | `/subrentals` | `RentmanSubrental` | Subrental orders |
 | `subrentalEquipment` | `/subrentalequipment` | `RentmanSubrentalEquipment` | Equipment lines on a subrental |
-| `subrentalEquipmentGroups` | `/subrentalequipmentgroups` | `RentmanSubrentalEquipmentGroup` | Equipment groups on a subrental |
+| `subrentalEquipmentGroups` | `/subrentalequipmentgroup` | `RentmanSubrentalEquipmentGroup` | Equipment groups on a subrental |
 
 ### Appointments & Vehicles
 
@@ -264,33 +266,26 @@ All 55+ endpoints from OAS v1.7.0 are available as typed constants in `ENDPOINTS
 
 | `ENDPOINTS` key | API path | Type | Description |
 |---|---|---|---|
-| `timeRegistrations` | `/timeregistrations` | `RentmanTimeRegistration` | Time registration records |
+| `timeRegistrations` | `/timeregistration` | `RentmanTimeRegistration` | Time registration records |
 | `timeRegistrationActivities` | `/timeregistrationactivities` | `RentmanTimeRegistrationActivity` | Time registration activity types |
-| `leaveMutations` | `/leavemutations` | `RentmanLeaveMutation` | Leave balance mutations |
-| `leaveRequests` | `/leaverequests` | `RentmanLeaveRequest` | Leave requests from crew |
+| `leaveMutations` | `/leavemutation` | `RentmanLeaveMutation` | Leave balance mutations |
+| `leaveRequests` | `/leaverequest` | `RentmanLeaveRequest` | Leave requests from crew |
 | `leaveTypes` | `/leavetypes` | `RentmanLeaveType` | Leave type definitions |
-| `activities` | `/activities` | `RentmanCrewActivity` | Crew activity types (Tijd module) |
 
 ### Files & Folders
 
 | `ENDPOINTS` key | API path | Type | Description |
 |---|---|---|---|
 | `files` | `/files` | `RentmanFile` | File attachments |
-| `fileFolders` | `/filefolders` | `RentmanFileFolder` | File folders |
+| `fileFolders` | `/file_folders` | `RentmanFileFolder` | File folders |
 | `folders` | `/folders` | `RentmanFolder` | General folder structure |
 
 ### Reference / Lookup Tables
 
 | `ENDPOINTS` key | API path | Type | Description |
 |---|---|---|---|
-| `functions` | `/functions` | `RentmanFunction` | Crew function definitions |
-| `functionGroups` | `/functiongroups` | `RentmanFunctionGroup` | Crew function groups |
 | `statuses` | `/statuses` | `RentmanStatus` | Status lookup values |
 | `contracts` | `/contracts` | `RentmanContract` | Contracts on a project |
-| `taglinks` | `/taglinks` | `RentmanTaglink` | Tag-to-resource junction records |
-| `briefpapier` | `/briefpapier` | `RentmanBriefpapier` | Letterhead / stationery templates |
-| `numberSeries` | `/numberseries` | `RentmanNumberSeries` | Invoice / quote number series |
-| `templates` | `/templates` | `RentmanTemplate` | Document templates |
 
 ---
 

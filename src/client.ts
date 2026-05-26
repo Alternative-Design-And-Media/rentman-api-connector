@@ -20,7 +20,7 @@ import type {
   RentmanCrewMember,
   RentmanInvoice,
   RentmanInvoiceLine,
-  RentmanInvoiceMoment,
+  RentmanPayment,
   RentmanQuote,
   RentmanQuoteLine,
   RentmanAppointment,
@@ -141,7 +141,7 @@ export interface ProjectsResourceApi extends ResourceApi<RentmanProject> {
 
 export interface InvoicesResourceApi extends ResourceApi<RentmanInvoice> {
   listLines(invoiceId: number, query?: SubResourceQuery): Promise<RentmanInvoiceLine[]>;
-  listMoments(invoiceId: number, query?: SubResourceQuery): Promise<RentmanInvoiceMoment[]>;
+  listMoments(invoiceId: number, query?: SubResourceQuery): Promise<RentmanPayment[]>;
 }
 
 export interface QuotesResourceApi extends ResourceApi<RentmanQuote> {
@@ -282,7 +282,7 @@ export class RentmanClient {
       listMoments: (invoiceId, query) => this.listAllSub(
         ENDPOINTS.invoices,
         invoiceId,
-        ENDPOINTS.invoiceMoments,
+        ENDPOINTS.payments,
         query,
       ),
     };
@@ -292,7 +292,7 @@ export class RentmanClient {
       listLines: (quoteId, query) => this.listAllSub(
         ENDPOINTS.quotes,
         quoteId,
-        ENDPOINTS.quoteLines,
+        ENDPOINTS.invoiceLines,
         query,
       ),
     };
