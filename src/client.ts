@@ -1274,15 +1274,15 @@ export class RentmanClient {
     query?: RentmanQueryOptions,
     pageSize = 300,
   ): Promise<T[]> {
-    const queryWithoutPagination: RentmanQueryOptions = { ...(query ?? {}) };
-    delete queryWithoutPagination.limit;
-    delete queryWithoutPagination.offset;
+    const queryWithoutLimit: RentmanQueryOptions = { ...(query ?? {}) };
+    delete queryWithoutLimit.limit;
+    delete queryWithoutLimit.offset;
     const results: T[] = [];
     let offset = query?.offset ?? 0;
 
     while (true) {
       const page = await this.listSub<T>(parentPath, parentId, subPath, {
-        ...queryWithoutPagination,
+        ...queryWithoutLimit,
         limit: pageSize,
         offset,
       });
