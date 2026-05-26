@@ -1,7 +1,7 @@
 # Rentman API Connector — Audit Report
 
 > **OAS verzió:** v1.7.0 (2025-11-13 deployment)
-> **Audit dátuma:** 2026-05-26
+> **Audit dátuma:** 2026-05-26 (újrafuttatva)
 > **Scope:** Endpoint lefedettség · Adatmező-audit · OOP query-builder konzisztencia · Hiányosságok
 
 ---
@@ -159,8 +159,9 @@ Az OAS tartalmaz számos `/{parent}/{id}/{sub}` útvonalat, amelyek **nincsenek*
 ### 3.4 `RentmanCrewMember`
 **Jelen:** `displayname`, `firstname`, `middle`, `surname`, `folder`, `address`, `city`, `postcode`, `country`, `phone`, `email`, `tag`, `remark`, `active`
 
-**⚠️ Hiányzó:**
-- `custom` (a `RentmanCrewMember` csak `RentmanBaseEntity`-t extendel, nem `RentmanBaseEntityWithCustom` — ha a Rentman account-ban vannak crew custom fieldek, azok nem érhetők el tipizáltan)
+**⚠️ Megjegyzés:**
+- Az alap `RentmanCrewMember` interfész nem deklarál `custom` mezőt.
+- Ugyanakkor a `TypedRentmanClient` oldalon a `crew` facade `WithCustomFields<...>`-t használ, így account-specifikus `custom` mezők típusosan elérhetők typed klienssel.
 
 ---
 
@@ -208,8 +209,8 @@ A következő endpointokhoz **nincs** dedikált QueryBuilder, csak nyers `Rentma
 
 ## 5. Kritikus problémák
 
-### 5.1 `RentmanCrewMember` nem tartalmaz `custom` mezőt ❌
-A `RentmanCrewMember` a `RentmanBaseEntity`-t extendeli (nem `RentmanBaseEntityWithCustom`), így ha egy Rentman-fiókban crew custom fieldek vannak beállítva, azok típusosan nem érhetők el. Javítás: extendálás `RentmanBaseEntityWithCustom<TCustom>`-ra.
+### 5.1 `RentmanCrewMember.custom` csak typed kliensen keresztül típusos ⚠️
+Az alap `RentmanCrewMember` továbbra is `RentmanBaseEntity`-t extendeli, de a `TypedRentmanClient` már `WithCustomFields<RentmanCrewMember, ...>` típust ad a `crew` facade-ra. Emiatt a custom mezők typed kliensen keresztül elérhetők, az alap interfész szintjén viszont továbbra sincs explicit `custom` mező.
 
 ### 5.2 `RentmanInvoice.contact` mező hiányzik ⚠️
 Az OAS `/invoices` sémája tartalmaz `contact` mezőt, de a `RentmanInvoice` típus nem deklarálja. Ez azt jelenti, hogy a számlán lévő kontakt-referencia nem érhető el típusosan.
@@ -231,7 +232,7 @@ A `ProjectQueryBuilder.notArchived()` `in_archive[eq]=false` szűrőt küld, de 
 | Sub-resource API lefedettség | ⚠️ ~40 OAS sub-path nincs exponálva |
 | QueryBuilder lefedettség | ⚠️ 13 endpoint esetén nincs dedikált builder |
 | Adatmező-teljesség (kiemelt entitások) | ⚠️ Kis hiányok (invoice.contact, stb.) |
-| `RentmanCrewMember` custom fields | ❌ Hiányzik |
+| `RentmanCrewMember` custom fields | ⚠️ Typed kliensben elérhető, alap interfészben nem explicit |
 | ENDPOINTS/OAS parity automatikus ellenőrzés | ✅ Vitest teszt aktív |
 | TypeScript typecheck | ✅ |
 | Build | ✅ |
