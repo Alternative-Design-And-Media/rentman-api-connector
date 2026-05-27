@@ -1174,6 +1174,7 @@ export class RentmanClient {
    * @param query - Optional query options (`fields`, `sort`, `filters`, `relFilters`, `nullFilters`, `limit`, `offset`).
    * @returns A collection response with `data` plus pagination metadata (`itemCount`, `limit`, `offset`).
    * @throws {RentmanApiError} When the API returns a non-2xx response.
+   * @deprecated Use resource-specific OOP facade methods (for example `client.projects.list(...)`).
    *
    * @example
    * const res = await client.list<RentmanEquipmentItem>('/equipment', { limit: 50 });
@@ -1197,6 +1198,7 @@ export class RentmanClient {
    * @param query - Optional query options.
    * @returns A collection response with `data` plus pagination metadata.
    * @throws {RentmanApiError} When the API returns a non-2xx response.
+   * @deprecated Use resource-specific OOP facade methods (for example `client.projects.listEquipmentPaged(...)`).
    *
    * @example
    * // GET /equipment/3473/equipmentsetscontent
@@ -1231,6 +1233,7 @@ export class RentmanClient {
    * @param pageSize - Page size per request. Defaults to `300` (Rentman API hard cap).
    * @returns A flattened array containing items from all fetched pages.
    * @throws {RentmanApiError} When any page request returns a non-2xx response.
+   * @deprecated Use resource-specific OOP facade methods (for example `client.projects.listAll(...)`).
    *
    * @example
    * const allEquipment = await client.listAll<RentmanEquipmentItem>('/equipment');
@@ -1308,6 +1311,7 @@ export class RentmanClient {
    * Backward-compatible sub-resource list helper.
    * Auto-paginates when `query.limit` is omitted; otherwise returns a single page's `data`.
    * Prefer facade `...Paged` methods when page metadata is required.
+   * @deprecated Use resource-specific OOP facade methods.
    */
   async listAllSub<T>(
     parentPath: RentmanEndpoint,
@@ -1336,6 +1340,7 @@ export class RentmanClient {
    * @param query - Optional field projection (`fields`) for the item response.
    * @returns An item response wrapper containing the fetched resource in `data`.
    * @throws {RentmanApiError} When the API returns a non-2xx response.
+   * @deprecated Use resource-specific OOP facade methods (for example `client.projects.getById(...)`).
    *
    * @example
    * const res = await client.get<RentmanEquipmentItem>('/equipment', 42);
@@ -1362,6 +1367,7 @@ export class RentmanClient {
    * @param body - Request payload to send as JSON.
    * @returns An item response wrapper containing the created resource in `data`.
    * @throws {RentmanApiError} When the API returns a non-2xx response.
+   * @deprecated Use resource-specific OOP facade methods (for example `client.contacts.create(...)`).
    */
   create<TInput, TOutput = TInput>(
     path: RentmanEndpoint,
@@ -1381,6 +1387,7 @@ export class RentmanClient {
    * @param body - Request payload to send as JSON.
    * @returns An item response wrapper containing the updated resource in `data`.
    * @throws {RentmanApiError} When the API returns a non-2xx response.
+   * @deprecated Use resource-specific OOP facade methods (for example `client.equipment.update(...)`).
    */
   update<TInput, TOutput = TInput>(
     path: RentmanEndpoint,
@@ -1400,6 +1407,7 @@ export class RentmanClient {
    * @param id - Numeric resource ID.
    * @returns `undefined` when the API confirms deletion (`204 No Content`).
    * @throws {RentmanApiError} When the API returns a non-2xx response.
+   * @deprecated Use resource-specific OOP facade methods (for example `client.equipment.delete(...)`).
    */
   delete(path: RentmanEndpoint, id: number): Promise<void> {
     return this.request<void>(`${path}/${id}`, { method: 'DELETE' });
@@ -1409,6 +1417,7 @@ export class RentmanClient {
 /**
  * Fetches items from a Rentman endpoint page by page until all items
  * are collected, the scanLimit is reached, or no more pages are available.
+ * @deprecated Use resource-specific OOP facade `listAll(...)` methods.
  */
 export async function scanAll<T>(
   client: RentmanClient,
@@ -1454,6 +1463,7 @@ export async function scanAll<T>(
 /**
  * Fetches all equipment set content rows for a kit item.
  * Calls `/equipment/{kitId}/equipmentsetscontent` with full pagination.
+ * @deprecated Use `client.equipment.listSetContents(kitId)` directly.
  */
 export function listEquipmentSetContents(
   client: RentmanClient,
@@ -1465,6 +1475,7 @@ export function listEquipmentSetContents(
 /**
  * Fetches a collection while preserving forward slashes in serialized query values.
  * Useful for resource-path filters like `equipment[eq]=/equipment/4362`.
+ * @deprecated Use resource-specific OOP facade methods.
  */
 export function listWithPreservedSlashes<T>(
   client: RentmanClient,
