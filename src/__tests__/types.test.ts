@@ -248,7 +248,7 @@ describe('RentmanProject', () => {
       created: '2025-01-01T00:00:00+00:00',
       modified: '2025-01-01T00:00:00+00:00',
       updateHash: 'abc141',
-      number: 55,
+      number: '55',
       name: 'Festival Main Stage',
       displayname: 'P-0055 Festival Main Stage',
       customer: '/contacts/44',

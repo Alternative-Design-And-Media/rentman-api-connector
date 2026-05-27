@@ -345,7 +345,7 @@ export interface RentmanCrewRate extends RentmanBaseEntity {
  */
 export interface RentmanProject<TCustom = DefaultCustomFields>
   extends RentmanBaseEntityWithCustom<TCustom> {
-  number: number;
+  number: string | number;
   name: string;
   displayname?: string;
   folder?: string | null;
