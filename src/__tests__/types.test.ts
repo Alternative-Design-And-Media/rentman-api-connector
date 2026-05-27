@@ -287,6 +287,9 @@ describe('RentmanProject', () => {
       in_archive: false,
     };
     expectTypeOf(sample).toMatchTypeOf<RentmanProject>();
+
+    const legacySample: RentmanProject = { ...sample, number: 55 };
+    expectTypeOf(legacySample).toMatchTypeOf<RentmanProject>();
   });
 });
 
