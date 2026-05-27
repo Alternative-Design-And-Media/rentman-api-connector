@@ -136,6 +136,7 @@ const MODEL_TO_FACADE_KEY: Partial<Record<RentmanCustomFieldModel, string>> = {
   project: 'projects',
   subproject: 'subProjects',
   contact: 'contacts',
+  contactperson: 'contactPersons',
   equipment: 'equipment',
   crew: 'crew',
   subrental: 'subrentals',

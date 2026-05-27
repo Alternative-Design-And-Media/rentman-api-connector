@@ -14,6 +14,7 @@ import {
 import type { CustomFieldMap, WithCustomFields } from '../custom-fields.js';
 import type {
   RentmanCollectionResponse,
+  RentmanContactPerson,
   RentmanCrewMember,
   RentmanInvoiceLine,
   RentmanPayment,
@@ -29,6 +30,7 @@ interface MyCustomFields extends CustomFieldMap {
   projects:  { budget: number; category: string; is_vip: boolean };
   equipment: { serial_prefix?: string; warehouse_zone?: string };
   contacts:  { vat_number: string; credit_limit: number };
+  contactPersons: { department?: string; has_signing_authority: boolean };
   crew: { shirt_size?: string; has_driving_license: boolean };
 }
 
@@ -82,6 +84,21 @@ type ContactItem = (typeof contacts)[number];
 
 declare const vatNumber: NonNullable<ContactItem['custom']>['vat_number'];
 expectTypeOf<typeof vatNumber>().toEqualTypeOf<string>();
+
+// ---------------------------------------------------------------------------
+// contactPersons: custom fields typed correctly
+// ---------------------------------------------------------------------------
+
+declare const contactPersons: Awaited<ReturnType<typeof typedClient.contactPersons.listAll>>;
+type ContactPersonItem = (typeof contactPersons)[number];
+
+expectTypeOf<ContactPersonItem>().toMatchTypeOf<RentmanContactPerson<{ department?: string; has_signing_authority: boolean }>>();
+
+declare const department: NonNullable<ContactPersonItem['custom']>['department'];
+expectTypeOf<typeof department>().toEqualTypeOf<string | undefined>();
+
+declare const hasSigningAuthority: NonNullable<ContactPersonItem['custom']>['has_signing_authority'];
+expectTypeOf<typeof hasSigningAuthority>().toEqualTypeOf<boolean>();
 
 // ---------------------------------------------------------------------------
 // crew: custom fields typed correctly
