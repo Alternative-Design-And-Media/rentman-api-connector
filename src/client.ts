@@ -1528,7 +1528,7 @@ export function normalizeEquipmentItem<TCustom = DefaultCustomFields>(
  *
  * @example
  * const rentman = createRentmanClient({ token: process.env.RENTMAN_TOKEN });
- * const { data } = await rentman.list<RentmanEquipmentItem>('/equipment', { limit: 50 });
+ * const projects = await rentman.projects.listAll();
  */
 export function createRentmanClient(opts: RentmanClientOptions): RentmanClient {
   return new RentmanClient(opts);

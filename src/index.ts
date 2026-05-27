@@ -7,28 +7,26 @@
  * ## Quick start
  *
  * ```ts
- * import { createRentmanClient, type RentmanEquipmentItem } from '@alternative-design-and-media/rentman-api-connector';
+ * import {
+ *   createRentmanClient,
+ *   projectQuery,
+ *   equipmentQuery,
+ * } from '@alternative-design-and-media/rentman-api-connector';
  *
  * const rentman = createRentmanClient({ token: process.env.RENTMAN_TOKEN });
  *
- * // Fetch paginated equipment list
- * const { data, itemCount, limit, offset } = await rentman.list<RentmanEquipmentItem>('/equipment', {
- *   fields: ['id', 'name', 'current_quantity'],
- *   sort: ['+name'],
- *   limit: 50,
- *   offset: 0,
- * });
+ * // List projects via OOP facade + query builder
+ * const projects = await rentman.projects.listAll(
+ *   projectQuery().startingAfter('2025-01-01').sortByStartDate('desc').build(),
+ * );
  *
- * // Fetch ALL equipment (auto-paginates)
- * const allEquipment = await rentman.listAll<RentmanEquipmentItem>('/equipment');
+ * // Domain-specific sub-resource helper
+ * const projectEquipment = await rentman.projects.listEquipment(projects[0].id);
  *
- * // Type-safe relational filter + null-check
- * import { rel, notNull } from '@alternative-design-and-media/rentman-api-connector';
- * const res = await rentman.list<RentmanContact>('/contacts', {
- *   filters: { country: 'gb' },
- *   relFilters: [rel('distance', 'lte', 300)],
- *   nullFilters: [notNull('folder')],
- * });
+ * // Equipment query builder
+ * const allEquipment = await rentman.equipment.listAll(
+ *   equipmentQuery().notArchived().sortByName().build(),
+ * );
  * ```
  */
 
