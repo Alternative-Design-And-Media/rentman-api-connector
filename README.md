@@ -52,11 +52,8 @@ pnpm add @alternative-design-and-media/rentman-api-connector
 ```ts
 import {
   createRentmanClient,
-  ENDPOINTS,
-  rel,
-  notNull,
-  type RentmanEquipmentItem,
-  type RentmanContact,
+  projectQuery,
+  equipmentQuery,
 } from '@alternative-design-and-media/rentman-api-connector';
 
 // Create a client once; reuse everywhere.
@@ -65,42 +62,30 @@ const rentman = createRentmanClient({
   // or an async function: token: () => getTokenFromVault()
 });
 
-// --- List with pagination metadata ---
-const { data, itemCount, limit, offset } =
-  await rentman.list<RentmanEquipmentItem>(ENDPOINTS.equipment, {
-    fields: ['id', 'name', 'current_quantity'],
-    sort: ['+name'],
-    limit: 50,
-    offset: 0,
-  });
+// --- OOP facade list with typed query builder ---
+const projects = await rentman.projects.listAll(
+  projectQuery()
+    .startingAfter('2025-01-01')
+    .sortByStartDate('desc')
+    .build(),
+);
 
-console.log(`${itemCount} items total, showing ${data.length}`);
+// --- Domain-specific sub-resource helper ---
+const equipmentLines = await rentman.projects.listEquipment(projects[0].id);
 
-// --- Auto-paginate (fetches all pages) ---
-const allEquipment = await rentman.listAll<RentmanEquipmentItem>(ENDPOINTS.equipment);
+// --- Equipment query builder ---
+const activeEquipment = await rentman.equipment.listAll(
+  equipmentQuery().notArchived().sortByName().build(),
+);
 
-// --- Relational + null-check filters ---
-const contacts = await rentman.list<RentmanContact>(ENDPOINTS.contacts, {
-  filters: { country: 'gb' },
-  relFilters: [rel('creditlimit', 'gt', 1000)],
-  nullFilters: [notNull('folder')],
-});
-
-// --- Get a single item ---
-const { data: item } = await rentman.get<RentmanEquipmentItem>(ENDPOINTS.equipment, 42);
-console.log(item.updateHash); // use for change tracking
-
-// --- Create, update, delete ---
-await rentman.create(ENDPOINTS.stockMovements, { equipment: '/equipment/42', quantity: 5, type: 'manual' });
-await rentman.update(ENDPOINTS.equipment, 42, { remark: 'Updated via API' });
-await rentman.delete(ENDPOINTS.equipment, 99);
+console.log(`Projects: ${projects.length}, active equipment: ${activeEquipment.length}`);
 ```
 
 ---
 
 ## OOP interface (consumer API)
 
-The recommended way to use this package is through the **domain-level OOP facade** — no `ENDPOINTS.*` constants, raw path strings, or manual `RentmanQueryOptions` construction required in your code.
+The supported way to use this package is through the **domain-level OOP facade** — no `ENDPOINTS.*` constants, raw path strings, or manual `RentmanQueryOptions` construction required in your code.
 
 ```ts
 import {
@@ -212,7 +197,7 @@ Use the typed query builder helpers to compose `RentmanQueryOptions` without tou
 
 All builders also inherit `fields(...)`, `sort(...)`, `limit(n)`, `offset(n)`, and `.build()`.
 
-> **Backward compatibility**: the low-level `client.list(ENDPOINTS.x, ...)` API remains unchanged and is not deprecated.
+> ⚠️ **Deprecated**: low-level direct API-call methods (`client.list`, `client.listAll`, `client.listSub`, `client.listAllSub`, `client.get`, `client.create`, `client.update`, `client.delete`) are kept only for migration and are no longer supported for new implementations.
 
 ---
 
@@ -333,7 +318,9 @@ These legacy aliases are intentionally preserved for backward compatibility:
 
 ---
 
-## Detailed Usage Examples
+## Detailed Usage Examples (legacy low-level API, deprecated)
+
+> ⚠️ This section documents the old direct endpoint-based API for migration only. New implementations should use the OOP facade (`rentman.projects`, `rentman.equipment`, `rentman.contacts`, ...).
 
 ### Listing with field selection and sorting
 
@@ -641,7 +628,7 @@ const contactPersons = await rentman.contactPersons.listAll();
 // Requires a `contactPersons` schema in your generated CustomFieldMap.
 contactPersons[0].custom?.has_signing_authority; // ✅ boolean
 
-// Low-level API still works (backward compatible)
+// Deprecated low-level API (migration only)
 const raw = await rentman.list(ENDPOINTS.projects);
 
 // Sub-resource methods are preserved on the typed client
@@ -785,19 +772,19 @@ console.log(folderNames.get('/folders/116')); // "Lighting"
 
 Static `token` values may be provided either as a bare JWT or as a `"Bearer ..."` string. The client normalizes the prefix internally.
 
-### `client.list<T>(path, query?)`
+### `client.list<T>(path, query?)` (deprecated)
 
 Fetch a collection. Returns `RentmanCollectionResponse<T>` with `data`, `itemCount`, `limit`, `offset`.
 
-### `client.listAll<T>(path, query?, pageSize?)`
+### `client.listAll<T>(path, query?, pageSize?)` (deprecated)
 
 Auto-paginate through all items. `pageSize` defaults to `300` (the API hard cap).
 
-### `listWithPreservedSlashes<T>(client, endpoint, query, options?)`
+### `listWithPreservedSlashes<T>(client, endpoint, query, options?)` (deprecated)
 
 Fetch a collection while keeping `/` characters unescaped in resource-path filter values such as `equipment[eq]=/equipment/4362`.
 
-### `scanAll<T>(client, endpoint, query, options?)`
+### `scanAll<T>(client, endpoint, query, options?)` (deprecated)
 
 Paginated scan helper that returns `{ items, totalCount, limitReached }`.
 
@@ -822,7 +809,7 @@ import { normalizeToken } from '@alternative-design-and-media/rentman-api-connec
 const token = normalizeToken('Bearer eyJhbGciOi...');
 ```
 
-### `client.listSub<T>(parentPath, parentId, subPath, query?)`
+### `client.listSub<T>(parentPath, parentId, subPath, query?)` (deprecated)
 
 Fetch a sub-resource collection via path-level URL generation (`${parentPath}/${parentId}${subPath}`).
 
@@ -834,7 +821,7 @@ const { data } = await rentman.listSub(
 );
 ```
 
-### `client.listAllSub<T>(parentPath, parentId, subPath, query?, pageSize?)`
+### `client.listAllSub<T>(parentPath, parentId, subPath, query?, pageSize?)` (deprecated)
 
 Backward-compatible sub-resource list helper. When `query.limit` is omitted, auto-paginates
 through all items starting from `query.offset` (defaults to `0`) and returns a flat array.
@@ -842,7 +829,7 @@ When `query.limit` is provided, returns only that single page's `data` array wit
 auto-paginating. Use the explicit `*Paged` methods when page metadata (e.g. `itemCount`) is
 required.
 
-### `listEquipmentSetContents(client, kitId)`
+### `listEquipmentSetContents(client, kitId)` (deprecated)
 
 Backward-compatible wrapper around `client.equipment.listSetContents(kitId)`.
 
@@ -855,19 +842,19 @@ import {
 const contents: RentmanEquipmentSetContent[] = await listEquipmentSetContents(rentman, 3473);
 ```
 
-### `client.get<T>(path, id, query?)`
+### `client.get<T>(path, id, query?)` (deprecated)
 
 Fetch a single item by numeric ID.
 
-### `client.create<TIn, TOut>(path, body)`
+### `client.create<TIn, TOut>(path, body)` (deprecated)
 
 POST a new item.
 
-### `client.update<TIn, TOut>(path, id, body)`
+### `client.update<TIn, TOut>(path, id, body)` (deprecated)
 
 PUT an updated item.
 
-### `client.delete(path, id)`
+### `client.delete(path, id)` (deprecated)
 
 DELETE an item by ID.
 
@@ -881,7 +868,7 @@ import {
   type RentmanEquipmentItem,
 } from '@alternative-design-and-media/rentman-api-connector';
 
-const { data: rawItem } = await rentman.get<RentmanEquipmentItem>(ENDPOINTS.equipment, 42);
+const { data: rawItem } = await rentman.equipment.getById(42);
 const normalized = normalizeEquipmentItem(rawItem);
 
 console.log(normalized.currentQuantity, normalized.locationInWarehouse);

@@ -5,7 +5,7 @@ Machine-oriented reference for AI coding assistants.
 ## Package
 
 - Name: `@alternative-design-and-media/rentman-api-connector`
-- Purpose: Type-safe Rentman REST API connector with typed endpoints, typed response wrappers, and query helpers.
+- Purpose: Type-safe Rentman REST API connector with OOP resource facades, typed response wrappers, and query helpers.
 - OAS sync: v1.7.0 (deployment 2025-11-13)
 
 ## Runtime and install
@@ -19,9 +19,9 @@ npm install @alternative-design-and-media/rentman-api-connector
 
 ## Main exports
 
- - Client API: `createRentmanClient`, `RentmanClient`, `ResourceApi`, `RentmanApiError`, `scanAll`
+ - Client API: `createRentmanClient`, `RentmanClient`, `ResourceApi`, `RentmanApiError`, `scanAll` (deprecated)
  - Typed client: `createTypedClient`, `TypedRentmanClient`, `CustomFieldMap`
- - Helper utilities: `normalizeToken`, `listEquipmentSetContents`, `listWithPreservedSlashes`, `normalizeEquipmentItem`, `NormalizedEquipmentItem`
+ - Helper utilities: `normalizeToken`, `listEquipmentSetContents` (deprecated), `listWithPreservedSlashes` (deprecated), `normalizeEquipmentItem`, `NormalizedEquipmentItem`
  - Custom field helpers: `RentmanCustomFieldType`, `RentmanCustomFieldTypeMap`, `RentmanCustomFieldDefinition`, `RentmanCustomRecord`, `WithCustomFields`
 - Endpoint constants: `ENDPOINTS`, `RentmanEndpoint`
 - Query API: `buildQueryParams`, `buildQueryString`, `buildRentmanQuery`, `rel`, `notNull`, `isNull`
@@ -68,6 +68,9 @@ const rentman = createRentmanClient({
 
 ## Client methods (signatures + behavior)
 
+Supported integration surface: OOP resource facades (`rentman.<resource>.*`).
+Low-level endpoint-based methods remain available for migration only and are deprecated.
+
 ```ts
 interface ResourceApi<T, TCreate = Partial<T>> {
   list(query?: RentmanQueryOptions): Promise<RentmanCollectionResponse<T>>
@@ -90,44 +93,44 @@ vehicles: ResourceApi<RentmanVehicle>
 appointments: ResourceApi<RentmanAppointment>
 subrentals: ResourceApi<RentmanSubrental>
 
-list<T>(path: RentmanEndpoint, query?: RentmanQueryOptions): Promise<RentmanCollectionResponse<T>>
-listAll<T>(path: RentmanEndpoint, query?: Omit<RentmanQueryOptions, 'limit' | 'offset'>, pageSize?: number): Promise<T[]>
+list<T>(path: RentmanEndpoint, query?: RentmanQueryOptions): Promise<RentmanCollectionResponse<T>> // deprecated
+listAll<T>(path: RentmanEndpoint, query?: Omit<RentmanQueryOptions, 'limit' | 'offset'>, pageSize?: number): Promise<T[]> // deprecated
 scanAll<T>(
   client: RentmanClient,
   endpoint: RentmanEndpoint,
   query: Omit<RentmanQueryOptions, 'limit' | 'offset'>,
   options?: { pageSize?: number; scanLimit?: number },
-): Promise<{ items: T[]; totalCount: number; limitReached: boolean }>
+): Promise<{ items: T[]; totalCount: number; limitReached: boolean }> // deprecated
 normalizeToken(token: string): string
-listEquipmentSetContents(client: RentmanClient, kitId: number): Promise<RentmanEquipmentSetContent[]>
+listEquipmentSetContents(client: RentmanClient, kitId: number): Promise<RentmanEquipmentSetContent[]> // deprecated
 listWithPreservedSlashes<T>(
   client: RentmanClient,
   endpoint: RentmanEndpoint,
   query: Omit<RentmanQueryOptions, 'limit' | 'offset'>,
   options?: { limit?: number; offset?: number },
-): Promise<RentmanCollectionResponse<T>>
+): Promise<RentmanCollectionResponse<T>> // deprecated
 normalizeEquipmentItem(item: RentmanEquipmentItem): NormalizedEquipmentItem
-listSub<T>(parentPath: RentmanEndpoint, parentId: number, subPath: string, query?: RentmanQueryOptions): Promise<RentmanCollectionResponse<T>>
-listAllSub<T>(parentPath: RentmanEndpoint, parentId: number, subPath: string, query?: Omit<RentmanQueryOptions, 'limit' | 'offset'>, pageSize?: number): Promise<T[]>
-get<T>(path: RentmanEndpoint, id: number, query?: Pick<RentmanQueryOptions, 'fields'>): Promise<RentmanItemResponse<T>>
-create<TInput, TOutput = TInput>(path: RentmanEndpoint, body: TInput): Promise<RentmanItemResponse<TOutput>>
-update<TInput, TOutput = TInput>(path: RentmanEndpoint, id: number, body: TInput): Promise<RentmanItemResponse<TOutput>>
-delete(path: RentmanEndpoint, id: number): Promise<void>
+listSub<T>(parentPath: RentmanEndpoint, parentId: number, subPath: string, query?: RentmanQueryOptions): Promise<RentmanCollectionResponse<T>> // deprecated
+listAllSub<T>(parentPath: RentmanEndpoint, parentId: number, subPath: string, query?: Omit<RentmanQueryOptions, 'limit' | 'offset'>, pageSize?: number): Promise<T[]> // deprecated
+get<T>(path: RentmanEndpoint, id: number, query?: Pick<RentmanQueryOptions, 'fields'>): Promise<RentmanItemResponse<T>> // deprecated
+create<TInput, TOutput = TInput>(path: RentmanEndpoint, body: TInput): Promise<RentmanItemResponse<TOutput>> // deprecated
+update<TInput, TOutput = TInput>(path: RentmanEndpoint, id: number, body: TInput): Promise<RentmanItemResponse<TOutput>> // deprecated
+delete(path: RentmanEndpoint, id: number): Promise<void> // deprecated
 ```
 
 Behavior notes:
 
 - `list` returns `{ data, itemCount, limit, offset }`
 - `listAll` auto-paginates and concatenates all pages
-- `scanAll` auto-paginates with optional `scanLimit`; returns `{ items, totalCount, limitReached }`
-- `listWithPreservedSlashes` preserves `/` in resource-path filter values while still encoding other reserved characters
+- `scanAll` auto-paginates with optional `scanLimit`; returns `{ items, totalCount, limitReached }` (deprecated)
+- `listWithPreservedSlashes` preserves `/` in resource-path filter values while still encoding other reserved characters (deprecated)
 - `listSub` builds path-level sub-resource URLs: `${parentPath}/${parentId}${subPath}`
 - `listAllSub` auto-paginates and concatenates all sub-resource pages
 - `listAll` default `pageSize` is `300` (Rentman API hard cap)
 - `get` supports optional `fields` projection
 - `create` and `update` JSON-encode `body`
 - `delete` expects `204` and resolves to `void`
-- Resource facade properties call the same low-level methods with the correct endpoint constants internally
+- Resource facade properties are the supported consumer interface
 
 Error behavior:
 
@@ -264,7 +267,7 @@ const invoices = invoiceQuery()
 
 ## Preserving slashes in resource-path filters
 
-When a collection filter value is a Rentman resource path such as `/equipment/4362`, use `listWithPreservedSlashes()` so the path stays readable to the API parser.
+When a collection filter value is a Rentman resource path such as `/equipment/4362`, prefer OOP facade methods first; use deprecated `listWithPreservedSlashes()` only for legacy migration where slash-preserving serialization is required.
 
 ```ts
 import {
@@ -371,7 +374,7 @@ type Project = WithCustomFields<
 >;
 
 const rentman = createRentmanClient({ token: process.env.RENTMAN_TOKEN! });
-const { data: projects } = await rentman.list<Project>(ENDPOINTS.projects);
+const { data: projects } = await rentman.projects.list();
 projects[0]?.custom?.budget;
 projects[0]?.custom?.is_vip;
 ```
@@ -427,6 +430,8 @@ await rentman.subrentals.list();
 
 List with pagination:
 
+Deprecated low-level API example (migration only):
+
 ```ts
 import { createRentmanClient, ENDPOINTS, type RentmanEquipmentItem } from '@alternative-design-and-media/rentman-api-connector';
 
@@ -442,6 +447,8 @@ const { data, itemCount, limit, offset } = await rentman.list<RentmanEquipmentIt
 
 Auto-pagination:
 
+Deprecated low-level API example (migration only):
+
 ```ts
 const allProjects = await rentman.listAll(ENDPOINTS.projects, {
   fields: ['id', 'number', 'name'],
@@ -450,6 +457,8 @@ const allProjects = await rentman.listAll(ENDPOINTS.projects, {
 ```
 
 Create/update/delete:
+
+Deprecated low-level API example (migration only):
 
 ```ts
 await rentman.create(ENDPOINTS.stockMovements, {
@@ -481,7 +490,7 @@ const contents = await listEquipmentSetContents(rentman, 3473);
 const filteredContents = await listWithPreservedSlashes(rentman, ENDPOINTS.equipmentSetsContent, {
   filters: { 'equipment[eq]': '/equipment/3473' },
 });
-const normalized = normalizeEquipmentItem((await rentman.get(ENDPOINTS.equipment, 42)).data);
+const normalized = normalizeEquipmentItem((await rentman.equipment.getById(42)).data);
 ```
 
 Error handling:
@@ -490,7 +499,7 @@ Error handling:
 import { RentmanApiError } from '@alternative-design-and-media/rentman-api-connector';
 
 try {
-  await rentman.get(ENDPOINTS.equipment, 42);
+  await rentman.equipment.getById(42);
 } catch (err) {
   if (err instanceof RentmanApiError) {
     console.error(err.status, err.body);
