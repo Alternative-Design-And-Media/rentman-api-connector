@@ -1609,7 +1609,7 @@ export type TypedRentmanClient<TCF extends CustomFieldMap> = Omit<
     Pick<SubProjectsResourceApi, 'listCrew' | 'listEquipment' | 'listEquipmentGroups' | 'listFunctionGroups' | 'listVehicles' | 'listFileFolders'>;
   readonly contacts: ResourceApi<WithCustomFields<RentmanContact, CFOrNever<TCF, 'contacts'>>> &
     Pick<ContactsResourceApi, 'listContactPersons' | 'listFiles' | 'listFileFolders'>;
-  readonly contactPersons: ResourceApi<RentmanContactPerson> &
+  readonly contactPersons: ResourceApi<WithCustomFields<RentmanContactPerson, CFOrNever<TCF, 'contactPersons'>>> &
     Pick<ContactPersonsResourceApi, 'listFiles' | 'listFileFolders'>;
   readonly equipment: ResourceApi<WithCustomFields<RentmanEquipmentItem, CFOrNever<TCF, 'equipment'>>> &
     Pick<EquipmentResourceApi, 'listSetContents' | 'listAccessories' | 'listRepairs' | 'listSerialNumbers' | 'listStockMovements' | 'listFiles' | 'listFileFolders'>;

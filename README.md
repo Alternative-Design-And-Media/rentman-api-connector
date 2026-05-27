@@ -623,6 +623,9 @@ items[0].custom?.serial_prefix; // ✅ string | undefined
 const crew = await rentman.crew.listAll();
 crew[0].custom?.has_driving_license; // ✅ boolean
 
+const contactPersons = await rentman.contactPersons.listAll();
+contactPersons[0].custom?.has_signing_authority; // ✅ boolean
+
 // Low-level API still works (backward compatible)
 const raw = await rentman.list(ENDPOINTS.projects);
 
