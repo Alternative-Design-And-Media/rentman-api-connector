@@ -388,6 +388,50 @@ describe('RentmanEquipmentItem — ledger and surface_article', () => {
   });
 });
 
+describe('RentmanEquipmentItem — missing OAS EquipmentResponse fields', () => {
+  it('accepts the remaining equipment metadata fields from OAS', () => {
+    const item: RentmanEquipmentItem = {
+      id: 4,
+      created: '2025-01-01T00:00:00+00:00',
+      modified: '2025-01-01T00:00:00+00:00',
+      updateHash: 'jkl',
+      name: 'Speaker Set',
+      displayname: 'Speaker Set XL',
+      factor_group: '/factorgroups/7',
+      in_shop: true,
+      shop_description_short: 'Compact PA bundle',
+      shop_description_long: 'Compact PA bundle for small events.',
+      shop_seo_title: 'Speaker Set XL',
+      shop_seo_keyword: 'speaker set',
+      shop_seo_description: 'Portable speaker set for hire.',
+      shop_featured: true,
+      subrental_costs: 45.5,
+      rental_sales: false,
+      temporary: false,
+      in_planner: true,
+      taxclass: '/taxclasses/2',
+      list_price: 399,
+      packed_per: 2,
+      empty_weight: 18.2,
+      power: 500,
+      current: 2.4,
+      defaultgroup: '/equipmentgroups/3',
+      is_combination: true,
+      is_physical: true,
+      can_edit_content_during_planning: false,
+      qrcodes: 'EQ-001',
+      qrcodes_of_serial_numbers: 'SN-001,SN-002',
+      current_quantity_excl_cases: 6,
+    };
+
+    expectTypeOf(item.factor_group).toEqualTypeOf<string | null | undefined>();
+    expectTypeOf(item.in_shop).toEqualTypeOf<boolean | undefined>();
+    expectTypeOf(item.subrental_costs).toEqualTypeOf<number | undefined>();
+    expectTypeOf(item.taxclass).toEqualTypeOf<string | null | undefined>();
+    expectTypeOf(item.current_quantity_excl_cases).toEqualTypeOf<number | undefined>();
+  });
+});
+
 describe('WithUnknownFields escape hatch', () => {
   it('allows arbitrary field access when explicitly opted in', () => {
     const item = {} as unknown as WithUnknownFields<RentmanEquipmentItem>;
