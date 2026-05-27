@@ -6,8 +6,7 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 ## [2.1.1] — 2026-05-27
 
 ### Fixed
-- Updated package version metadata for a patch (bugfix) release.
-- Updated README version header to reflect the latest published release line.
+- Corrected the README version header to match the latest release line (`v2.1.1`).
 
 ---
 
