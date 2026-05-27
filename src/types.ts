@@ -286,15 +286,37 @@ export interface RentmanCrewMember<TCustom = DefaultCustomFields>
   extends RentmanBaseEntityWithCustom<TCustom> {
   displayname: string;
   firstname?: string | null;
+  middle_name?: string | null;
   middle?: string | null;
+  lastname?: string | null;
   surname?: string | null;
   folder?: string | null;
   address?: string | null;
+  street?: string | null;
+  housenumber?: string | null;
   city?: string | null;
+  postal_code?: string | null;
   postcode?: string | null;
+  addressline2?: string | null;
+  state?: string | null;
   country?: string | null;
+  birthdate?: string | null;
+  passport_number?: string | null;
+  emergency_contact?: string | null;
+  driving_license?: string | null;
+  contract?: string | null;
+  bank?: string | null;
+  contract_date?: string | null;
+  company_name?: string | null;
+  vat_code?: string | null;
+  coc_code?: string | null;
   phone?: string | null;
   email?: string | null;
+  avatar?: string | null;
+  vt_fullname?: string | null;
+  default_warehouse?: string | null;
+  external_reference?: string | null;
+  tags?: string | null;
   tag?: string | null;
   remark?: string | null;
   active?: boolean;
@@ -323,11 +345,15 @@ export interface RentmanCrewRate extends RentmanBaseEntity {
  */
 export interface RentmanProject<TCustom = DefaultCustomFields>
   extends RentmanBaseEntityWithCustom<TCustom> {
-  number: number;
+  number: string | number;
   name: string;
+  displayname?: string;
   folder?: string | null;
   status?: string | null;
+  customer?: string | null;
   contact?: string | null;
+  loc_contact?: string | null;
+  cust_contact?: string | null;
   contactperson?: string | null;
   planperiod_start?: string | null;
   planperiod_end?: string | null;
@@ -335,14 +361,35 @@ export interface RentmanProject<TCustom = DefaultCustomFields>
   out?: string | null;
   usageperiod_start?: string | null;
   usageperiod_end?: string | null;
+  equipment_period_from?: string | null;
+  equipment_period_to?: string | null;
   remark?: string | null;
   account_manager?: string | null;
+  project_type?: string | null;
   projecttype?: string | null;
+  reference?: string | null;
+  color?: string | null;
+  conditions?: string | null;
+  refundabledeposit?: number | null;
+  deposit_status?: string | null;
+  project_total_price?: number | null;
+  project_total_price_cancelled?: number | null;
+  project_rental_price?: number | null;
+  project_sale_price?: number | null;
+  project_crew_price?: number | null;
+  project_transport_price?: number | null;
+  project_other_price?: number | null;
+  project_insurance_price?: number | null;
+  already_invoiced?: number | null;
   tags?: string | null;
   in_archive: boolean;
   location?: string | null;
   discount?: number | null;
   weight?: number | null;
+  power?: number | null;
+  current?: number | null;
+  purchasecosts?: number | null;
+  volume?: number | null;
   /** GENERATED FIELD */
   price?: number | null;
 }
@@ -433,13 +480,43 @@ export interface RentmanProjectVehicle extends RentmanBaseEntity {
 
 export interface RentmanInvoice extends RentmanBaseEntity {
   project: string;
+  displayname?: string;
   number?: string | null;
   date?: string | null;
+  expiration?: string | null;
   due_date?: string | null;
+  customer?: string | null;
+  account_manager?: string | null;
   status?: string | null;
   contact?: string | null;
+  procent?: number | null;
+  from_project?: boolean;
+  subject?: string | null;
+  finalized?: boolean;
+  filename?: string | null;
+  project_total_price?: number | null;
+  project_total_price_cancelled?: number | null;
+  project_rental_price?: number | null;
+  project_sale_price?: number | null;
+  project_crew_price?: number | null;
+  project_transport_price?: number | null;
+  project_other_price?: number | null;
+  project_insurance_price?: number | null;
+  sum_factuurregels?: number | null;
   payment_term?: number | null;
   vat_included?: boolean;
+  price_invat?: number | null;
+  vat_amount?: number | null;
+  invoicetype?: string | null;
+  outstanding_balance?: number | null;
+  total_paid?: number | null;
+  is_paid?: boolean;
+  date_sent?: string | null;
+  payment_reminder_sent?: number | null;
+  final_payment_reminder_sent?: string | null;
+  payment_date?: string | null;
+  days_after_expiry?: number | null;
+  tags?: string | null;
   remark?: string | null;
   /** GENERATED FIELD */
   price?: number | null;
