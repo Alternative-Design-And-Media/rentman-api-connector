@@ -317,6 +317,20 @@ All 52 top-level collection endpoints from OAS v1.7.0 are available as typed con
 | `statuses` | `/statuses` | `RentmanStatus` | Status lookup values |
 | `contracts` | `/contracts` | `RentmanContract` | Contracts on a project |
 
+### Known TypeScript ↔ OAS field-name mappings
+
+These legacy aliases are intentionally preserved for backward compatibility:
+
+| TypeScript field | OAS field | Entity | Note |
+|---|---|---|---|
+| `postcode` | `postal_code` | `RentmanCrewMember` | Legacy abbreviation |
+| `middle` | `middle_name` | `RentmanCrewMember` | Simplified name |
+| `surname` | `lastname` | `RentmanCrewMember` | Terminology difference |
+| `tag` | `tags` | `RentmanCrewMember` | Singular vs plural |
+| `contact` | `customer` / `cust_contact` | `RentmanProject`, `RentmanInvoice` | OAS uses two related fields |
+| `projecttype` | `project_type` | `RentmanProject` | Legacy casing mismatch |
+| `due_date` | `expiration` | `RentmanInvoice` | Different legacy semantic naming |
+
 ---
 
 ## Detailed Usage Examples

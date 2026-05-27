@@ -287,8 +287,16 @@ export interface RentmanCrewMember<TCustom = DefaultCustomFields>
   displayname: string;
   firstname?: string | null;
   middle_name?: string | null;
+  /**
+   * Middle name.
+   * @remarks OAS field name: `middle_name`
+   */
   middle?: string | null;
   lastname?: string | null;
+  /**
+   * Last name.
+   * @remarks OAS field name: `lastname`
+   */
   surname?: string | null;
   folder?: string | null;
   address?: string | null;
@@ -296,6 +304,10 @@ export interface RentmanCrewMember<TCustom = DefaultCustomFields>
   housenumber?: string | null;
   city?: string | null;
   postal_code?: string | null;
+  /**
+   * Postal code.
+   * @remarks OAS field name: `postal_code`
+   */
   postcode?: string | null;
   addressline2?: string | null;
   state?: string | null;
@@ -317,6 +329,10 @@ export interface RentmanCrewMember<TCustom = DefaultCustomFields>
   default_warehouse?: string | null;
   external_reference?: string | null;
   tags?: string | null;
+  /**
+   * Tag list value (legacy singular alias).
+   * @remarks OAS field name: `tags`
+   */
   tag?: string | null;
   remark?: string | null;
   active?: boolean;
@@ -351,6 +367,10 @@ export interface RentmanProject<TCustom = DefaultCustomFields>
   folder?: string | null;
   status?: string | null;
   customer?: string | null;
+  /**
+   * Primary customer/contact reference.
+   * @remarks OAS field names: `customer`, `cust_contact`
+   */
   contact?: string | null;
   loc_contact?: string | null;
   cust_contact?: string | null;
@@ -366,6 +386,10 @@ export interface RentmanProject<TCustom = DefaultCustomFields>
   remark?: string | null;
   account_manager?: string | null;
   project_type?: string | null;
+  /**
+   * Project type reference (legacy field casing kept for compatibility).
+   * @remarks OAS field name: `project_type`
+   */
   projecttype?: string | null;
   reference?: string | null;
   color?: string | null;
@@ -484,10 +508,18 @@ export interface RentmanInvoice extends RentmanBaseEntity {
   number?: string | null;
   date?: string | null;
   expiration?: string | null;
+  /**
+   * Due date.
+   * @remarks OAS field name: `expiration`
+   */
   due_date?: string | null;
   customer?: string | null;
   account_manager?: string | null;
   status?: string | null;
+  /**
+   * Customer/contact reference.
+   * @remarks OAS field names: `customer`, `cust_contact`
+   */
   contact?: string | null;
   procent?: number | null;
   from_project?: boolean;
