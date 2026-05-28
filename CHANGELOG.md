@@ -3,6 +3,19 @@
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.2.0] — 2026-05-28
+
+### Added
+- Typed custom field support now covers `RentmanVehicle` and `RentmanTimeRegistration`, including `createTypedClient()` mappings for `vehicles` and `timeRegistrations`.
+
+### Changed
+- Direct low-level API entry points are now marked as deprecated in favor of the OOP facade (`rentman.<resource>.*`) throughout the public API docs and TypeScript surface.
+
+### Fixed
+- The custom-field generator now accepts valid `belongs_to` models used by vehicle, time registration, and project vehicle field definitions.
+
+---
+
 ## [2.1.0] — 2026-05-25
 
 ### Added
