@@ -29,6 +29,8 @@ export type RentmanCustomFieldModel =
   | 'contact'
   | 'contactperson'
   | 'crew'
+  | 'vehicle'
+  | 'timeregistration'
   | 'repair';
 
 export interface RentmanCustomFieldTypeMap {
@@ -95,11 +97,18 @@ export type WithCustomFields<
  * them with specific named interfaces (e.g. `{ budget: number }`). TypeScript enforces the
  * object constraint via the `CFOrNever` conditional type inside `TypedRentmanClient`.
  *
- * Note: Rentman currently supports account-specific custom fields only for `projects`,
- * `subProjects`, `contacts`, `contactPersons`, `equipment`, `crew`, `subrentals`,
- * `serialNumbers`, and `repairs`.
- * The remaining properties are included for completeness and forward compatibility; the CLI
- * generator will not populate them until Rentman exposes custom fields for those resources.
+ * Per the Rentman OAS (1.7.0), account-specific custom fields are exposed via the REST API
+ * on the following resources, all of which the CLI generator can populate:
+ *
+ * Top-level facades: `projects`, `subProjects`, `contacts`, `contactPersons`, `equipment`,
+ * `crew`, `subrentals`, `vehicles`, `timeRegistrations`.
+ *
+ * Sub-resource models (covered by `CUSTOM_FIELD_MODELS` but not surfaced on a top-level
+ * facade): `serialnumber`, `repair`, `projectfunction`, `projectcrew`, `projectequipment`,
+ * `projectvehicle`.
+ *
+ * The `invoices`, `quotes`, `appointments` slots remain forward-compat-only — their OAS
+ * Response schemas do not declare a `custom` property today.
  *
  * @example
  * ```ts

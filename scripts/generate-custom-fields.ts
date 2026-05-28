@@ -39,6 +39,8 @@ type RentmanCustomFieldModel =
   | 'contact'
   | 'contactperson'
   | 'crew'
+  | 'vehicle'
+  | 'timeregistration'
   | 'repair';
 
 interface RentmanDropdownOption {
@@ -104,6 +106,8 @@ const CUSTOM_FIELD_MODELS: readonly RentmanCustomFieldModel[] = [
   'contact',
   'contactperson',
   'crew',
+  'vehicle',
+  'timeregistration',
   'repair',
 ];
 
@@ -120,17 +124,21 @@ const MODEL_TYPE_IMPORTS: Record<RentmanCustomFieldModel, string> = {
   contact: 'RentmanContact',
   contactperson: 'RentmanContactPerson',
   crew: 'RentmanCrewMember',
+  vehicle: 'RentmanVehicle',
+  timeregistration: 'RentmanTimeRegistration',
   repair: 'RentmanRepair',
 };
 
 /**
  * Maps `belongs_to` model values to the corresponding `CustomFieldMap` facade
- * property key. Models without a direct top-level facade property are omitted.
+ * property key. Models without a direct top-level facade property are omitted
+ * (e.g. `projectfunction`, `projectcrew`, `serialnumber`, `repair` — these are
+ * surfaced as sub-resources of `projects` rather than as top-level facades).
  *
- * Note: `invoices`, `quotes`, `vehicles`, and `appointments` are intentionally
- * absent because Rentman does not expose custom field definitions for those
- * resources via the API — there are no corresponding `belongs_to` values in the
- * Rentman custom fields export.
+ * Note: `invoices`, `quotes`, and `appointments` are intentionally absent
+ * because their OAS Response schemas do not declare a `custom` property —
+ * Rentman does not expose account-specific custom fields for those resources
+ * via the REST API.
  */
 const MODEL_TO_FACADE_KEY: Partial<Record<RentmanCustomFieldModel, string>> = {
   project: 'projects',
@@ -140,6 +148,8 @@ const MODEL_TO_FACADE_KEY: Partial<Record<RentmanCustomFieldModel, string>> = {
   equipment: 'equipment',
   crew: 'crew',
   subrental: 'subrentals',
+  vehicle: 'vehicles',
+  timeregistration: 'timeRegistrations',
 };
 
 const MODEL_PASCAL_NAMES: Record<RentmanCustomFieldModel, string> = {
@@ -155,6 +165,8 @@ const MODEL_PASCAL_NAMES: Record<RentmanCustomFieldModel, string> = {
   contact: 'Contact',
   contactperson: 'ContactPerson',
   crew: 'Crew',
+  vehicle: 'Vehicle',
+  timeregistration: 'TimeRegistration',
   repair: 'Repair',
 };
 
