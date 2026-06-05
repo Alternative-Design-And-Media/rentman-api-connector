@@ -50,9 +50,10 @@ describe('listEquipmentSetContents', () => {
         equipment: '/equipment/42',
         quantity: '2',
       }],
-      itemCount: 2,
-      limit: 1,
+      itemCount: 1,
+      limit: 1500,
       offset: 0,
+      next_page_url: 'https://api.rentman.net/equipment/3473/equipmentsetscontent?cursor=page-2&limit=1500',
     };
     const page2: RentmanCollectionResponse<RentmanEquipmentSetContent> = {
       data: [{
@@ -64,9 +65,10 @@ describe('listEquipmentSetContents', () => {
         equipment: '/equipment/43',
         quantity: '1',
       }],
-      itemCount: 2,
-      limit: 1,
+      itemCount: 1,
+      limit: 1500,
       offset: 1,
+      next_page_url: null,
     };
     const fetchMock = vi.fn()
       .mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve(page1) })
@@ -78,7 +80,7 @@ describe('listEquipmentSetContents', () => {
     expect(rows).toHaveLength(2);
     expect(rows.map((row) => row.equipment)).toEqual(['/equipment/42', '/equipment/43']);
     expect(fetchMock).toHaveBeenCalledTimes(2);
-    expect(fetchMock.mock.calls[0]?.[0]).toContain('/equipment/3473/equipmentsetscontent?limit=300&offset=0');
+    expect(fetchMock.mock.calls[0]?.[0]).toContain('/equipment/3473/equipmentsetscontent?limit=1500&offset=0');
   });
 });
 
