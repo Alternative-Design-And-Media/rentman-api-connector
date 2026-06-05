@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.3.0] — 2026-06-05
+
+### Fixed
+- Javítva lett a `listAll`, `listAllSub` és `scanAll` csendes, 300 elemnél történő levágása: a connector most már a Rentman `next_page_url` cursoros lapozását követi, és csak szükség esetén esik vissza offsetes lapozásra.
+- A publikus lapozási metaadatok most már tartalmazzák az opcionális `next_page_url` mezőt is, a dokumentáció pedig a 300-as alapértelmezett és az 1500-as maximális oldal-méretet írja le helyesen.
+
+---
+
 ## [2.2.0] — 2026-05-28
 
 ### Added

@@ -248,14 +248,14 @@ const rentman = createRentmanClient({
 ## Client methods
 
 - \`list<T>(path, query?)\` → \`Promise<RentmanCollectionResponse<T>>\`
-- \`listAll<T>(path, query?, pageSize = 300)\` → \`Promise<T[]>\` (auto-paginates)
+- \`listAll<T>(path, query?, pageSize = 1500)\` → \`Promise<T[]>\` (auto-paginates)
 - \`scanAll<T>(client, endpoint, query, options?)\` → \`Promise<{ items: T[]; totalCount: number; limitReached: boolean }>\`
 - \`normalizeToken(token)\` → \`string\`
 - \`listEquipmentSetContents(client, kitId)\` → \`Promise<RentmanEquipmentSetContent[]>\`
 - \`listWithPreservedSlashes<T>(client, endpoint, query, options?)\` → \`Promise<RentmanCollectionResponse<T>>\`
 - \`normalizeEquipmentItem(item)\` → \`NormalizedEquipmentItem\`
 - \`listSub<T>(parentPath, parentId, subPath, query?)\` → \`Promise<RentmanCollectionResponse<T>>\`
-- \`listAllSub<T>(parentPath, parentId, subPath, query?, pageSize = 300)\` → \`Promise<T[]>\` (auto-paginates)
+- \`listAllSub<T>(parentPath, parentId, subPath, query?, pageSize = 1500)\` → \`Promise<T[]>\` (auto-paginates)
 - \`get<T>(path, id, query?)\` → \`Promise<RentmanItemResponse<T>>\`
 - \`create<TIn, TOut>(path, body)\` → \`Promise<RentmanItemResponse<TOut>>\`
 - \`update<TIn, TOut>(path, id, body)\` → \`Promise<RentmanItemResponse<TOut>>\`
@@ -583,13 +583,13 @@ delete(path: RentmanEndpoint, id: number): Promise<void>
 
 Behavior notes:
 
-- \`list\` returns \`{ data, itemCount, limit, offset }\`
-- \`listAll\` auto-paginates and concatenates all pages
+- \`list\` returns \`{ data, itemCount, limit, offset, next_page_url? }\`
+- \`listAll\` auto-paginates and concatenates all pages, following \`next_page_url\` when present
 - \`scanAll\` auto-paginates with optional \`scanLimit\`; returns \`{ items, totalCount, limitReached }\`
 - \`listWithPreservedSlashes\` preserves \`/\` in resource-path filter values while still encoding other reserved characters
 - \`listSub\` builds path-level sub-resource URLs: \`\${parentPath}/\${parentId}\${subPath}\`
-- \`listAllSub\` auto-paginates and concatenates all sub-resource pages
-- \`listAll\` default \`pageSize\` is \`300\` (Rentman API hard cap)
+- \`listAllSub\` auto-paginates and concatenates all sub-resource pages, following \`next_page_url\` when present
+- \`listAll\` / \`listAllSub\` default \`pageSize\` is \`1500\` (Rentman API max; API default remains \`300\`)
 - \`get\` supports optional \`fields\` projection
 - \`create\` and \`update\` JSON-encode \`body\`
 - \`delete\` expects \`204\` and resolves to \`void\`
@@ -1052,7 +1052,7 @@ buildResourcePath(ENDPOINTS.equipment, 42)  // → '/equipment/42'
 
 ## Constraints and caveats
 
-- API limit: max 300 items per page.
+- Collection pagination is cursor-based by default; API page size default is 300 and max is 1500.
 - API limits (per README): 50,000 requests/day, 10 req/s, 20 concurrent requests.
 - \`updateHash\` exists on every entity and can be used for cheap change detection.
 - Types are synced to OAS ${oasVersion}; unknown future fields can be accessed with \`WithUnknownFields<T>\`.

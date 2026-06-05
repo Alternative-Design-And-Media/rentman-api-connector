@@ -7,8 +7,19 @@ import type { RentmanCollectionResponse } from '../types.js';
 // Helpers
 // ---------------------------------------------------------------------------
 
-function makePage<T>(data: T[], itemCount: number, offset = 0): RentmanCollectionResponse<T> {
-  return { data, itemCount, limit: data.length || 300, offset };
+function makePage<T>(
+  data: T[],
+  itemCount: number,
+  offset = 0,
+  next_page_url?: string | null,
+): RentmanCollectionResponse<T> {
+  return {
+    data,
+    itemCount,
+    limit: data.length || 300,
+    offset,
+    ...(next_page_url !== undefined ? { next_page_url } : {}),
+  };
 }
 
 function makeFetch(...pages: RentmanCollectionResponse<unknown>[]) {
@@ -69,8 +80,8 @@ describe('fetchLookupMap', () => {
     const page1 = [{ ...BASE, id: 1, name: 'Alpha' }];
     const page2 = [{ ...BASE, id: 2, name: 'Beta' }];
     const fetchMock = makeFetch(
-      makePage(page1, 2, 0),
-      makePage(page2, 2, 1),
+      makePage(page1, 1, 0, 'https://api.rentman.net/equipment?cursor=page-2'),
+      makePage(page2, 1, 1, null),
     );
     const client = createRentmanClient({ token: 't', fetch: fetchMock as unknown as typeof fetch });
 
@@ -84,6 +95,7 @@ describe('fetchLookupMap', () => {
     expect(map.size).toBe(2);
     expect(map.get('2')).toBe('Beta');
     expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect((fetchMock.mock.calls[1] as [string])[0]).toBe('https://api.rentman.net/equipment?cursor=page-2');
   });
 
   it('first-wins on duplicate keys', async () => {
@@ -176,8 +188,8 @@ describe('fetchStatusCache', () => {
     const page1 = [{ ...BASE, id: 1, name: 'Draft', color: null, itemtype: null }];
     const page2 = [{ ...BASE, id: 2, name: 'Sent', color: null, itemtype: null }];
     const fetchMock = makeFetch(
-      makePage(page1, 2, 0),
-      makePage(page2, 2, 1),
+      makePage(page1, 1, 0, 'https://api.rentman.net/statuses?cursor=page-2'),
+      makePage(page2, 1, 1, null),
     );
     const client = createRentmanClient({ token: 't', fetch: fetchMock as unknown as typeof fetch });
 
@@ -221,8 +233,8 @@ describe('fetchFolderNameCache', () => {
     const page1 = [{ ...BASE, id: 1, name: 'Lighting', itemtype: null, parent: null }];
     const page2 = [{ ...BASE, id: 2, name: 'Audio', itemtype: null, parent: null }];
     const fetchMock = makeFetch(
-      makePage(page1, 2, 0),
-      makePage(page2, 2, 1),
+      makePage(page1, 1, 0, 'https://api.rentman.net/folders?cursor=page-2'),
+      makePage(page2, 1, 1, null),
     );
     const client = createRentmanClient({ token: 't', fetch: fetchMock as unknown as typeof fetch });
 

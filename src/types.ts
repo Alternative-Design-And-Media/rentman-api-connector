@@ -29,12 +29,14 @@
 
 /** Metadata returned with every collection (list) response. */
 export interface RentmanPageMeta {
-  /** Total number of items matching the query (before pagination). */
+  /** Item count reported on this response page; under cursor pagination this is not a reliable grand total. */
   itemCount: number;
-  /** Effective `limit` applied by the API (max 300). */
+  /** Effective `limit` applied by the API (max 1500). */
   limit: number;
   /** Effective `offset` applied by the API. */
   offset: number;
+  /** Cursor-pagination URL for the next page; follow verbatim until it is `null`/missing. */
+  next_page_url?: string | null;
 }
 
 /** Wrapper for a **collection** (array) response. */

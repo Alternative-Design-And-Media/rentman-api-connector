@@ -113,7 +113,7 @@ export interface RentmanClientOptions {
 }
 
 export interface ScanOptions {
-  /** Max page size for each request. Default: 300 (Rentman OAS default). */
+  /** Max page size for each request. Default: 300 (Rentman API default); max 1500. */
   pageSize?: number;
   /** Maximum total items to collect before stopping. Default: Infinity. */
   scanLimit?: number;
@@ -123,7 +123,7 @@ export interface ScanResult<T> {
   items: T[];
   /** True when scanLimit was reached before the full collection was read. */
   limitReached: boolean;
-  /** Total item count reported by the Rentman API (from first page response). */
+  /** Item count reported by the Rentman API on the first page response. */
   totalCount: number;
 }
 
@@ -1133,8 +1133,26 @@ export class RentmanClient {
 
   private async request<T>(path: string, init: RequestInit = {}): Promise<T> {
     const token = await this.resolveToken();
-    const url = `${this.baseUrl}${path}`;
+    return this.performRequest<T>(`${this.baseUrl}${path}`, path, token, init);
+  }
 
+  private async requestAbsolute<T>(url: string): Promise<T> {
+    const token = await this.resolveToken();
+    const resolvedUrl = /^(?:https?:)?\/\//i.test(url)
+      ? url
+      : url.startsWith('/')
+        ? `${this.baseUrl}${url}`
+        : `${this.baseUrl}/${url}`;
+
+    return this.performRequest<T>(resolvedUrl, url, token);
+  }
+
+  private async performRequest<T>(
+    url: string,
+    requestLabel: string,
+    token: string,
+    init: RequestInit = {},
+  ): Promise<T> {
     const res = await this.fetchImpl(url, {
       ...init,
       headers: {
@@ -1153,7 +1171,7 @@ export class RentmanClient {
       let body: unknown;
       try { body = JSON.parse(bodyText); } catch { body = bodyText; }
       throw new RentmanApiError(
-        `Rentman API ${init.method ?? 'GET'} ${path} → ${res.status} ${res.statusText}`,
+        `Rentman API ${init.method ?? 'GET'} ${requestLabel} → ${res.status} ${res.statusText}`,
         res.status,
         body,
       );
@@ -1172,7 +1190,7 @@ export class RentmanClient {
    *
    * @param path - Rentman API collection path (prefer `ENDPOINTS.<key>` constants).
    * @param query - Optional query options (`fields`, `sort`, `filters`, `relFilters`, `nullFilters`, `limit`, `offset`).
-   * @returns A collection response with `data` plus pagination metadata (`itemCount`, `limit`, `offset`).
+   * @returns A collection response with `data` plus pagination metadata (`itemCount`, `limit`, `offset`, `next_page_url`).
    * @throws {RentmanApiError} When the API returns a non-2xx response.
    * @deprecated Use resource-specific OOP facade methods (for example `client.projects.list(...)`).
    *
@@ -1224,13 +1242,13 @@ export class RentmanClient {
   }
 
   /**
-   * Fetch all pages of a collection, handling the 300-item-per-page API limit
-   * automatically. Uses `itemCount` from the first response to avoid
-   * unnecessary extra requests. Use with caution — this may issue many HTTP requests.
+   * Fetch all pages of a collection.
+   * Follows Rentman cursor pagination when `next_page_url` is returned, otherwise
+   * falls back to offset pagination for non-`id` sorts.
    *
    * @param path - Rentman API collection path (prefer `ENDPOINTS.<key>` constants).
    * @param query - Optional query options excluding `limit`/`offset`; pagination is managed internally.
-   * @param pageSize - Page size per request. Defaults to `300` (Rentman API hard cap).
+   * @param pageSize - Page size per request. Defaults to `1500` (Rentman API max).
    * @returns A flattened array containing items from all fetched pages.
    * @throws {RentmanApiError} When any page request returns a non-2xx response.
    * @deprecated Use resource-specific OOP facade methods (for example `client.projects.listAll(...)`).
@@ -1241,18 +1259,29 @@ export class RentmanClient {
   async listAll<T>(
     path: RentmanEndpoint,
     query?: Omit<RentmanQueryOptions, 'limit' | 'offset'>,
-    pageSize = 300,
+    pageSize = 1500,
   ): Promise<T[]> {
-    const results: T[] = [];
-    let offset = 0;
+    const firstPage = await this.list<T>(path, { ...query, limit: pageSize, offset: 0 });
+    const results: T[] = [...firstPage.data];
 
-    while (true) {
-      const page = await this.list<T>(path, { ...query, limit: pageSize, offset });
+    if (firstPage.next_page_url) {
+      let nextPageUrl: string | null | undefined = firstPage.next_page_url;
+      while (nextPageUrl) {
+        const page: RentmanCollectionResponse<T> = await this.requestAbsolute(nextPageUrl);
+        results.push(...page.data);
+        if (page.data.length === 0) break;
+        nextPageUrl = page.next_page_url;
+      }
+      return results;
+    }
+
+    let page = firstPage;
+    let offset = firstPage.offset + firstPage.data.length;
+    while (page.data.length === pageSize) {
+      page = await this.list<T>(path, { ...query, limit: pageSize, offset });
       results.push(...page.data);
-      offset += page.data.length;
-
-      // Stop when we have collected all items or the page was empty.
-      if (offset >= page.itemCount || page.data.length === 0) break;
+      offset = page.offset + page.data.length;
+      if (page.data.length < pageSize) break;
     }
 
     return results;
@@ -1266,7 +1295,7 @@ export class RentmanClient {
    * @param subPath - Sub-resource path segment, must start with `/`.
    * @param query - Optional query options; `limit` is stripped and `offset` is used as the
    *   starting position for auto-pagination (defaults to `0`).
-   * @param pageSize - Page size per request. Defaults to `300` (Rentman API hard cap).
+   * @param pageSize - Page size per request. Defaults to `1500` (Rentman API max).
    * @returns A flattened array containing items from all fetched pages.
    * @throws {RentmanApiError} When any page request returns a non-2xx response.
    */
@@ -1275,24 +1304,41 @@ export class RentmanClient {
     parentId: number,
     subPath: string,
     query?: RentmanQueryOptions,
-    pageSize = 300,
+    pageSize = 1500,
   ): Promise<T[]> {
     const queryWithoutLimit: RentmanQueryOptions = { ...(query ?? {}) };
     delete queryWithoutLimit.limit;
     delete queryWithoutLimit.offset;
-    const results: T[] = [];
-    let offset = query?.offset ?? 0;
 
-    while (true) {
-      const page = await this.listSub<T>(parentPath, parentId, subPath, {
+    const firstPage = await this.listSub<T>(parentPath, parentId, subPath, {
+      ...queryWithoutLimit,
+      limit: pageSize,
+      offset: query?.offset ?? 0,
+    });
+    const results: T[] = [...firstPage.data];
+
+    if (firstPage.next_page_url) {
+      let nextPageUrl: string | null | undefined = firstPage.next_page_url;
+      while (nextPageUrl) {
+        const page: RentmanCollectionResponse<T> = await this.requestAbsolute(nextPageUrl);
+        results.push(...page.data);
+        if (page.data.length === 0) break;
+        nextPageUrl = page.next_page_url;
+      }
+      return results;
+    }
+
+    let page = firstPage;
+    let offset = firstPage.offset + firstPage.data.length;
+    while (page.data.length === pageSize) {
+      page = await this.listSub<T>(parentPath, parentId, subPath, {
         ...queryWithoutLimit,
         limit: pageSize,
         offset,
       });
       results.push(...page.data);
-      offset += page.data.length;
-
-      if (offset >= page.itemCount || page.data.length === 0) break;
+      offset = page.offset + page.data.length;
+      if (page.data.length < pageSize) break;
     }
 
     return results;
@@ -1318,7 +1364,7 @@ export class RentmanClient {
     parentId: number,
     subPath: string,
     query?: RentmanQueryOptions,
-    pageSize = 300,
+    pageSize = 1500,
   ): Promise<T[]> {
     if (typeof query?.limit === 'number') {
       const page = await this.listSubResourcePaged<T>(parentPath, parentId, subPath, query);
@@ -1430,33 +1476,74 @@ export async function scanAll<T>(
 
   const items: T[] = [];
   let totalCount = 0;
-  let offset = 0;
+  let limitReached = false;
 
-  while (items.length < scanLimit) {
-    const page = await client.list<T>(endpoint, { ...query, limit: pageSize, offset });
-
-    if (offset === 0) {
+  const appendPage = (page: RentmanCollectionResponse<T>): boolean => {
+    if (items.length === 0) {
       totalCount = page.itemCount;
     }
-
-    if (page.data.length === 0) break;
-
+    if (page.data.length === 0) return false;
     const remaining = scanLimit - items.length;
     if (page.data.length > remaining) {
       items.push(...page.data.slice(0, remaining));
-      break;
+      limitReached = true;
+      return false;
     }
-
     items.push(...page.data);
-    offset += page.data.length;
+    return items.length < scanLimit;
+  };
 
-    if (items.length >= totalCount) break;
+  const firstPage = await client.list<T>(endpoint, { ...query, limit: pageSize, offset: 0 });
+  if (!appendPage(firstPage)) {
+    if (items.length >= scanLimit) {
+      limitReached = limitReached || Boolean(firstPage.next_page_url) || firstPage.data.length === pageSize;
+    }
+    return {
+      items,
+      totalCount,
+      limitReached,
+    };
+  }
+
+  if (firstPage.next_page_url) {
+    let nextPageUrl: string | null | undefined = firstPage.next_page_url;
+    while (nextPageUrl && items.length < scanLimit) {
+      const page: RentmanCollectionResponse<T> = await (
+        client as unknown as {
+          requestAbsolute<U>(url: string): Promise<RentmanCollectionResponse<U>>;
+        }
+      ).requestAbsolute<T>(nextPageUrl);
+
+      if (!appendPage(page)) {
+        if (items.length >= scanLimit) {
+          limitReached = limitReached || Boolean(page.next_page_url);
+        }
+        break;
+      }
+
+      nextPageUrl = page.next_page_url;
+    }
+  } else {
+    let offset = firstPage.offset + firstPage.data.length;
+    let previousPageLength = firstPage.data.length;
+    while (items.length < scanLimit && previousPageLength === pageSize) {
+      const page = await client.list<T>(endpoint, { ...query, limit: pageSize, offset });
+      previousPageLength = page.data.length;
+      offset = page.offset + page.data.length;
+
+      if (!appendPage(page)) {
+        if (items.length >= scanLimit) {
+          limitReached = limitReached || page.data.length === pageSize;
+        }
+        break;
+      }
+    }
   }
 
   return {
     items,
     totalCount,
-    limitReached: items.length >= scanLimit && items.length < totalCount,
+    limitReached,
   };
 }
 

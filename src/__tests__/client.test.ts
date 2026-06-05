@@ -11,6 +11,30 @@ import { ENDPOINTS } from '../endpoints.js';
 
 const mockEquipment = { id: 1, name: 'Cable reel', updateHash: 'abc123', created: '', modified: '' };
 
+function makePage<T>(
+  data: T[],
+  itemCount: number,
+  offset = 0,
+  next_page_url?: string | null,
+  limit = data.length || 300,
+): RentmanCollectionResponse<T> {
+  return {
+    data,
+    itemCount,
+    limit,
+    offset,
+    ...(next_page_url !== undefined ? { next_page_url } : {}),
+  };
+}
+
+function makeEquipmentItems(count: number, startId = 1) {
+  return Array.from({ length: count }, (_, index) => ({
+    ...mockEquipment,
+    id: startId + index,
+    name: `Equipment ${startId + index}`,
+  }));
+}
+
 function makeFetch(status: number, body: unknown) {
   return vi.fn().mockResolvedValue({
     ok: status >= 200 && status < 300,
@@ -136,19 +160,9 @@ describe('RentmanClient', () => {
     expect(err!.body).toBe('Forbidden');
   });
 
-  it('auto-paginates in listAll', async () => {
-    const page1: RentmanCollectionResponse<typeof mockEquipment> = {
-      data: [mockEquipment],
-      itemCount: 2,
-      limit: 1,
-      offset: 0,
-    };
-    const page2: RentmanCollectionResponse<typeof mockEquipment> = {
-      data: [{ ...mockEquipment, id: 2, name: 'Truss' }],
-      itemCount: 2,
-      limit: 1,
-      offset: 1,
-    };
+  it('auto-paginates in listAll via next_page_url without extra requests', async () => {
+    const page1 = makePage([mockEquipment], 1, 0, 'https://api.rentman.net/equipment?cursor=next-page', 1);
+    const page2 = makePage([{ ...mockEquipment, id: 2, name: 'Truss' }], 1, 1, null, 1);
     const fetchMock = vi.fn()
       .mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve(page1) })
       .mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve(page2) });
@@ -156,23 +170,13 @@ describe('RentmanClient', () => {
     const all = await client.listAll<typeof mockEquipment>('/equipment', {}, 1);
     expect(all).toHaveLength(2);
     expect(all[1]?.name).toBe('Truss');
-    // Exactly 2 requests — no extra page fetched after itemCount is reached
     expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect((fetchMock.mock.calls[1] as [string])[0]).toBe('https://api.rentman.net/equipment?cursor=next-page');
   });
 
   it('scanAll collects full collection when scanLimit is not provided', async () => {
-    const page1: RentmanCollectionResponse<typeof mockEquipment> = {
-      data: [mockEquipment],
-      itemCount: 2,
-      limit: 1,
-      offset: 0,
-    };
-    const page2: RentmanCollectionResponse<typeof mockEquipment> = {
-      data: [{ ...mockEquipment, id: 2, name: 'Truss' }],
-      itemCount: 2,
-      limit: 1,
-      offset: 1,
-    };
+    const page1 = makePage([mockEquipment], 1, 0, 'https://api.rentman.net/equipment?cursor=next-page', 1);
+    const page2 = makePage([{ ...mockEquipment, id: 2, name: 'Truss' }], 1, 1, null, 1);
     const fetchMock = vi.fn()
       .mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve(page1) })
       .mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve(page2) });
@@ -181,8 +185,29 @@ describe('RentmanClient', () => {
     const result = await scanAll<typeof mockEquipment>(client, '/equipment', {}, { pageSize: 1 });
 
     expect(result.items).toHaveLength(2);
-    expect(result.totalCount).toBe(2);
+    expect(result.totalCount).toBe(1);
     expect(result.limitReached).toBe(false);
+  });
+
+  it('scanAll follows cursor pages without truncating when first-page itemCount under-reports total', async () => {
+    const page1 = makePage(makeEquipmentItems(300), 300, 0, 'https://api.rentman.net/equipment?cursor=page-2&limit=300', 300);
+    const page2 = makePage(makeEquipmentItems(300, 301), 300, 300, 'https://api.rentman.net/equipment?cursor=page-3&limit=300', 300);
+    const page3 = makePage(makeEquipmentItems(150, 601), 300, 600, null, 300);
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve(page1) })
+      .mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve(page2) })
+      .mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve(page3) });
+    const client = createRentmanClient({ token: 't', fetch: fetchMock as unknown as typeof fetch });
+
+    const result = await scanAll<typeof mockEquipment>(client, '/equipment', {}, { pageSize: 300 });
+
+    expect(result.items).toHaveLength(750);
+    expect(result.items[0]?.id).toBe(1);
+    expect(result.items[749]?.id).toBe(750);
+    expect(new Set(result.items.map(({ id }) => id)).size).toBe(750);
+    expect(result.totalCount).toBe(300);
+    expect(result.limitReached).toBe(false);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
   });
 
   it('scanAll stops at scanLimit and sets limitReached', async () => {
@@ -297,38 +322,67 @@ describe('RentmanClient', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
-  it('listAll does not fetch an extra page when itemCount is divisible by pageSize', async () => {
-    const page1: RentmanCollectionResponse<typeof mockEquipment> = {
-      data: [mockEquipment, { ...mockEquipment, id: 2, name: 'Truss' }],
-      itemCount: 4,
-      limit: 2,
-      offset: 0,
-    };
-    const page2: RentmanCollectionResponse<typeof mockEquipment> = {
-      data: [{ ...mockEquipment, id: 3, name: 'Case' }, { ...mockEquipment, id: 4, name: 'Stand' }],
-      itemCount: 4,
-      limit: 2,
-      offset: 2,
-    };
+  it('listAll follows cursor pages even when first-page itemCount under-reports the total', async () => {
+    const nextPageUrl = 'https://api.rentman.net/equipment?cursor=opaque%2Btoken%2F%3D&limit=300';
+    const page1 = makePage(makeEquipmentItems(300), 300, 0, nextPageUrl, 300);
+    const page2 = makePage(makeEquipmentItems(1, 301), 300, 300, null, 300);
     const fetchMock = vi.fn()
       .mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve(page1) })
       .mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve(page2) });
     const client = createRentmanClient({ token: 't', fetch: fetchMock as unknown as typeof fetch });
 
-    const all = await client.listAll('/equipment', {}, 2);
+    const all = await client.listAll<typeof mockEquipment>('/equipment', {}, 300);
 
-    expect(all).toHaveLength(4);
+    expect(all).toHaveLength(301);
+    expect(all[300]?.id).toBe(301);
+    expect(new Set(all.map(({ id }) => id)).size).toBe(301);
     expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect((fetchMock.mock.calls[1] as [string])[0]).toBe(nextPageUrl);
+  });
+
+  it('listAll returns every item across multiple cursor pages', async () => {
+    const page1 = makePage(makeEquipmentItems(300), 300, 0, '/equipment?cursor=page-2&limit=300', 300);
+    const page2 = makePage(makeEquipmentItems(300, 301), 300, 300, '/equipment?cursor=page-3&limit=300', 300);
+    const page3 = makePage(makeEquipmentItems(150, 601), 300, 600, null, 300);
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve(page1) })
+      .mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve(page2) })
+      .mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve(page3) });
+    const client = createRentmanClient({ token: 't', fetch: fetchMock as unknown as typeof fetch });
+
+    const all = await client.listAll<typeof mockEquipment>('/equipment', {}, 300);
+
+    expect(all).toHaveLength(750);
+    expect(all[0]?.id).toBe(1);
+    expect(all[749]?.id).toBe(750);
+    expect(new Set(all.map(({ id }) => id)).size).toBe(750);
+    expect((fetchMock.mock.calls[1] as [string])[0]).toBe('https://api.rentman.net/equipment?cursor=page-2&limit=300');
+    expect((fetchMock.mock.calls[2] as [string])[0]).toBe('https://api.rentman.net/equipment?cursor=page-3&limit=300');
+  });
+
+  it('listAll falls back to offset pagination when next_page_url is absent', async () => {
+    const page1 = makePage(makeEquipmentItems(2), 2, 0, undefined, 2);
+    const page2 = makePage(makeEquipmentItems(2, 3), 2, 2, undefined, 2);
+    const page3 = makePage(makeEquipmentItems(1, 5), 2, 4, undefined, 2);
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve(page1) })
+      .mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve(page2) })
+      .mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve(page3) });
+    const client = createRentmanClient({ token: 't', fetch: fetchMock as unknown as typeof fetch });
+
+    const all = await client.listAll<typeof mockEquipment>('/equipment', { sort: ['+name'] }, 2);
+
+    expect(all).toHaveLength(5);
+    expect(new Set(all.map(({ id }) => id)).size).toBe(5);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect((fetchMock.mock.calls[0] as [string])[0]).toContain('sort=%2Bname');
+    expect((fetchMock.mock.calls[0] as [string])[0]).toContain('offset=0');
+    expect((fetchMock.mock.calls[1] as [string])[0]).toContain('offset=2');
+    expect((fetchMock.mock.calls[2] as [string])[0]).toContain('offset=4');
   });
 
   it('listAll uses custom pageSize', async () => {
-    const page: RentmanCollectionResponse<typeof mockEquipment> = {
-      data: [mockEquipment],
-      itemCount: 1,
-      limit: 2,
-      offset: 0,
-    };
-    const fetchMock = makeFetch(200, page);
+    const fetchMock = makeFetch(200, makePage([mockEquipment], 1, 0, undefined, 2));
     const client = createRentmanClient({ token: 't', fetch: fetchMock as unknown as typeof fetch });
 
     await client.listAll('/equipment', {}, 2);
@@ -428,21 +482,13 @@ describe('RentmanClient', () => {
   });
 
   it('auto-paginates in listAllSub', async () => {
-    const page1: RentmanCollectionResponse<typeof mockEquipment> = {
-      data: [mockEquipment],
-      itemCount: 2,
-      limit: 1,
-      offset: 0,
-    };
-    const page2: RentmanCollectionResponse<typeof mockEquipment> = {
-      data: [{ ...mockEquipment, id: 2, name: 'Truss' }],
-      itemCount: 2,
-      limit: 1,
-      offset: 1,
-    };
+    const page1 = makePage(makeEquipmentItems(300), 300, 0, 'https://api.rentman.net/equipment/3473/equipmentsetscontent?cursor=page-2&limit=300', 300);
+    const page2 = makePage(makeEquipmentItems(300, 301), 300, 300, 'https://api.rentman.net/equipment/3473/equipmentsetscontent?cursor=page-3&limit=300', 300);
+    const page3 = makePage(makeEquipmentItems(150, 601), 300, 600, null, 300);
     const fetchMock = vi.fn()
       .mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve(page1) })
-      .mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve(page2) });
+      .mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve(page2) })
+      .mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve(page3) });
     const client = createRentmanClient({ token: 't', fetch: fetchMock as unknown as typeof fetch });
 
     const all = await client.listAllSub<typeof mockEquipment>(
@@ -450,28 +496,19 @@ describe('RentmanClient', () => {
       3473,
       '/equipmentsetscontent',
       {},
-      1,
+      300,
     );
 
-    expect(all).toHaveLength(2);
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(all).toHaveLength(750);
+    expect(new Set(all.map(({ id }) => id)).size).toBe(750);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
     const firstCallUrl = fetchMock.mock.calls[0]?.[0] as string;
-    expect(firstCallUrl).toContain('/equipment/3473/equipmentsetscontent?limit=1&offset=0');
+    expect(firstCallUrl).toContain('/equipment/3473/equipmentsetscontent?limit=300&offset=0');
   });
 
   it('projects.listEquipment keeps auto-pagination behavior when no limit is provided', async () => {
-    const page1: RentmanCollectionResponse<typeof mockEquipment> = {
-      data: [mockEquipment],
-      itemCount: 2,
-      limit: 1,
-      offset: 0,
-    };
-    const page2: RentmanCollectionResponse<typeof mockEquipment> = {
-      data: [{ ...mockEquipment, id: 2, name: 'Truss' }],
-      itemCount: 2,
-      limit: 1,
-      offset: 1,
-    };
+    const page1 = makePage([mockEquipment], 1, 0, 'https://api.rentman.net/projects/3473/projectequipment?cursor=page-2&limit=1500', 1500);
+    const page2 = makePage([{ ...mockEquipment, id: 2, name: 'Truss' }], 1, 1, null, 1500);
     const fetchMock = vi.fn()
       .mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve(page1) })
       .mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve(page2) });
@@ -481,7 +518,7 @@ describe('RentmanClient', () => {
 
     expect(all).toEqual([mockEquipment, { ...mockEquipment, id: 2, name: 'Truss' }]);
     expect(fetchMock).toHaveBeenCalledTimes(2);
-    expect((fetchMock.mock.calls[0] as [string])[0]).toContain('/projects/3473/projectequipment?limit=300&offset=0');
+    expect((fetchMock.mock.calls[0] as [string])[0]).toContain('/projects/3473/projectequipment?limit=1500&offset=0');
   });
 
   it('projects.listEquipment with limit returns only the requested page', async () => {
