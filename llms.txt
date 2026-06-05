@@ -5,7 +5,7 @@ Type-safe Rentman REST API connector for Node.js and edge runtimes (Cloudflare W
 ## When to use
 
 Use this package when you need typed access to Rentman REST resources with:
-- OOP resource facades (`rentman.projects`, `rentman.equipment`, ...)
+- endpoint constants (`ENDPOINTS`)
 - typed responses (`RentmanCollectionResponse<T>`, `RentmanItemResponse<T>`)
 - query helpers for fields/sort/filters
 - auto-pagination (`listAll`)
@@ -27,10 +27,10 @@ npm install @alternative-design-and-media/rentman-api-connector
 - `RentmanClient`
 - `RentmanApiError`
 - `ENDPOINTS`
-- helpers: `normalizeToken`, `listEquipmentSetContents` (deprecated), `listWithPreservedSlashes` (deprecated), `normalizeEquipmentItem`, `NormalizedEquipmentItem`
+- helpers: `normalizeToken`, `listEquipmentSetContents`, `listWithPreservedSlashes`, `normalizeEquipmentItem`, `NormalizedEquipmentItem`
 - custom field helpers: `RentmanCustomFieldType`, `RentmanCustomFieldTypeMap`, `RentmanCustomFieldDefinition`, `RentmanCustomRecord`, `WithCustomFields`
 - query helpers: `buildQueryParams`, `buildQueryString`, `buildRentmanQuery`, `projectQuery`, `contactQuery`, `equipmentQuery`, `invoiceQuery`, `rel`, `notNull`, `isNull`
-- scan helper: `scanAll` (deprecated), `ScanOptions`, `ScanResult<T>`
+- scan helper: `scanAll`, `ScanOptions`, `ScanResult<T>`
 - lookup cache helpers: `fetchLookupMap`, `fetchStatusCache`, `fetchFolderNameCache`
 - resource types from `src/types.ts` (e.g. `RentmanEquipmentItem`, `RentmanProject`, `RentmanContact`)
 
@@ -50,26 +50,50 @@ const rentman = createRentmanClient({
 - a static `"Bearer ..."` string (normalized automatically)
 - a function `() => string | Promise<string>` for token rotation
 
-## Client methods
+## OOP resource facades (preferred interface)
 
-- OOP facade methods (supported): `rentman.<resource>.list(...)`, `listAll(...)`, `getById(...)`, `create(...)`, `update(...)`, `delete(...)`
-- `list<T>(path, query?)` → `Promise<RentmanCollectionResponse<T>>` **(deprecated)**
-- `listAll<T>(path, query?, pageSize = 300)` → `Promise<T[]>` (auto-paginates) **(deprecated)**
-- `scanAll<T>(client, endpoint, query, options?)` → `Promise<{ items: T[]; totalCount: number; limitReached: boolean }>` **(deprecated)**
+Use the OOP resource facades on the client instance for all new implementations.
+Low-level endpoint methods (`list`, `listAll`, `get`, `create`, `update`, `delete`, `listSub`, `listAllSub`, `scanAll`) are **deprecated** and kept only for migration compatibility.
+
+```ts
+// Preferred: OOP facade
+const allEquipment = await rentman.equipment.listAll();
+const project = await rentman.projects.getById(123);
+const subEquipment = await rentman.projects.listEquipment(projectId);
+
+// Deprecated (migration only):
+// const allEquipment = await rentman.listAll(ENDPOINTS.equipment);
+```
+
+Available facades: `rentman.projects`, `rentman.subProjects`, `rentman.contacts`, `rentman.contactPersons`, `rentman.equipment`, `rentman.invoices`, `rentman.quotes`, `rentman.crew`, `rentman.vehicles`, `rentman.appointments`, `rentman.subrentals`, and more.
+
+Each facade implements `ResourceApi<T>`:
+- `.list(query?)` → `Promise<RentmanCollectionResponse<T>>`
+- `.listAll(query?)` → `Promise<T[]>` (auto-paginates, follows cursor)
+- `.getById(id, query?)` → `Promise<RentmanItemResponse<T>>`
+- `.create(body)` → `Promise<RentmanItemResponse<T>>`
+- `.update(id, body)` → `Promise<RentmanItemResponse<T>>`
+- `.delete(id)` → `Promise<void>`
+
+## Low-level client methods (deprecated — migration only)
+
+> ⚠️ These methods are deprecated. Prefer the OOP facades above for all new code.
+
+- `list<T>(path, query?)` → `Promise<RentmanCollectionResponse<T>>` *(deprecated)*
+- `listAll<T>(path, query?, pageSize = 1500)` → `Promise<T[]>` (auto-paginates) *(deprecated)*
+- `scanAll<T>(client, endpoint, query, options?)` → `Promise<{ items: T[]; totalCount: number; limitReached: boolean }>` *(deprecated)*
 - `normalizeToken(token)` → `string`
-- `listEquipmentSetContents(client, kitId)` → `Promise<RentmanEquipmentSetContent[]>` **(deprecated)**
-- `listWithPreservedSlashes<T>(client, endpoint, query, options?)` → `Promise<RentmanCollectionResponse<T>>` **(deprecated)**
+- `listEquipmentSetContents(client, kitId)` → `Promise<RentmanEquipmentSetContent[]>` *(deprecated)*
+- `listWithPreservedSlashes<T>(client, endpoint, query, options?)` → `Promise<RentmanCollectionResponse<T>>`
 - `normalizeEquipmentItem(item)` → `NormalizedEquipmentItem`
-- `listSub<T>(parentPath, parentId, subPath, query?)` → `Promise<RentmanCollectionResponse<T>>` **(deprecated)**
-- `listAllSub<T>(parentPath, parentId, subPath, query?, pageSize = 300)` → `Promise<T[]>` (auto-paginates) **(deprecated)**
-- `get<T>(path, id, query?)` → `Promise<RentmanItemResponse<T>>` **(deprecated)**
-- `create<TIn, TOut>(path, body)` → `Promise<RentmanItemResponse<TOut>>` **(deprecated)**
-- `update<TIn, TOut>(path, id, body)` → `Promise<RentmanItemResponse<TOut>>` **(deprecated)**
-- `delete(path, id)` → `Promise<void>` **(deprecated)**
+- `listSub<T>(parentPath, parentId, subPath, query?)` → `Promise<RentmanCollectionResponse<T>>` *(deprecated)*
+- `listAllSub<T>(parentPath, parentId, subPath, query?, pageSize = 1500)` → `Promise<T[]>` (auto-paginates) *(deprecated)*
+- `get<T>(path, id, query?)` → `Promise<RentmanItemResponse<T>>` *(deprecated)*
+- `create<TIn, TOut>(path, body)` → `Promise<RentmanItemResponse<TOut>>` *(deprecated)*
+- `update<TIn, TOut>(path, id, body)` → `Promise<RentmanItemResponse<TOut>>` *(deprecated)*
+- `delete(path, id)` → `Promise<void>` *(deprecated)*
 
 All methods throw `RentmanApiError` for non-2xx API responses.
-
-Low-level direct endpoint-based methods are migration-only; implement new integrations with the OOP facade.
 
 ## Query helpers
 
@@ -142,7 +166,7 @@ const invoices = invoiceQuery()
 
 ## Preserving slashes in resource-path filters
 
-When a Rentman collection filter value is itself a resource path (for example `/equipment/4362`), percent-encoding the slash as `%2F` can break Rentman’s parser. Prefer OOP facade methods first; use deprecated `listWithPreservedSlashes()` only for legacy migration.
+When a Rentman collection filter value is itself a resource path (for example `/equipment/4362`), percent-encoding the slash as `%2F` can break Rentman’s parser. Use `listWithPreservedSlashes()` for those collection requests.
 
 ```ts
 import {
@@ -227,7 +251,7 @@ type MyEquipment = RentmanEquipmentItem<EquipmentCustom>;
 import { RentmanApiError } from '@alternative-design-and-media/rentman-api-connector';
 
 try {
-  await rentman.equipment.list({ limit: 50 });
+  await rentman.list(ENDPOINTS.equipment, { limit: 50 });
 } catch (err) {
   if (err instanceof RentmanApiError) {
     console.error(err.status, err.body);

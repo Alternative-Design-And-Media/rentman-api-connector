@@ -1,6 +1,6 @@
 # @alternative-design-and-media/rentman-api-connector
 
-v2.1.1
+v2.3.0
 
 > Type-safe Rentman REST API connector for Node.js and edge runtimes (Cloudflare Workers).
 > Synced to **OAS v1.7.0** (deployment 2025-11-13).
@@ -13,10 +13,10 @@ v2.1.1
 ## Features
 
 - ✅ Full TypeScript types for 55+ Rentman resources (`RentmanEquipmentItem`, `RentmanProject`, `RentmanContact`, …)
-- ✅ Typed response wrappers with **all pagination metadata** (`data`, `itemCount`, `limit`, `offset`)
+- ✅ Typed response wrappers with **all pagination metadata** (`data`, `itemCount`, `limit`, `offset`, `next_page_url`)
 - ✅ Explicit `updateHash` on every entity for change tracking
 - ✅ Type-safe query builder — `fields`, `sort`, relational operators, `isnull` filters
-- ✅ Auto-pagination helper (`listAll`) for collections larger than 300 items
+- ✅ Cursor-aware auto-pagination helpers for collections larger than 300 items
 - ✅ Preserve-slashes collection helper (`listWithPreservedSlashes`) for resource-path filters
 - ✅ Token normalization helper (`normalizeToken`) — accepts bare JWTs and `"Bearer ..."` tokens
 - ✅ Edge-runtime compatible — uses native `fetch` only (Node.js 18+, Cloudflare Workers)
@@ -345,7 +345,7 @@ for (const item of data) {
 
 ### Auto-pagination (`listAll`)
 
-The Rentman API hard-caps responses at **300 items per page**. Use `listAll` to transparently fetch and concatenate all pages.
+Collection requests are now **cursor-based by default**. Rentman still defaults to **300** items per page, but now allows up to **1500**. `listAll` follows `next_page_url` automatically and falls back to offset pagination only when the API omits `next_page_url` (for example when sorting by a non-`id` field).
 
 ```ts
 const allProjects = await rentman.listAll<RentmanProject>(ENDPOINTS.projects, {
@@ -774,11 +774,11 @@ Static `token` values may be provided either as a bare JWT or as a `"Bearer ..."
 
 ### `client.list<T>(path, query?)` (deprecated)
 
-Fetch a collection. Returns `RentmanCollectionResponse<T>` with `data`, `itemCount`, `limit`, `offset`.
+Fetch a collection. Returns `RentmanCollectionResponse<T>` with `data`, `itemCount`, `limit`, `offset`, and optional `next_page_url`.
 
 ### `client.listAll<T>(path, query?, pageSize?)` (deprecated)
 
-Auto-paginate through all items. `pageSize` defaults to `300` (the API hard cap).
+Auto-paginate through all items. `pageSize` defaults to `1500` (the Rentman API max), while the API itself still defaults to `300` when no limit is sent.
 
 ### `listWithPreservedSlashes<T>(client, endpoint, query, options?)` (deprecated)
 
@@ -957,7 +957,7 @@ const { data } = await listWithPreservedSlashes<RentmanEquipmentSetContent>(
 - **Generated fields** (marked in the OAS as `GENERATED FIELD`) are annotated with a JSDoc comment on the type. They cannot be sorted on when `limit`/`offset` are set, and cannot be used as filter keys.
 - **`updateHash`** is present on every entity. Use it to detect changes cheaply without comparing all fields.
 - **`custom`** exposes the `custom_<number>` keys returned by the API. Narrow the type at compile time by passing a `TCustom` type argument (see [Custom Fields](#custom-fields)).
-- **Pagination**: the API hard-caps responses at 300 items. Use `listAll()` to fetch beyond that.
+- **Pagination**: collection responses are cursor-based by default. The API default page size is 300, the max is 1500, and `listAll()` / `listAllSub()` follow `next_page_url` automatically.
 - **Rate limits**: 50 000 requests/day, 10 req/s, max 20 concurrent requests.
 
 ---

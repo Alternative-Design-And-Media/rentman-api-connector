@@ -70,7 +70,7 @@ export interface RentmanQueryOptions {
   relFilters?: RentmanRelFilter[];
   /** Null-check filters, e.g. `[{ field: 'folder', isNull: false }]`. */
   nullFilters?: RentmanNullFilter[];
-  /** Maximum items to return (API hard cap: 300). */
+  /** Maximum items to return (API max: 1500; default: 300). */
   limit?: number;
   /** Items to skip for pagination. */
   offset?: number;
