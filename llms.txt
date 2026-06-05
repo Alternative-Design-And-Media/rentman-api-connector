@@ -50,21 +50,48 @@ const rentman = createRentmanClient({
 - a static `"Bearer ..."` string (normalized automatically)
 - a function `() => string | Promise<string>` for token rotation
 
-## Client methods
+## OOP resource facades (preferred interface)
 
-- `list<T>(path, query?)` → `Promise<RentmanCollectionResponse<T>>`
-- `listAll<T>(path, query?, pageSize = 1500)` → `Promise<T[]>` (auto-paginates)
-- `scanAll<T>(client, endpoint, query, options?)` → `Promise<{ items: T[]; totalCount: number; limitReached: boolean }>`
+Use the OOP resource facades on the client instance for all new implementations.
+Low-level endpoint methods (`list`, `listAll`, `get`, `create`, `update`, `delete`, `listSub`, `listAllSub`, `scanAll`) are **deprecated** and kept only for migration compatibility.
+
+```ts
+// Preferred: OOP facade
+const allEquipment = await rentman.equipment.listAll();
+const project = await rentman.projects.getById(123);
+const subEquipment = await rentman.projects.listEquipment(projectId);
+
+// Deprecated (migration only):
+// const allEquipment = await rentman.listAll(ENDPOINTS.equipment);
+```
+
+Available facades: `rentman.projects`, `rentman.subProjects`, `rentman.contacts`, `rentman.contactPersons`, `rentman.equipment`, `rentman.invoices`, `rentman.quotes`, `rentman.crew`, `rentman.vehicles`, `rentman.appointments`, `rentman.subrentals`, and more.
+
+Each facade implements `ResourceApi<T>`:
+- `.list(query?)` → `Promise<RentmanCollectionResponse<T>>`
+- `.listAll(query?)` → `Promise<T[]>` (auto-paginates, follows cursor)
+- `.getById(id, query?)` → `Promise<RentmanItemResponse<T>>`
+- `.create(body)` → `Promise<RentmanItemResponse<T>>`
+- `.update(id, body)` → `Promise<RentmanItemResponse<T>>`
+- `.delete(id)` → `Promise<void>`
+
+## Low-level client methods (deprecated — migration only)
+
+> ⚠️ These methods are deprecated. Prefer the OOP facades above for all new code.
+
+- `list<T>(path, query?)` → `Promise<RentmanCollectionResponse<T>>` *(deprecated)*
+- `listAll<T>(path, query?, pageSize = 1500)` → `Promise<T[]>` (auto-paginates) *(deprecated)*
+- `scanAll<T>(client, endpoint, query, options?)` → `Promise<{ items: T[]; totalCount: number; limitReached: boolean }>` *(deprecated)*
 - `normalizeToken(token)` → `string`
-- `listEquipmentSetContents(client, kitId)` → `Promise<RentmanEquipmentSetContent[]>`
+- `listEquipmentSetContents(client, kitId)` → `Promise<RentmanEquipmentSetContent[]>` *(deprecated)*
 - `listWithPreservedSlashes<T>(client, endpoint, query, options?)` → `Promise<RentmanCollectionResponse<T>>`
 - `normalizeEquipmentItem(item)` → `NormalizedEquipmentItem`
-- `listSub<T>(parentPath, parentId, subPath, query?)` → `Promise<RentmanCollectionResponse<T>>`
-- `listAllSub<T>(parentPath, parentId, subPath, query?, pageSize = 1500)` → `Promise<T[]>` (auto-paginates)
-- `get<T>(path, id, query?)` → `Promise<RentmanItemResponse<T>>`
-- `create<TIn, TOut>(path, body)` → `Promise<RentmanItemResponse<TOut>>`
-- `update<TIn, TOut>(path, id, body)` → `Promise<RentmanItemResponse<TOut>>`
-- `delete(path, id)` → `Promise<void>`
+- `listSub<T>(parentPath, parentId, subPath, query?)` → `Promise<RentmanCollectionResponse<T>>` *(deprecated)*
+- `listAllSub<T>(parentPath, parentId, subPath, query?, pageSize = 1500)` → `Promise<T[]>` (auto-paginates) *(deprecated)*
+- `get<T>(path, id, query?)` → `Promise<RentmanItemResponse<T>>` *(deprecated)*
+- `create<TIn, TOut>(path, body)` → `Promise<RentmanItemResponse<TOut>>` *(deprecated)*
+- `update<TIn, TOut>(path, id, body)` → `Promise<RentmanItemResponse<TOut>>` *(deprecated)*
+- `delete(path, id)` → `Promise<void>` *(deprecated)*
 
 All methods throw `RentmanApiError` for non-2xx API responses.
 

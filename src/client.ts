@@ -73,6 +73,14 @@ import type { CustomFieldMap, WithCustomFields } from './custom-fields.js';
 
 export const RENTMAN_BASE_URL = 'https://api.rentman.net';
 
+/**
+ * Hard upper bound on the number of cursor pages followed in `listAll`,
+ * `listAllSubResource`, and `scanAll`. Prevents an infinite loop when a
+ * misbehaving API returns a never-ending or cyclic `next_page_url`.
+ * At the maximum page size (1500 items) this allows up to 15 million items.
+ */
+const MAX_CURSOR_PAGES = 10_000;
+
 // ---------------------------------------------------------------------------
 // Error
 // ---------------------------------------------------------------------------
@@ -123,7 +131,13 @@ export interface ScanResult<T> {
   items: T[];
   /** True when scanLimit was reached before the full collection was read. */
   limitReached: boolean;
-  /** Item count reported by the Rentman API on the first page response. */
+  /**
+   * Total number of items available.
+   * When the scan completes fully (`limitReached` is `false`) this equals `items.length`.
+   * When the scan was truncated (`limitReached` is `true`) this falls back to the
+   * `itemCount` field from the first page response, which under cursor pagination
+   * equals the page size rather than the grand total — treat it as a lower bound.
+   */
   totalCount: number;
 }
 
@@ -1136,14 +1150,24 @@ export class RentmanClient {
     return this.performRequest<T>(`${this.baseUrl}${path}`, path, token, init);
   }
 
-  private async requestAbsolute<T>(url: string): Promise<T> {
+  /** @internal */
+  public async requestAbsolute<T>(url: string): Promise<T> {
     const token = await this.resolveToken();
-    const resolvedUrl = /^(?:https?:)?\/\//i.test(url)
-      ? url
-      : url.startsWith('/')
-        ? `${this.baseUrl}${url}`
-        : `${this.baseUrl}/${url}`;
-
+    let resolvedUrl: string;
+    if (/^(?:https?:)?\/\//i.test(url)) {
+      // Absolute URL: rebase path+search onto this.baseUrl to honour any configured
+      // proxy or regional baseUrl override instead of always targeting the API origin.
+      try {
+        const parsed = new URL(url);
+        resolvedUrl = `${this.baseUrl}${parsed.pathname}${parsed.search}`;
+      } catch {
+        resolvedUrl = url;
+      }
+    } else if (url.startsWith('/')) {
+      resolvedUrl = `${this.baseUrl}${url}`;
+    } else {
+      resolvedUrl = `${this.baseUrl}/${url}`;
+    }
     return this.performRequest<T>(resolvedUrl, url, token);
   }
 
@@ -1266,7 +1290,16 @@ export class RentmanClient {
 
     if (firstPage.next_page_url) {
       let nextPageUrl: string | null | undefined = firstPage.next_page_url;
+      const seenUrls = new Set<string>();
+      let pageCount = 0;
       while (nextPageUrl) {
+        if (seenUrls.has(nextPageUrl)) {
+          throw new Error(`Rentman cursor pagination loop detected: next_page_url "${nextPageUrl}" was seen twice`);
+        }
+        if (++pageCount > MAX_CURSOR_PAGES) {
+          throw new Error(`Rentman cursor pagination exceeded ${MAX_CURSOR_PAGES} pages without exhausting next_page_url`);
+        }
+        seenUrls.add(nextPageUrl);
         const page: RentmanCollectionResponse<T> = await this.requestAbsolute(nextPageUrl);
         results.push(...page.data);
         if (page.data.length === 0) break;
@@ -1319,7 +1352,16 @@ export class RentmanClient {
 
     if (firstPage.next_page_url) {
       let nextPageUrl: string | null | undefined = firstPage.next_page_url;
+      const seenUrls = new Set<string>();
+      let pageCount = 0;
       while (nextPageUrl) {
+        if (seenUrls.has(nextPageUrl)) {
+          throw new Error(`Rentman cursor pagination loop detected: next_page_url "${nextPageUrl}" was seen twice`);
+        }
+        if (++pageCount > MAX_CURSOR_PAGES) {
+          throw new Error(`Rentman cursor pagination exceeded ${MAX_CURSOR_PAGES} pages without exhausting next_page_url`);
+        }
+        seenUrls.add(nextPageUrl);
         const page: RentmanCollectionResponse<T> = await this.requestAbsolute(nextPageUrl);
         results.push(...page.data);
         if (page.data.length === 0) break;
@@ -1475,12 +1517,12 @@ export async function scanAll<T>(
   const scanLimit = options.scanLimit ?? Number.POSITIVE_INFINITY;
 
   const items: T[] = [];
-  let totalCount = 0;
+  let firstPageItemCount = 0;
   let limitReached = false;
 
   const appendPage = (page: RentmanCollectionResponse<T>): boolean => {
     if (items.length === 0) {
-      totalCount = page.itemCount;
+      firstPageItemCount = page.itemCount;
     }
     if (page.data.length === 0) return false;
     const remaining = scanLimit - items.length;
@@ -1495,24 +1537,36 @@ export async function scanAll<T>(
 
   const firstPage = await client.list<T>(endpoint, { ...query, limit: pageSize, offset: 0 });
   if (!appendPage(firstPage)) {
-    if (items.length >= scanLimit) {
-      limitReached = limitReached || Boolean(firstPage.next_page_url) || firstPage.data.length === pageSize;
+    if (!limitReached && items.length >= scanLimit) {
+      // Cursor mode: limitReached if there are more cursor pages.
+      if (firstPage.next_page_url) {
+        limitReached = true;
+      } else if (firstPage.data.length === pageSize) {
+        // Offset mode: scanLimit hit exactly on a full page — probe 1 item to confirm.
+        const probe = await client.list<T>(endpoint, { ...query, limit: 1, offset: items.length });
+        limitReached = probe.data.length > 0;
+      }
     }
     return {
       items,
-      totalCount,
+      totalCount: limitReached ? firstPageItemCount : items.length,
       limitReached,
     };
   }
 
   if (firstPage.next_page_url) {
     let nextPageUrl: string | null | undefined = firstPage.next_page_url;
+    const seenUrls = new Set<string>();
+    let pageCount = 0;
     while (nextPageUrl && items.length < scanLimit) {
-      const page: RentmanCollectionResponse<T> = await (
-        client as unknown as {
-          requestAbsolute<U>(url: string): Promise<RentmanCollectionResponse<U>>;
-        }
-      ).requestAbsolute<T>(nextPageUrl);
+      if (seenUrls.has(nextPageUrl)) {
+        throw new Error(`Rentman cursor pagination loop detected: next_page_url "${nextPageUrl}" was seen twice`);
+      }
+      if (++pageCount > MAX_CURSOR_PAGES) {
+        throw new Error(`Rentman cursor pagination exceeded ${MAX_CURSOR_PAGES} pages without exhausting next_page_url`);
+      }
+      seenUrls.add(nextPageUrl);
+      const page: RentmanCollectionResponse<T> = await client.requestAbsolute<RentmanCollectionResponse<T>>(nextPageUrl);
 
       if (!appendPage(page)) {
         if (items.length >= scanLimit) {
@@ -1532,8 +1586,11 @@ export async function scanAll<T>(
       offset = page.offset + page.data.length;
 
       if (!appendPage(page)) {
-        if (items.length >= scanLimit) {
-          limitReached = limitReached || page.data.length === pageSize;
+        if (!limitReached && items.length >= scanLimit && page.data.length === pageSize) {
+          // scanLimit hit exactly at a full page boundary with no slicing:
+          // probe 1 item to confirm whether more items exist.
+          const probe = await client.list<T>(endpoint, { ...query, limit: 1, offset: items.length });
+          limitReached = probe.data.length > 0;
         }
         break;
       }
@@ -1542,7 +1599,7 @@ export async function scanAll<T>(
 
   return {
     items,
-    totalCount,
+    totalCount: limitReached ? firstPageItemCount : items.length,
     limitReached,
   };
 }

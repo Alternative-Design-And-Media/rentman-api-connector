@@ -6,8 +6,15 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 ## [2.3.0] — 2026-06-05
 
 ### Fixed
-- Javítva lett a `listAll`, `listAllSub` és `scanAll` csendes, 300 elemnél történő levágása: a connector most már a Rentman `next_page_url` cursoros lapozását követi, és csak szükség esetén esik vissza offsetes lapozásra.
-- A publikus lapozási metaadatok most már tartalmazzák az opcionális `next_page_url` mezőt is, a dokumentáció pedig a 300-as alapértelmezett és az 1500-as maximális oldal-méretet írja le helyesen.
+- Fixed silent truncation at 300 items in `listAll`, `listAllSub`, and `scanAll`: the connector now follows Rentman `next_page_url` cursor pages and only falls back to offset pagination when cursor pagination is not in use.
+- Public pagination metadata now includes the optional `next_page_url` field; documentation correctly describes the 300-item API default and 1500-item maximum page size.
+- `scanAll().totalCount` now returns `items.length` when the scan completes fully, instead of the first-page `itemCount` which under cursor pagination equals the page size.
+- `scanAll().limitReached` no longer returns a false positive when `scanLimit` is reached exactly at a full-page boundary that is actually the end of the collection (edge case confirmed with a 1-item probe).
+
+### Added
+- `requestAbsolute()` is now a `public` method on `RentmanClient` (tagged `@internal`) so cursor-pagination paths in external helpers are type-checked without `unknown` casts.
+- Cursor-following loops (`listAll`, `listAllSub`, `scanAll`) now detect cyclic `next_page_url` values and enforce a hard page-count ceiling (`MAX_CURSOR_PAGES = 10 000`), throwing a clear error instead of looping indefinitely.
+- Absolute `next_page_url` values are now rebased onto the configured `baseUrl`, so proxy or regional `baseUrl` overrides are respected for cursor pages.
 
 ---
 

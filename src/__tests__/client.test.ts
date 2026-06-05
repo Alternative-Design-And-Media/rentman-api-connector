@@ -185,7 +185,7 @@ describe('RentmanClient', () => {
     const result = await scanAll<typeof mockEquipment>(client, '/equipment', {}, { pageSize: 1 });
 
     expect(result.items).toHaveLength(2);
-    expect(result.totalCount).toBe(1);
+    expect(result.totalCount).toBe(2);
     expect(result.limitReached).toBe(false);
   });
 
@@ -205,7 +205,7 @@ describe('RentmanClient', () => {
     expect(result.items[0]?.id).toBe(1);
     expect(result.items[749]?.id).toBe(750);
     expect(new Set(result.items.map(({ id }) => id)).size).toBe(750);
-    expect(result.totalCount).toBe(300);
+    expect(result.totalCount).toBe(750);
     expect(result.limitReached).toBe(false);
     expect(fetchMock).toHaveBeenCalledTimes(3);
   });
@@ -257,6 +257,61 @@ describe('RentmanClient', () => {
       limitReached: false,
     });
     expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('scanAll limitReached is false when scanLimit equals exactly the full collection (offset mode)', async () => {
+    // Regression: total=300, scanLimit=300, pageSize=300
+    // The first page is full (pageSize items) but the collection is exhausted.
+    // A probe of offset=300 returns 0 items, so limitReached must be false.
+    const fullPage = makePage(makeEquipmentItems(300), 300, 0, null, 300);
+    const emptyProbe = makePage([], 0, 300, null, 0);
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve(fullPage) })
+      .mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve(emptyProbe) });
+    const client = createRentmanClient({ token: 't', fetch: fetchMock as unknown as typeof fetch });
+
+    const result = await scanAll<typeof mockEquipment>(
+      client, '/equipment', {}, { pageSize: 300, scanLimit: 300 },
+    );
+
+    expect(result.items).toHaveLength(300);
+    expect(result.limitReached).toBe(false);
+    expect(result.totalCount).toBe(300);
+    // 1 real page + 1 probe
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('scanAll limitReached is true when scanLimit equals a full page that has more items (offset mode)', async () => {
+    // total=400, scanLimit=300, pageSize=300 — collection has more items after the limit page.
+    const fullPage = makePage(makeEquipmentItems(300), 400, 0, null, 300);
+    const probeWithData = makePage([mockEquipment], 1, 300, null, 1);
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve(fullPage) })
+      .mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve(probeWithData) });
+    const client = createRentmanClient({ token: 't', fetch: fetchMock as unknown as typeof fetch });
+
+    const result = await scanAll<typeof mockEquipment>(
+      client, '/equipment', {}, { pageSize: 300, scanLimit: 300 },
+    );
+
+    expect(result.items).toHaveLength(300);
+    expect(result.limitReached).toBe(true);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('scanAll cursor loop: throws when next_page_url is cyclic', async () => {
+    const cyclicUrl = 'https://api.rentman.net/equipment?cursor=same';
+    const page1 = makePage(makeEquipmentItems(5), 5, 0, cyclicUrl, 5);
+    const page2 = makePage(makeEquipmentItems(5, 6), 5, 5, cyclicUrl, 5);
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve(page1) })
+      .mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve(page2) });
+    const client = createRentmanClient({ token: 't', fetch: fetchMock as unknown as typeof fetch });
+
+    await expect(
+      scanAll<typeof mockEquipment>(client, '/equipment', {}, { pageSize: 5 }),
+    ).rejects.toThrow(/cursor pagination loop detected/);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
   it('gets a single item by id from /path/id', async () => {
