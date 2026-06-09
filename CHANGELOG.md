@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.4.0] — 2026-06-09
+
+### Added
+- `ENDPOINTS.purchaseOrders` (`/purchaseorders`), `ENDPOINTS.purchaseOrderCosts` (`/purchaseordercosts`), and `ENDPOINTS.purchaseOrderGlobalCosts` (`/purchaseorderglobalcosts`) endpoint constants.
+- `RentmanPurchaseOrder<TCustom>` type: all fields observed on the live API including `number`, `approval_status`, `underlying_cost_amount_with_tax`, `projects_json`, and custom fields. Key field `number` enables QUiCK PO reconciliation via tag-matching.
+- `RentmanPurchaseOrderCost` type: cost line fields for `/purchaseordercosts` responses including `purchase_order`, `costitem`, `costitemtype`, `underlying_cost_amount_with_tax`, and `quantity`.
+
+> **Note:** These endpoints are not part of OAS v1.7.0 but are present and stable in the live Rentman API. Types were derived from empirical field inspection on 2026-06-09.
+
+---
+
 ## [2.3.0] — 2026-06-05
 
 ### Fixed
