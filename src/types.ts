@@ -1010,6 +1010,8 @@ export interface RentmanFunctionGroup extends RentmanBaseEntity {
  */
 export interface RentmanPurchaseOrder<TCustom = DefaultCustomFields>
   extends RentmanBaseEntityWithCustom<TCustom> {
+  /** Resource path to the creator crew member, e.g. `/crew/253`. */
+  creator?: string | null;
   displayname?: string | null;
   filename?: string | null;
   subject?: string | null;
@@ -1061,6 +1063,8 @@ export interface RentmanPurchaseOrder<TCustom = DefaultCustomFields>
  * Added in connector v2.4.0 based on empirical field inspection.
  */
 export interface RentmanPurchaseOrderCost extends RentmanBaseEntity {
+  /** Resource path to the creator crew member, e.g. `/crew/33`. */
+  creator?: string | null;
   displayname?: string | null;
   /** Resource path to the parent purchase order, e.g. `/purchaseorders/1`. */
   purchase_order?: string | null;
@@ -1075,6 +1079,30 @@ export interface RentmanPurchaseOrderCost extends RentmanBaseEntity {
   underlying_cost_amount_tax?: number | null;
   underlying_cost_amount_with_tax?: number | null;
   quantity?: number | null;
+}
+
+/**
+ * A global cost template line for a Rentman purchase order (`/purchaseorderglobalcosts`).
+ *
+ * Global costs are reusable cost definitions (e.g. "Delivery fee", "Purchase price")
+ * attached to a PO. They differ from per-project `purchaseordercosts` lines in that
+ * they carry a `unit_purchase_cost` and a `taxclass` reference.
+ *
+ * @remarks
+ * Added in connector v2.4.0 based on empirical field inspection.
+ */
+export interface RentmanPurchaseOrderGlobalCost extends RentmanBaseEntity {
+  /** Resource path to the creator crew member, e.g. `/crew/33`. */
+  creator?: string | null;
+  displayname?: string | null;
+  /** Resource path to the parent purchase order, e.g. `/purchaseorders/2`. */
+  purchase_order?: string | null;
+  name?: string | null;
+  /** Unit purchase cost (net, in account currency). */
+  unit_purchase_cost?: number | null;
+  quantity?: number | null;
+  /** Resource path to the tax class, e.g. `/taxclasses/3`. */
+  taxclass?: string | null;
 }
 
 /**
