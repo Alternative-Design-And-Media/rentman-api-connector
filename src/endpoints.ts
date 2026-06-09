@@ -57,6 +57,9 @@ export const ENDPOINTS = {
   taxClasses: '/taxclasses',
   ledgerCodes: '/ledgercodes',
   projectRequests: '/projectrequests',
+  purchaseOrders: '/purchaseorders',
+  purchaseOrderCosts: '/purchaseordercosts',
+  purchaseOrderGlobalCosts: '/purchaseorderglobalcosts',
 } as const;
 
 /** Union of all valid Rentman API path strings. */

@@ -988,6 +988,123 @@ export interface RentmanFunctionGroup extends RentmanBaseEntity {
 // Invoice moments (payment moment lookup values)
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Purchase orders
+// ---------------------------------------------------------------------------
+
+/**
+ * A Rentman purchase order (bestelbon / megrendelő).
+ *
+ * @remarks
+ * This endpoint is not part of OAS v1.7.0 but is present in the live API.
+ * Added in connector v2.4.0 based on empirical field inspection.
+ *
+ * Key fields for QUiCK PO reconciliation:
+ * - `number` — matches the tag value on QUiCK expense invoices
+ * - `underlying_cost_amount_with_tax` — bruttó keret (approved gross ceiling)
+ * - `approval_status` — lifecycle state (new / pending_approval / approved / rejected)
+ * - `projects_json` — JSON-encoded array of linked projects `[{id, name, number}]`
+ * - `custom` — account-specific fields; narrow with a `TCustom` type argument
+ *
+ * @typeParam TCustom - Shape of the `custom` object. Default: `DefaultCustomFields`.
+ */
+export interface RentmanPurchaseOrder<TCustom = DefaultCustomFields>
+  extends RentmanBaseEntityWithCustom<TCustom> {
+  /** Resource path to the creator crew member, e.g. `/crew/253`. */
+  creator?: string | null;
+  displayname?: string | null;
+  filename?: string | null;
+  subject?: string | null;
+  owner?: string | null;
+  /** ISO-8601 datetime string of the date of issue. */
+  date_of_issue?: string | null;
+  /** ISO-8601 datetime string of the planned delivery date. */
+  delivery_date?: string | null;
+  description?: string | null;
+  /** PO number (e.g. "01", "02"). Matches QUiCK expense invoice tags for reconciliation. */
+  number?: string | null;
+  /** Workflow state: `"new"` | `"pending_approval"` | `"approved"` | `"rejected"`. */
+  approval_status?: string | null;
+  previous_status?: string | null;
+  approved_amount?: number | null;
+  /** Resource path to the supplier contact, e.g. `/contacts/3921`. */
+  supplier?: string | null;
+  contact_person?: string | null;
+  delivery_type?: string | null;
+  delivery_location?: string | null;
+  delivery_location_person?: string | null;
+  delivery_warehouse?: string | null;
+  accounting_code?: string | null;
+  export_status?: string | null;
+  export_date?: string | null;
+  export_message?: string | null;
+  tags?: string | null;
+  /** Net total of all underlying cost lines (HUF). */
+  underlying_cost_amount?: number | null;
+  /** Tax amount on all underlying cost lines (HUF). */
+  underlying_cost_amount_tax?: number | null;
+  /** Gross total of all underlying cost lines (HUF). This is the bruttó keret. */
+  underlying_cost_amount_with_tax?: number | null;
+  /** Resource path to the approver crew member. */
+  approved_by?: string | null;
+  /** ISO-8601 datetime string of the approval event. */
+  approved_at?: string | null;
+  /**
+   * JSON-encoded array of linked project objects.
+   * Shape: `[{ id: number; name: string; number: number }]`
+   */
+  projects_json?: string | null;
+}
+
+/**
+ * A single cost line within a Rentman purchase order (`/purchaseordercosts`).
+ *
+ * @remarks
+ * Added in connector v2.4.0 based on empirical field inspection.
+ */
+export interface RentmanPurchaseOrderCost extends RentmanBaseEntity {
+  /** Resource path to the creator crew member, e.g. `/crew/33`. */
+  creator?: string | null;
+  displayname?: string | null;
+  /** Resource path to the parent purchase order, e.g. `/purchaseorders/1`. */
+  purchase_order?: string | null;
+  /** Numeric ID of the underlying cost item. */
+  costitem?: number | null;
+  /** Type of the underlying cost item (e.g. `"Cost"`, `"PurchaseOrderGlobalCost"`). */
+  costitemtype?: string | null;
+  approved_amount?: number | null;
+  /** Display name of the linked project (string label, not a resource path). */
+  project?: string | null;
+  underlying_cost_amount?: number | null;
+  underlying_cost_amount_tax?: number | null;
+  underlying_cost_amount_with_tax?: number | null;
+  quantity?: number | null;
+}
+
+/**
+ * A global cost template line for a Rentman purchase order (`/purchaseorderglobalcosts`).
+ *
+ * Global costs are reusable cost definitions (e.g. "Delivery fee", "Purchase price")
+ * attached to a PO. They differ from per-project `purchaseordercosts` lines in that
+ * they carry a `unit_purchase_cost` and a `taxclass` reference.
+ *
+ * @remarks
+ * Added in connector v2.4.0 based on empirical field inspection.
+ */
+export interface RentmanPurchaseOrderGlobalCost extends RentmanBaseEntity {
+  /** Resource path to the creator crew member, e.g. `/crew/33`. */
+  creator?: string | null;
+  displayname?: string | null;
+  /** Resource path to the parent purchase order, e.g. `/purchaseorders/2`. */
+  purchase_order?: string | null;
+  name?: string | null;
+  /** Unit purchase cost (net, in account currency). */
+  unit_purchase_cost?: number | null;
+  quantity?: number | null;
+  /** Resource path to the tax class, e.g. `/taxclasses/3`. */
+  taxclass?: string | null;
+}
+
 /**
  * @deprecated This type is kept for backwards compatibility only.
  * The `/invoicemoments` top-level endpoint is not present in OAS v1.7.0.
