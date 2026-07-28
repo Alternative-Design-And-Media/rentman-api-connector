@@ -312,6 +312,8 @@ try {
 - `fileFolders` -> `/file_folders` -> `RentmanFileFolder`
 - `folders` -> `/folders` -> `RentmanFolder`
 - `statuses` -> `/statuses` -> `RentmanStatus`
+- `projectStatuses` -> `/projectstatuses` -> `RentmanProjectStatus`
+- `warehouseStatuses` -> `/warehousestatuses` -> `RentmanWarehouseStatus`
 - `contracts` -> `/contracts` -> `RentmanContract`
 
 ## Lookup cache helpers

@@ -164,6 +164,8 @@ const lines = await rentman.invoices.listLines(42);
 | `rentman.factors` | `ResourceApi<RentmanFactor>` | — |
 | `rentman.projectTypes` | `ResourceApi<RentmanProjectType>` | — |
 | `rentman.statuses` | `ResourceApi<RentmanStatus>` | — |
+| `rentman.projectStatuses` | `ResourceApi<RentmanProjectStatus>` | — |
+| `rentman.warehouseStatuses` | `ResourceApi<RentmanWarehouseStatus>` | — |
 | `rentman.taxClasses` | `ResourceApi<RentmanTaxClass>` | — |
 | `rentman.ledgerCodes` | `ResourceApi<RentmanLedgerCode>` | — |
 | `rentman.projectRequests` | `ResourceApi<RentmanProjectRequest>` | — |
@@ -196,6 +198,8 @@ Use the typed query builder helpers to compose `RentmanQueryOptions` without tou
 | `InvoiceQueryBuilder` | `invoiceQuery()` | `withStatus(path)`, `forContact(path)`, `dueBefore(date)`, `dueAfter(date)`, `sortByDate(dir?)`, `sortByDueDate(dir?)` |
 
 All builders also inherit `fields(...)`, `sort(...)`, `limit(n)`, `offset(n)`, and `.build()`.
+
+> ⚠️ **`offset(n)` is deprecated.** Rentman removes `?offset=` pagination in Q4 2026. `listAll` / `listAllSub` / `scanAll` already follow cursor pages (`next_page_url`) automatically — but the API only returns a cursor when the result set is sorted by `id`. Sort by `id` and re-sort client-side if you need a different order.
 
 > ⚠️ **Deprecated**: low-level direct API-call methods (`client.list`, `client.listAll`, `client.listSub`, `client.listAllSub`, `client.get`, `client.create`, `client.update`, `client.delete`) are kept only for migration and are no longer supported for new implementations.
 
@@ -299,8 +303,41 @@ All 52 top-level collection endpoints from OAS v1.7.0 are available as typed con
 
 | `ENDPOINTS` key | API path | Type | Description |
 |---|---|---|---|
-| `statuses` | `/statuses` | `RentmanStatus` | Status lookup values |
+| `statuses` | `/statuses` | `RentmanStatus` | Status lookup values (union of both views below) |
+| `projectStatuses` | `/projectstatuses` | `RentmanProjectStatus` | Project statuses only — Pending, Canceled, Confirmed, Inquiry, Concept |
+| `warehouseStatuses` | `/warehousestatuses` | `RentmanWarehouseStatus` | Warehouse statuses only — Confirmed, Prepped, On location, Returned, Contracted, Finalized, Completed |
 | `contracts` | `/contracts` | `RentmanContract` | Contracts on a project |
+
+#### Comparing statuses (Q4 2026 endpoint split)
+
+Rentman is splitting `/statuses` into `/projectstatuses` + `/warehousestatuses`, and has **not** documented whether references such as `subprojects.status` will keep returning `/statuses/{id}` or switch to `/projectstatuses/{id}`.
+
+That question does not need an answer, because the **ID space is shared**. Measured live on 2026-07-28: `Canceled` is `2` and `Confirmed` is `3` on all three endpoints. Compare IDs, not path strings:
+
+```ts
+import { statusIdFromPath, isSameStatus } from '@alternative-design-and-media/rentman-api-connector';
+
+// ❌ Breaks silently the moment the prefix moves — no error, just `false` for every row.
+if (subproject.status === '/statuses/2') { /* cancelled */ }
+
+// ✅ Correct today and after the split.
+if (statusIdFromPath(subproject.status) === 2) { /* cancelled */ }
+if (isSameStatus(subproject.status, cancelledPath)) { /* cancelled */ }
+```
+
+`statusIdFromPath()` returns `null` for non-status paths, so a `/projects/2` reference can never be mistaken for status `2`. `isSameStatus()` returns `false` when either side is unresolvable — an unknown status never reads as a match.
+
+The lookup cache is prefix-proof too:
+
+```ts
+const statuses = await fetchStatusCache(client);           // or fetchProjectStatusCache(client)
+statuses.byId.get(3);                                      // "Confirmed"
+statuses.nameForPath('/projectstatuses/3');                // "Confirmed" — any prefix resolves
+```
+
+> `/statuses` itself is **not** deprecated — the changelog does not announce its removal. What Q4 2026 forbids is *writing* a warehouse status into `subprojects.status`.
+>
+> `itemtype` does not tell the two views apart: requesting it explicitly returns rows with no `itemtype` key at all. The endpoint you call is the only discriminator.
 
 ### Known TypeScript ↔ OAS field-name mappings
 
@@ -335,7 +372,8 @@ const { data, itemCount } = await rentman.list<RentmanEquipmentItem>(ENDPOINTS.e
   fields: ['id', 'name', 'code', 'in_quantity', 'current_quantity', 'location_in_warehouse'],
   sort: ['+name'],          // prefix '+' = ascending, '-' = descending
   limit: 100,
-  offset: 0,
+  // No `offset` — it is deprecated (removed by Rentman in Q4 2026). Use cursor
+  // pagination via `listAll` / `scanAll`, which follow `next_page_url` for you.
 });
 
 for (const item of data) {

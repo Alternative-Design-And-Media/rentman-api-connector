@@ -12,6 +12,13 @@ const EXTRA_ENDPOINTS_NOT_IN_OAS = new Set([
   '/purchaseorders',
   '/purchaseordercosts',
   '/purchaseorderglobalcosts',
+  // Introduced by Rentman API v1.15.0 (2026-07-22) as part of the Q4 2026 split
+  // of /statuses; the bundled oas.json is still v1.7.0 and predates them.
+  // Verified live on 2026-07-28: /projectstatuses returns 5 rows and
+  // /warehousestatuses returns 7, sharing one ID space with /statuses
+  // (Canceled = 2, Confirmed = 3 on all three).
+  '/projectstatuses',
+  '/warehousestatuses',
 ]);
 
 describe('ENDPOINTS is synced to top-level OAS collection paths', () => {

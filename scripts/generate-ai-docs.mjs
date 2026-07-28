@@ -107,6 +107,8 @@ const ENDPOINT_TYPES = {
   fileFolders: 'RentmanFileFolder',
   folders: 'RentmanFolder',
   statuses: 'RentmanStatus',
+  projectStatuses: 'RentmanProjectStatus',
+  warehouseStatuses: 'RentmanWarehouseStatus',
   contracts: 'RentmanContract',
 };
 
@@ -146,7 +148,7 @@ const ENDPOINT_CATEGORIES = [
   },
   {
     title: 'Reference / lookup',
-    keys: ['statuses', 'contracts'],
+    keys: ['statuses', 'projectStatuses', 'warehouseStatuses', 'contracts'],
   },
 ];
 
@@ -1048,10 +1050,17 @@ const rentman = createRentmanClient({ token: process.env.RENTMAN_TOKEN! });
 // Generic lookup
 const taxMap = await fetchLookupMap(rentman, ENDPOINTS.taxClasses, {}, (tc) => [String(tc.id), tc.name]);
 
-// Status bidirectional lookup
-const { byName, byPath } = await fetchStatusCache(rentman);
-const path  = byName.get('confirmed');    // "/statuses/3"
-const label = byPath.get('/statuses/3'); // "Confirmed"
+// Status lookup — prefix-proof (Rentman splits /statuses into /projectstatuses
+// + /warehousestatuses in Q4 2026; the ID space is shared, so compare IDs).
+const statuses = await fetchStatusCache(rentman);          // or fetchProjectStatusCache(rentman)
+const path  = statuses.byName.get('confirmed');            // "/statuses/3"
+const label = statuses.byId.get(3);                        // "Confirmed"
+const same  = statuses.nameForPath('/projectstatuses/3');  // "Confirmed" — any prefix resolves
+
+// Comparing a status reference: use statusIdFromPath, NOT string equality.
+// A whole-string check such as status === '/statuses/2' turns false for every
+// row once the prefix moves — silently, with no error and no failed request.
+if (statusIdFromPath(subproject.status) === 2) { /* cancelled */ }
 
 // Folder name lookup
 const folderNames = await fetchFolderNameCache(rentman);

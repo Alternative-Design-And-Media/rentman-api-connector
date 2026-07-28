@@ -3,6 +3,39 @@
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.5.0] — 2026-07-28
+
+Prepares the connector for the Rentman API changes announced for Q4 2026
+(status endpoint split + removal of `?offset=` pagination). Everything here is
+backwards-compatible: no existing call site needs to change.
+
+### Added
+- `ENDPOINTS.projectStatuses` (`/projectstatuses`) and `ENDPOINTS.warehouseStatuses` (`/warehousestatuses`).
+- `statusIdFromPath(path)` — extracts the numeric status ID from `/statuses/N`, `/projectstatuses/N` or `/warehousestatuses/N`, and returns `null` for anything else (so `/projects/2` can never read as status 2).
+- `isSameStatus(a, b)` — prefix-tolerant status comparison; `false` when either side is unresolvable, so an unknown status never reads as a match.
+- `client.projectStatuses` and `client.warehouseStatuses` resource facades.
+- `RentmanProjectStatus` / `RentmanWarehouseStatus` type aliases.
+- `fetchStatusCache(client, endpoint?)` now takes the status view to fetch, plus `fetchProjectStatusCache()` / `fetchWarehouseStatusCache()` shorthands. The result gains `byId: Map<number, string>` and `nameForPath(path)`, both prefix-proof.
+
+### Changed
+- `listAll`, `listAllSubResource` and `scanAll` no longer send `offset=0` on the first request. Zero is the API default, and Rentman removes the parameter in Q4 2026 — sending it would have failed the very first request of every paginated scan. `listAllSubResource` still forwards an explicit non-zero starting offset.
+- `fetchStatusCache().byPath` is now keyed under **all three** status prefixes. A cache keyed only by `/statuses/{id}` would start returning `undefined` for every row the moment Rentman moves a reference to `/projectstatuses/{id}` — silently, with no error.
+- `RentmanStatusPath` widened to accept all three prefixes. This is backwards-compatible: it appears only as a `withStatus()` parameter, so existing `/statuses/{id}` call sites keep type-checking.
+- The offset-pagination fallbacks now emit a one-time runtime warning naming the cause (a non-`id` sort yields no cursor) and the fix (sort by `id`, re-sort client-side). Honours `suppressWarnings`.
+
+### Deprecated
+- `RentmanQueryOptions.offset` and `BaseQueryBuilder.offset()`. Still functional; will start failing when Rentman drops the parameter.
+
+> **Note:** `/statuses` is **not** deprecated. The Rentman changelog does not announce its removal — what Q4 2026 forbids is *writing* a warehouse status into `subprojects.status`. `/statuses` still serves the union of both views.
+>
+> **Measured live on 2026-07-28 (ADAM account):** `/projectstatuses` returns 5 rows, `/warehousestatuses` 7, `/statuses` 11 (their union). The **ID space is shared** — `Canceled` is `2` and `Confirmed` is `3` on all three. The split is therefore two filtered views over one status table, not a data migration, and status IDs stay stable. This is why ID-based comparison is safe *today* and does not depend on Rentman answering which prefix references will carry after the split.
+>
+> `itemtype` does **not** discriminate the two views: requesting it explicitly (`fields=id,name,itemtype`) returns rows with no `itemtype` key at all — Rentman silently drops unknown field names. The endpoint you call is the only discriminator.
+>
+> The bundled `oas.json` is still v1.7.0 and predates both endpoints (added in API v1.15.0, 2026-07-22), so they are listed in the OAS-sync test's documented-exceptions set.
+
+---
+
 ## [2.4.0] — 2026-06-09
 
 ### Added

@@ -80,7 +80,9 @@ describe('listEquipmentSetContents', () => {
     expect(rows).toHaveLength(2);
     expect(rows.map((row) => row.equipment)).toEqual(['/equipment/42', '/equipment/43']);
     expect(fetchMock).toHaveBeenCalledTimes(2);
-    expect(fetchMock.mock.calls[0]?.[0]).toContain('/equipment/3473/equipmentsetscontent?limit=1500&offset=0');
+    // No `offset=0` on the first page — see the Q4/2026 offset removal note in client.ts.
+    expect(fetchMock.mock.calls[0]?.[0]).toContain('/equipment/3473/equipmentsetscontent?limit=1500');
+    expect(fetchMock.mock.calls[0]?.[0]).not.toContain('offset=');
   });
 });
 

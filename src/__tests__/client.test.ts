@@ -431,12 +431,16 @@ describe('RentmanClient', () => {
     expect(new Set(all.map(({ id }) => id)).size).toBe(5);
     expect(fetchMock).toHaveBeenCalledTimes(3);
     expect((fetchMock.mock.calls[0] as [string])[0]).toContain('sort=%2Bname');
-    expect((fetchMock.mock.calls[0] as [string])[0]).toContain('offset=0');
+    // The FIRST page must not carry `offset` at all: 0 is the API default and
+    // Rentman removes the parameter in Q4 2026, so sending it would fail the
+    // request before pagination even begins. Subsequent offset pages are the
+    // legacy fallback and keep their explicit offsets.
+    expect((fetchMock.mock.calls[0] as [string])[0]).not.toContain('offset=');
     expect((fetchMock.mock.calls[1] as [string])[0]).toContain('offset=2');
     expect((fetchMock.mock.calls[2] as [string])[0]).toContain('offset=4');
   });
 
-  it('listAll uses custom pageSize', async () => {
+  it('listAll uses custom pageSize and sends no offset on the first page', async () => {
     const fetchMock = makeFetch(200, makePage([mockEquipment], 1, 0, undefined, 2));
     const client = createRentmanClient({ token: 't', fetch: fetchMock as unknown as typeof fetch });
 
@@ -445,7 +449,7 @@ describe('RentmanClient', () => {
     const [url] = fetchMock.mock.calls[0] as [string, RequestInit];
     const parsed = new URL(url);
     expect(parsed.searchParams.get('limit')).toBe('2');
-    expect(parsed.searchParams.get('offset')).toBe('0');
+    expect(parsed.searchParams.get('offset')).toBeNull();
   });
 
   it('prepends custom baseUrl to requests and normalizes trailing slash', async () => {
@@ -558,7 +562,9 @@ describe('RentmanClient', () => {
     expect(new Set(all.map(({ id }) => id)).size).toBe(750);
     expect(fetchMock).toHaveBeenCalledTimes(3);
     const firstCallUrl = fetchMock.mock.calls[0]?.[0] as string;
-    expect(firstCallUrl).toContain('/equipment/3473/equipmentsetscontent?limit=300&offset=0');
+    // No `offset=0` on the first page — see the Q4/2026 offset removal note in client.ts.
+    expect(firstCallUrl).toContain('/equipment/3473/equipmentsetscontent?limit=300');
+    expect(firstCallUrl).not.toContain('offset=');
   });
 
   it('projects.listEquipment keeps auto-pagination behavior when no limit is provided', async () => {
@@ -573,7 +579,9 @@ describe('RentmanClient', () => {
 
     expect(all).toEqual([mockEquipment, { ...mockEquipment, id: 2, name: 'Truss' }]);
     expect(fetchMock).toHaveBeenCalledTimes(2);
-    expect((fetchMock.mock.calls[0] as [string])[0]).toContain('/projects/3473/projectequipment?limit=1500&offset=0');
+    // No `offset=0` on the first page — see the Q4/2026 offset removal note in client.ts.
+    expect((fetchMock.mock.calls[0] as [string])[0]).toContain('/projects/3473/projectequipment?limit=1500');
+    expect((fetchMock.mock.calls[0] as [string])[0]).not.toContain('offset=');
   });
 
   it('projects.listEquipment with limit returns only the requested page', async () => {
