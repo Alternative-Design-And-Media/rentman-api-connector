@@ -53,7 +53,26 @@ export const ENDPOINTS = {
   factorGroups: '/factorgroups',
   factors: '/factors',
   projectTypes: '/projecttypes',
+  /**
+   * Combined status list (project + warehouse statuses).
+   *
+   * @remarks
+   * Rentman is splitting this into `/projectstatuses` and `/warehousestatuses`
+   * ahead of Q4 2026. As of 2026-07-28 `/statuses` still returns the full union
+   * (11 rows on the ADAM account = 5 project + 7 warehouse, minus the shared
+   * `Confirmed`). The **ID space is shared** across all three endpoints —
+   * `Canceled` is `2` and `Confirmed` is `3` on every one of them — so the split
+   * is two filtered views over one status table, not a data migration.
+   *
+   * Prefer {@link ENDPOINTS.projectStatuses} or {@link ENDPOINTS.warehouseStatuses}
+   * for new code, and use `statusIdFromPath()` to compare status references so a
+   * prefix change cannot silently break matching.
+   */
   statuses: '/statuses',
+  /** Project statuses only (Pending, Canceled, Confirmed, Inquiry, Concept). */
+  projectStatuses: '/projectstatuses',
+  /** Warehouse statuses only (Confirmed, Prepped, On location, Returned, Contracted, Finalized, Completed). */
+  warehouseStatuses: '/warehousestatuses',
   taxClasses: '/taxclasses',
   ledgerCodes: '/ledgercodes',
   projectRequests: '/projectrequests',

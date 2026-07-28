@@ -820,11 +820,45 @@ export interface RentmanProjectType extends RentmanBaseEntity {
   color?: string | null;
 }
 
+/**
+ * A Rentman status row.
+ *
+ * @remarks
+ * Ahead of Q4 2026 Rentman splits `/statuses` into `/projectstatuses` and
+ * `/warehousestatuses`. The row shape is identical on all three endpoints and
+ * the **ID space is shared** — measured live on 2026-07-28, `Canceled` is `2`
+ * and `Confirmed` is `3` everywhere. The split is two filtered views over one
+ * status table, so IDs stay stable.
+ *
+ * `itemtype` does **not** distinguish the two views: requesting it explicitly
+ * (`fields=id,name,itemtype`) on the live API returns rows with no `itemtype`
+ * key at all — Rentman silently drops unknown field names. The endpoint you
+ * call is the only discriminator, which is why {@link RentmanProjectStatus} and
+ * {@link RentmanWarehouseStatus} exist as separate aliases.
+ */
 export interface RentmanStatus extends RentmanBaseEntity {
   name: string;
   color?: string | null;
+  /**
+   * @remarks Not returned by `/statuses` on the live API (verified 2026-07-28);
+   * do not rely on it to tell project and warehouse statuses apart.
+   */
   itemtype?: string | null;
 }
+
+/**
+ * A status returned by `/projectstatuses` (Pending, Canceled, Confirmed,
+ * Inquiry, Concept). Structurally identical to {@link RentmanStatus}; the alias
+ * documents which view the row came from.
+ */
+export type RentmanProjectStatus = RentmanStatus;
+
+/**
+ * A status returned by `/warehousestatuses` (Confirmed, Prepped, On location,
+ * Returned, Contracted, Finalized, Completed). Structurally identical to
+ * {@link RentmanStatus}; the alias documents which view the row came from.
+ */
+export type RentmanWarehouseStatus = RentmanStatus;
 
 export interface RentmanTaxClass extends RentmanBaseEntity {
   name: string;

@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { createRentmanClient } from '../client.js';
 import { fetchLookupMap, fetchStatusCache, fetchFolderNameCache } from '../cache.js';
+import { ENDPOINTS } from '../endpoints.js';
 import type { RentmanCollectionResponse } from '../types.js';
 
 // ---------------------------------------------------------------------------
@@ -193,11 +194,76 @@ describe('fetchStatusCache', () => {
     );
     const client = createRentmanClient({ token: 't', fetch: fetchMock as unknown as typeof fetch });
 
-    const { byName, byPath } = await fetchStatusCache(client);
+    const { byName, byPath, byId } = await fetchStatusCache(client);
 
     expect(byName.size).toBe(2);
-    expect(byPath.size).toBe(2);
+    expect(byId.size).toBe(2);
+    // byPath is keyed under all three status prefixes (/statuses, /projectstatuses,
+    // /warehousestatuses) so lookups survive the Q4/2026 endpoint split → 2 × 3.
+    expect(byPath.size).toBe(6);
     expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Q4/2026 status endpoint split — prefix tolerance
+//
+// Rentman splits /statuses into /projectstatuses + /warehousestatuses and has
+// not documented which prefix referencing entities will emit afterwards. A cache
+// keyed only by "/statuses/{id}" would start returning undefined for every row
+// the moment the prefix moves — silently. These tests pin the tolerance.
+// ---------------------------------------------------------------------------
+
+describe('fetchStatusCache — Q4/2026 prefix tolerance', () => {
+  const STATUSES = [
+    { ...BASE, id: 2, name: 'Canceled', color: null, itemtype: null },
+    { ...BASE, id: 3, name: 'Confirmed', color: null, itemtype: null },
+  ];
+
+  it('resolves the same status under every prefix', async () => {
+    const fetchMock = makeFetch(makePage(STATUSES, 2));
+    const client = createRentmanClient({ token: 't', fetch: fetchMock as unknown as typeof fetch });
+
+    const { byPath } = await fetchStatusCache(client);
+
+    expect(byPath.get('/statuses/2')).toBe('Canceled');
+    expect(byPath.get('/projectstatuses/2')).toBe('Canceled');
+    expect(byPath.get('/warehousestatuses/2')).toBe('Canceled');
+  });
+
+  it('byId and nameForPath are prefix-proof', async () => {
+    const fetchMock = makeFetch(makePage(STATUSES, 2));
+    const client = createRentmanClient({ token: 't', fetch: fetchMock as unknown as typeof fetch });
+
+    const cache = await fetchStatusCache(client);
+
+    expect(cache.byId.get(3)).toBe('Confirmed');
+    expect(cache.nameForPath('/statuses/3')).toBe('Confirmed');
+    expect(cache.nameForPath('/projectstatuses/3')).toBe('Confirmed');
+    expect(cache.nameForPath('/warehousestatuses/3')).toBe('Confirmed');
+  });
+
+  it('nameForPath returns undefined for a non-status path', async () => {
+    const fetchMock = makeFetch(makePage(STATUSES, 2));
+    const client = createRentmanClient({ token: 't', fetch: fetchMock as unknown as typeof fetch });
+
+    const cache = await fetchStatusCache(client);
+
+    // /projects/3 must NOT resolve to status 3.
+    expect(cache.nameForPath('/projects/3')).toBeUndefined();
+    expect(cache.nameForPath(null)).toBeUndefined();
+  });
+
+  it('fetches the requested status view and keys byName to it', async () => {
+    const fetchMock = makeFetch(makePage(STATUSES, 2));
+    const client = createRentmanClient({ token: 't', fetch: fetchMock as unknown as typeof fetch });
+
+    const cache = await fetchStatusCache(client, ENDPOINTS.projectStatuses);
+
+    expect((fetchMock.mock.calls[0] as [string])[0]).toContain('/projectstatuses');
+    expect(cache.byName.get('canceled')).toBe('/projectstatuses/2');
+    // …and the combined prefix still resolves, so callers holding legacy refs work.
+    expect(cache.nameForPath('/statuses/2')).toBe('Canceled');
   });
 });
 

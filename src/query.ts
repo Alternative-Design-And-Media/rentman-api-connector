@@ -33,7 +33,25 @@ import type {
 /** The six relational filter operators the Rentman API supports. */
 export type RentmanRelOp = 'lt' | 'lte' | 'gt' | 'gte' | 'neq';
 export type RentmanFilterValue = string | number | boolean;
-export type RentmanStatusPath = `/statuses/${number}`;
+/**
+ * A reference to a Rentman status.
+ *
+ * @remarks
+ * Accepts all three prefixes, because Rentman splits `/statuses` into
+ * `/projectstatuses` + `/warehousestatuses` ahead of Q4 2026 and has not
+ * documented which prefix referencing entities will emit afterwards. The ID
+ * space is shared across the three endpoints (verified live 2026-07-28), so a
+ * value carrying any of the prefixes denotes the same status.
+ *
+ * Widening this union is backwards-compatible: it only appears as a `withStatus()`
+ * parameter, so existing `/statuses/{id}` call sites keep type-checking.
+ * To compare two references, use `statusIdFromPath()` / `isSameStatus()` rather
+ * than string equality.
+ */
+export type RentmanStatusPath =
+  | `/statuses/${number}`
+  | `/projectstatuses/${number}`
+  | `/warehousestatuses/${number}`;
 export type SubrentalStatus = RentmanStatusPath;
 export type QuoteStatus = RentmanStatusPath;
 export type ContractStatus = RentmanStatusPath;
@@ -72,7 +90,16 @@ export interface RentmanQueryOptions {
   nullFilters?: RentmanNullFilter[];
   /** Maximum items to return (API max: 1500; default: 300). */
   limit?: number;
-  /** Items to skip for pagination. */
+  /**
+   * Items to skip for pagination.
+   *
+   * @deprecated Rentman removes `?offset=` pagination in Q4 2026. Cursor paging
+   * (`next_page_url`) is the replacement and is used automatically by `listAll`,
+   * `listAllSubResource` and `scanAll` — but the API only returns a cursor when
+   * the result set is sorted by `id`. Sort by `id` and re-sort client-side if you
+   * need a different order. Setting this explicitly still works today; it will
+   * start failing once Rentman drops the parameter.
+   */
   offset?: number;
   /** Disable non-fatal runtime warnings for known Rentman API caveats. */
   suppressWarnings?: boolean;
@@ -122,6 +149,11 @@ export class BaseQueryBuilder {
     return this;
   }
 
+  /**
+   * @deprecated Rentman removes `?offset=` pagination in Q4 2026. Prefer cursor
+   * paging: sort by `id` (the default) and let `listAll`/`scanAll` follow
+   * `next_page_url`. See {@link RentmanQueryOptions.offset}.
+   */
   offset(value: number): this {
     this.options.offset = value;
     return this;

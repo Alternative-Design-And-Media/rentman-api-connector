@@ -50,6 +50,8 @@ import type {
   RentmanAppointment,
   RentmanAppointmentCrew,
   RentmanStatus,
+  RentmanProjectStatus,
+  RentmanWarehouseStatus,
   RentmanStockLocation,
   RentmanStockMovement,
   RentmanVehicle,
@@ -80,6 +82,34 @@ export const RENTMAN_BASE_URL = 'https://api.rentman.net';
  * At the maximum page size (1500 items) this allows up to 15 million items.
  */
 const MAX_CURSOR_PAGES = 10_000;
+
+/**
+ * Explains why offset paging is a dead end, for the runtime warning below.
+ *
+ * Rentman removes `?offset=` paging in Q4 2026. Cursor paging (`next_page_url`)
+ * is the replacement and has been the default since connector v2.3.0 — but the
+ * API only returns a cursor when the result set is sorted by `id`. Any other
+ * sort yields no `next_page_url`, which is exactly when these fallbacks engage.
+ * After the removal those queries have no paging mechanism left at all.
+ */
+const OFFSET_PAGING_NOTE =
+  'Rentman removes `?offset=` pagination in Q4 2026. This request fell back to offset '
+  + 'paging because the response carried no `next_page_url` — which happens when the query '
+  + 'is sorted by something other than `id`. Sort by `id` to keep cursor paging and re-sort '
+  + 'client-side if you need a different order. Pass `suppressWarnings: true` to silence this.';
+
+/** Warns once per process; honours the per-query `suppressWarnings` opt-out. */
+let offsetFallbackWarned = false;
+function warnOffsetFallback(context: string, suppressWarnings?: boolean): void {
+  if (suppressWarnings || offsetFallbackWarned) return;
+  offsetFallbackWarned = true;
+  console.warn(`[rentman-api-connector] ${context}: ${OFFSET_PAGING_NOTE}`);
+}
+
+/** Test seam: resets the once-per-process warning latch. */
+export function __resetOffsetFallbackWarning(): void {
+  offsetFallbackWarned = false;
+}
 
 // ---------------------------------------------------------------------------
 // Error
@@ -484,7 +514,21 @@ export class RentmanClient {
   readonly factorGroups: FactorGroupsResourceApi;
   readonly factors: ResourceApi<RentmanFactor>;
   readonly projectTypes: ResourceApi<RentmanProjectType>;
+  /**
+   * Combined status list.
+   *
+   * @remarks
+   * Not deprecated: `/statuses` still serves the union of both views and the
+   * Rentman changelog does not announce its removal — what Q4 2026 forbids is
+   * *writing* a warehouse status into `subprojects.status`. Prefer
+   * {@link RentmanClient.projectStatuses} / {@link RentmanClient.warehouseStatuses}
+   * in new code when you want one specific view.
+   */
   readonly statuses: ResourceApi<RentmanStatus>;
+  /** Project statuses only (`/projectstatuses`). */
+  readonly projectStatuses: ResourceApi<RentmanProjectStatus>;
+  /** Warehouse statuses only (`/warehousestatuses`). */
+  readonly warehouseStatuses: ResourceApi<RentmanWarehouseStatus>;
   readonly taxClasses: ResourceApi<RentmanTaxClass>;
   readonly ledgerCodes: ResourceApi<RentmanLedgerCode>;
   readonly projectRequests: ProjectRequestsResourceApi;
@@ -1048,6 +1092,8 @@ export class RentmanClient {
     this.factors = this.createResourceApi<RentmanFactor>(ENDPOINTS.factors);
     this.projectTypes = this.createResourceApi<RentmanProjectType>(ENDPOINTS.projectTypes);
     this.statuses = this.createResourceApi<RentmanStatus>(ENDPOINTS.statuses);
+    this.projectStatuses = this.createResourceApi<RentmanProjectStatus>(ENDPOINTS.projectStatuses);
+    this.warehouseStatuses = this.createResourceApi<RentmanWarehouseStatus>(ENDPOINTS.warehouseStatuses);
     this.taxClasses = this.createResourceApi<RentmanTaxClass>(ENDPOINTS.taxClasses);
     this.ledgerCodes = this.createResourceApi<RentmanLedgerCode>(ENDPOINTS.ledgerCodes);
     const projectRequestsApi = this.createResourceApi<RentmanProjectRequest>(ENDPOINTS.projectRequests);
@@ -1285,7 +1331,9 @@ export class RentmanClient {
     query?: Omit<RentmanQueryOptions, 'limit' | 'offset'>,
     pageSize = 1500,
   ): Promise<T[]> {
-    const firstPage = await this.list<T>(path, { ...query, limit: pageSize, offset: 0 });
+    // No explicit `offset: 0` — it is the API default, and Rentman removes the
+    // parameter in Q4 2026. Sending it would make the very first request fail.
+    const firstPage = await this.list<T>(path, { ...query, limit: pageSize });
     const results: T[] = [...firstPage.data];
 
     if (firstPage.next_page_url) {
@@ -1308,6 +1356,10 @@ export class RentmanClient {
       return results;
     }
 
+    // Offset fallback: reached only when the API returned no cursor (non-`id` sort).
+    if (firstPage.data.length === pageSize) {
+      warnOffsetFallback('listAll', query?.suppressWarnings);
+    }
     let page = firstPage;
     let offset = firstPage.offset + firstPage.data.length;
     while (page.data.length === pageSize) {
@@ -1343,10 +1395,14 @@ export class RentmanClient {
     delete queryWithoutLimit.limit;
     delete queryWithoutLimit.offset;
 
+    // Forward only an EXPLICIT non-zero starting offset. `offset: 0` is the API
+    // default and Rentman removes the parameter in Q4 2026, so sending it
+    // unconditionally would break the first request of every sub-resource scan.
+    const startOffset = query?.offset;
     const firstPage = await this.listSub<T>(parentPath, parentId, subPath, {
       ...queryWithoutLimit,
       limit: pageSize,
-      offset: query?.offset ?? 0,
+      ...(startOffset !== undefined && startOffset > 0 ? { offset: startOffset } : {}),
     });
     const results: T[] = [...firstPage.data];
 
@@ -1370,6 +1426,10 @@ export class RentmanClient {
       return results;
     }
 
+    // Offset fallback: reached only when the API returned no cursor (non-`id` sort).
+    if (firstPage.data.length === pageSize) {
+      warnOffsetFallback('listAllSubResource', query?.suppressWarnings);
+    }
     let page = firstPage;
     let offset = firstPage.offset + firstPage.data.length;
     while (page.data.length === pageSize) {
@@ -1535,7 +1595,9 @@ export async function scanAll<T>(
     return items.length < scanLimit;
   };
 
-  const firstPage = await client.list<T>(endpoint, { ...query, limit: pageSize, offset: 0 });
+  // No explicit `offset: 0` — it is the API default, and Rentman removes the
+  // parameter in Q4 2026. Sending it would make the very first request fail.
+  const firstPage = await client.list<T>(endpoint, { ...query, limit: pageSize });
   if (!appendPage(firstPage)) {
     if (!limitReached && items.length >= scanLimit) {
       // Cursor mode: limitReached if there are more cursor pages.
@@ -1543,6 +1605,7 @@ export async function scanAll<T>(
         limitReached = true;
       } else if (firstPage.data.length === pageSize) {
         // Offset mode: scanLimit hit exactly on a full page — probe 1 item to confirm.
+        warnOffsetFallback('scanAll (limit probe)', query?.suppressWarnings);
         const probe = await client.list<T>(endpoint, { ...query, limit: 1, offset: items.length });
         limitReached = probe.data.length > 0;
       }
@@ -1578,8 +1641,12 @@ export async function scanAll<T>(
       nextPageUrl = page.next_page_url;
     }
   } else {
+    // Offset fallback: reached only when the API returned no cursor (non-`id` sort).
     let offset = firstPage.offset + firstPage.data.length;
     let previousPageLength = firstPage.data.length;
+    if (previousPageLength === pageSize && items.length < scanLimit) {
+      warnOffsetFallback('scanAll', query?.suppressWarnings);
+    }
     while (items.length < scanLimit && previousPageLength === pageSize) {
       const page = await client.list<T>(endpoint, { ...query, limit: pageSize, offset });
       previousPageLength = page.data.length;
@@ -1748,6 +1815,8 @@ export type TypedRentmanClient<TCF extends CustomFieldMap> = Omit<
   | 'factors'
   | 'projectTypes'
   | 'statuses'
+  | 'projectStatuses'
+  | 'warehouseStatuses'
   | 'taxClasses'
   | 'ledgerCodes'
   | 'projectRequests'
@@ -1812,6 +1881,8 @@ export type TypedRentmanClient<TCF extends CustomFieldMap> = Omit<
   readonly factors: ResourceApi<RentmanFactor>;
   readonly projectTypes: ResourceApi<RentmanProjectType>;
   readonly statuses: ResourceApi<RentmanStatus>;
+  readonly projectStatuses: ResourceApi<RentmanProjectStatus>;
+  readonly warehouseStatuses: ResourceApi<RentmanWarehouseStatus>;
   readonly taxClasses: ResourceApi<RentmanTaxClass>;
   readonly ledgerCodes: ResourceApi<RentmanLedgerCode>;
   readonly projectRequests: ResourceApi<RentmanProjectRequest> &

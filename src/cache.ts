@@ -10,6 +10,7 @@
 import type { RentmanClient } from './client.js';
 import type { RentmanEndpoint } from './endpoints.js';
 import { ENDPOINTS } from './endpoints.js';
+import { statusIdFromPath } from './paths.js';
 import type { RentmanQueryOptions } from './query.js';
 import type { RentmanFolder, RentmanStatus } from './types.js';
 
@@ -60,36 +61,113 @@ export async function fetchLookupMap<T, V>(
 // Pre-built helpers
 // ---------------------------------------------------------------------------
 
+/** The three endpoints that serve status rows. */
+export type RentmanStatusEndpoint =
+  | typeof ENDPOINTS.statuses
+  | typeof ENDPOINTS.projectStatuses
+  | typeof ENDPOINTS.warehouseStatuses;
+
+const STATUS_PATH_PREFIXES: readonly RentmanStatusEndpoint[] = [
+  ENDPOINTS.statuses,
+  ENDPOINTS.projectStatuses,
+  ENDPOINTS.warehouseStatuses,
+];
+
+/** Result of {@link fetchStatusCache}. */
+export interface RentmanStatusCache {
+  /** Lowercase status name → canonical resource path on the endpoint queried. */
+  byName: Map<string, string>;
+  /**
+   * Resource path → display name.
+   *
+   * @remarks
+   * Populated for **all three** status prefixes, so a lookup keeps working after
+   * Rentman moves a reference from `/statuses/{id}` to `/projectstatuses/{id}`.
+   * For new code prefer {@link RentmanStatusCache.byId} or
+   * {@link RentmanStatusCache.nameForPath}.
+   */
+  byPath: Map<string, string>;
+  /** Numeric status ID → display name. Prefix-proof by construction. */
+  byId: Map<number, string>;
+  /** Resolves a status reference carrying any status prefix to its display name. */
+  nameForPath(path: string | null | undefined): string | undefined;
+}
+
 /**
- * Fetches all Rentman statuses and builds a bidirectional lookup.
+ * Fetches Rentman statuses and builds a prefix-tolerant lookup.
  *
- * - `byName`: lowercase status name → resource path (e.g. `"confirmed"` → `"/statuses/3"`).
- * - `byPath`: resource path → display name (e.g. `"/statuses/3"` → `"Confirmed"`).
+ * @remarks
+ * Rentman splits `/statuses` into `/projectstatuses` + `/warehousestatuses`
+ * ahead of Q4 2026, and has not documented which prefix referencing entities
+ * (e.g. `subprojects.status`) will emit afterwards.
+ *
+ * That is why `byPath` is keyed under every status prefix and `byId` exists: a
+ * cache keyed only by `"/statuses/{id}"` would start returning `undefined` for
+ * every row the moment the prefix moves — silently, with no error.
+ *
+ * The ID space is shared across the three endpoints (measured live 2026-07-28:
+ * `Canceled` = 2, `Confirmed` = 3 on all of them), so one ID means one status
+ * no matter which view produced it.
  *
  * First-wins when two statuses share the same name (case-insensitive).
  *
- * @param client - `RentmanClient` instance.
- * @returns An object with `byName` and `byPath` Maps.
+ * @param client   - `RentmanClient` instance.
+ * @param endpoint - Which status view to fetch. Defaults to the combined
+ *   `/statuses`, which still returns the union of both views as of 2026-07-28.
+ * @returns A {@link RentmanStatusCache}.
  * @throws {RentmanApiError} When the API returns a non-2xx response.
  *
  * @example
- * const { byName, byPath } = await fetchStatusCache(client);
- * const path = byName.get('confirmed');    // "/statuses/3"
- * const label = byPath.get('/statuses/3'); // "Confirmed"
+ * const statuses = await fetchStatusCache(client);
+ * statuses.byName.get('confirmed');                 // "/statuses/3"
+ * statuses.byId.get(3);                             // "Confirmed"
+ * statuses.nameForPath('/projectstatuses/3');       // "Confirmed" — prefix-proof
+ *
+ * @example
+ * // Only project statuses (Pending, Canceled, Confirmed, Inquiry, Concept):
+ * const projectStatuses = await fetchStatusCache(client, ENDPOINTS.projectStatuses);
  */
 export async function fetchStatusCache(
   client: RentmanClient,
-): Promise<{ byName: Map<string, string>; byPath: Map<string, string> }> {
-  const statuses = await client.listAll<RentmanStatus>(ENDPOINTS.statuses);
+  endpoint: RentmanStatusEndpoint = ENDPOINTS.statuses,
+): Promise<RentmanStatusCache> {
+  const statuses = await client.listAll<RentmanStatus>(endpoint);
   const byName = new Map<string, string>();
   const byPath = new Map<string, string>();
+  const byId = new Map<number, string>();
   for (const s of statuses) {
-    const path = `${ENDPOINTS.statuses}/${s.id}`;
     const nameLower = s.name.toLowerCase();
-    if (!byName.has(nameLower)) byName.set(nameLower, path);
-    if (!byPath.has(path)) byPath.set(path, s.name);
+    if (!byName.has(nameLower)) byName.set(nameLower, `${endpoint}/${s.id}`);
+    if (!byId.has(s.id)) byId.set(s.id, s.name);
+    // Key every prefix so the lookup survives the Q4/2026 endpoint split.
+    for (const prefix of STATUS_PATH_PREFIXES) {
+      const path = `${prefix}/${s.id}`;
+      if (!byPath.has(path)) byPath.set(path, s.name);
+    }
   }
-  return { byName, byPath };
+  return {
+    byName,
+    byPath,
+    byId,
+    nameForPath(path) {
+      const id = statusIdFromPath(path);
+      return id === null ? undefined : byId.get(id);
+    },
+  };
+}
+
+/** Fetches only project statuses. Shorthand for `fetchStatusCache(client, ENDPOINTS.projectStatuses)`. */
+export async function fetchProjectStatusCache(
+  client: RentmanClient,
+): Promise<RentmanStatusCache> {
+  return fetchStatusCache(client, ENDPOINTS.projectStatuses);
+}
+
+/** Fetches only warehouse statuses. Shorthand for `fetchStatusCache(client, ENDPOINTS.warehouseStatuses)`. */
+export async function fetchWarehouseStatusCache(
+  client: RentmanClient,
+): Promise<RentmanStatusCache> {
+  return fetchStatusCache(client, ENDPOINTS.warehouseStatuses);
 }
 
 /**
