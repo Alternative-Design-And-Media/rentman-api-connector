@@ -3,6 +3,31 @@
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.6.0] — 2026-08-06
+
+Adds `task` as a custom-field model, so consumers can generate typed custom
+fields for Rentman tasks. Type-level only: the compiled runtime bundle
+(`dist/index.js` / `dist/index.mjs`) is byte-for-byte identical to 2.5.0 —
+verified by building both and diffing. No existing call site changes.
+
+### Added
+- `'task'` in `RentmanCustomFieldModel`, and in the `CUSTOM_FIELD_MODELS` list the `generate-rentman-custom-fields` CLI validates `belongs_to` against. Entries with `belongs_to: "task"` previously failed with `belongs_to has unknown value`.
+- `RentmanTask` — the model type the generator emits `TaskWithCustom` against.
+
+> **Note:** `/tasks` is **not** declared in OAS v1.7.0, so `RentmanTask` was
+> shaped from the live API response (ADAM account, 2026-08-05) rather than the
+> spec. Where the API's own `describe` (request shape) and the list response
+> disagree, the response wins: `order` and `public` are documented as `string`
+> but come back as numbers.
+>
+> No `tasks` resource facade is added, and `MODEL_TO_FACADE_KEY` deliberately
+> omits `task` — `CustomFieldMap` has no `tasks` key, so a facade entry would
+> generate a `RentmanCustomFields` member that does not exist on the base
+> interface. `task` therefore behaves like `projectfunction` and `projectcrew`:
+> typed custom fields, no top-level facade property.
+
+---
+
 ## [2.5.0] — 2026-07-28
 
 Prepares the connector for the Rentman API changes announced for Q4 2026

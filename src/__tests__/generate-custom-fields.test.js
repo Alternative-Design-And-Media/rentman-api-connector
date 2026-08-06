@@ -134,6 +134,80 @@ describe('generate-custom-fields CLI', () => {
     expect(generated).not.toContain('  projectequipment:');
   });
 
+  it('accepts belongs_to: "task" and emits Task types without a facade property', () => {
+    const projectRoot = createTempDir();
+    const configPath = join(projectRoot, 'custom-fields.config.json');
+    const generatedPath = join(projectRoot, 'src', 'generated', 'custom-fields.generated.ts');
+
+    writeFileSync(
+      configPath,
+      JSON.stringify(
+        [
+          // A model that DOES have a facade property. Without this the
+          // RentmanCustomFields interface would be empty and the "task is not
+          // in there" assertions below would pass for the wrong reason.
+          {
+            id: 101,
+            name: 'budget',
+            belongs_to: 'project',
+            type: 'price',
+            input_fields_group: 'General',
+            required: false,
+            default_value: null,
+          },
+          {
+            id: 251,
+            name: 'task_priority',
+            belongs_to: 'task',
+            type: 'dropdown',
+            input_fields_group: 'General',
+            required: false,
+            default_value: null,
+            options: [
+              { id: 1, name: 'Magas' },
+              { id: 2, name: 'Alacsony' },
+            ],
+          },
+          {
+            id: 254,
+            name: 'task_start',
+            belongs_to: 'task',
+            type: 'datetime',
+            input_fields_group: 'General',
+            required: false,
+            default_value: null,
+          },
+        ],
+        null,
+        2,
+      ),
+      'utf8',
+    );
+
+    // Would throw `belongs_to has unknown value "task"` before 2.6.0.
+    execFileSync(process.execPath, [tsxCliPath, scriptPath], {
+      cwd: projectRoot,
+      encoding: 'utf8',
+    });
+
+    const generated = readFileSync(generatedPath, 'utf8');
+
+    // The model type is imported and the section is generated.
+    expect(generated).toContain('RentmanTask');
+    expect(generated).toContain('export interface TaskCustomFields {');
+    expect(generated).toContain('export type TaskWithCustom = WithCustomFields<RentmanTask, TaskCustomFields>;');
+    expect(generated).toContain('task_priority');
+    expect(generated).toContain('task_start');
+
+    // The facade list is genuinely populated …
+    expect(generated).toContain('export interface RentmanCustomFields extends CustomFieldMap {');
+    expect(generated).toContain('  projects: ProjectCustomFields;');
+    // … and task is deliberately absent from it: CustomFieldMap has no `tasks`
+    // key, so a facade entry here would not type-check for consumers.
+    expect(generated).not.toContain('  tasks: TaskCustomFields;');
+    expect(generated).not.toContain('  task: TaskCustomFields;');
+  });
+
   it('rejects --config when the value is missing', () => {
     expect(() =>
       execFileSync(process.execPath, [tsxCliPath, scriptPath, '--config', '--help'], {

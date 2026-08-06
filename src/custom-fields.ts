@@ -31,7 +31,8 @@ export type RentmanCustomFieldModel =
   | 'crew'
   | 'vehicle'
   | 'timeregistration'
-  | 'repair';
+  | 'repair'
+  | 'task';
 
 export interface RentmanCustomFieldTypeMap {
   text: string;
