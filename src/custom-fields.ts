@@ -31,7 +31,8 @@ export type RentmanCustomFieldModel =
   | 'crew'
   | 'vehicle'
   | 'timeregistration'
-  | 'repair';
+  | 'repair'
+  | 'task';
 
 export interface RentmanCustomFieldTypeMap {
   text: string;
@@ -105,7 +106,11 @@ export type WithCustomFields<
  *
  * Sub-resource models (covered by `CUSTOM_FIELD_MODELS` but not surfaced on a top-level
  * facade): `serialnumber`, `repair`, `projectfunction`, `projectcrew`, `projectequipment`,
- * `projectvehicle`.
+ * `projectvehicle`, `task`.
+ *
+ * ⚠ `task` is the one exception to the "per the OAS" framing above: `/tasks` is **not**
+ * declared in OAS 1.7.0. Its custom fields are exposed by the live API regardless, and
+ * `RentmanTask` was shaped from a measured response rather than from the spec.
  *
  * The `invoices`, `quotes`, `appointments` slots remain forward-compat-only — their OAS
  * Response schemas do not declare a `custom` property today.

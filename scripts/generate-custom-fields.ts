@@ -41,7 +41,8 @@ type RentmanCustomFieldModel =
   | 'crew'
   | 'vehicle'
   | 'timeregistration'
-  | 'repair';
+  | 'repair'
+  | 'task';
 
 interface RentmanDropdownOption {
   id: number;
@@ -109,6 +110,7 @@ const CUSTOM_FIELD_MODELS: readonly RentmanCustomFieldModel[] = [
   'vehicle',
   'timeregistration',
   'repair',
+  'task',
 ];
 
 const MODEL_TYPE_IMPORTS: Record<RentmanCustomFieldModel, string> = {
@@ -127,6 +129,7 @@ const MODEL_TYPE_IMPORTS: Record<RentmanCustomFieldModel, string> = {
   vehicle: 'RentmanVehicle',
   timeregistration: 'RentmanTimeRegistration',
   repair: 'RentmanRepair',
+  task: 'RentmanTask',
 };
 
 /**
@@ -168,6 +171,7 @@ const MODEL_PASCAL_NAMES: Record<RentmanCustomFieldModel, string> = {
   vehicle: 'Vehicle',
   timeregistration: 'TimeRegistration',
   repair: 'Repair',
+  task: 'Task',
 };
 
 const TYPE_TO_TS: Record<RentmanCustomFieldType, string> = {

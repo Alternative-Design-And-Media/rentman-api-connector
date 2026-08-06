@@ -1206,3 +1206,60 @@ export interface RentmanTemplate extends RentmanBaseEntity {
   type?: string | null;
   remark?: string | null;
 }
+
+// ---------------------------------------------------------------------------
+// Tasks
+// ---------------------------------------------------------------------------
+
+/**
+ * A Rentman task (`/tasks`).
+ *
+ * Exists so that `task` can be used as a `belongs_to` model for generated
+ * custom fields. The `/tasks` endpoint is **not** declared in OAS v1.7.0, so
+ * the shape below was verified against the live API response (2026-08-05)
+ * rather than derived from the spec.
+ *
+ * ⚠ **Verified subset, not the full response.** Every field declared here was
+ * measured, but the API returns more than this — notably the recurrence group
+ * (`recurhoe`, `recurperiode`, `recureind`), the relative-deadline group
+ * (`deadline_relative_offset_*`) and `synchronization_id` / `_uri`. They are
+ * omitted deliberately, the same way `RentmanRepair` declares 5 of its 23 OAS
+ * properties; add them here when a call site needs them.
+ *
+ * Two fields differ between the API's own `describe` (request shape) and the
+ * actual list response — the response shape wins here:
+ * `order` and `public` are documented as `string` but come back as numbers.
+ *
+ * Linked fields (`status`, `creator`, `completed_by`) follow the usual Rentman
+ * convention of a resource path string such as `"/crew/33"`.
+ */
+export interface RentmanTask<TCustom = DefaultCustomFields>
+  extends RentmanBaseEntityWithCustom<TCustom> {
+  name: string;
+  details?: string | null;
+  color?: string | null;
+  /** One of `no_priority`, `low_priority`, `medium_priority`, `high_priority`. */
+  priority?: string | null;
+  order?: number | null;
+  deadline?: string | null;
+  /** One of `specific_date`, `relative_to_project_time`. */
+  deadline_type?: string | null;
+  completed_at?: string | null;
+  /** Resource path to the task status, e.g. `"/taskstatuses/2"`. */
+  status?: string | null;
+  /** Numeric id of the linked item — a plain integer, not a path. */
+  item?: number | null;
+  /** Entity type of the linked item, e.g. `"Project"`. Omitted when unlinked. */
+  itemtype?: string | null;
+  is_template?: boolean;
+  /** `0` or `1` — returned as a number despite being documented as a string. */
+  public?: number | null;
+  /** One of `all_crewmembers`, `selected_crewmembers`, `creator_only`. */
+  assignment_type?: string | null;
+  /** Resource path to the creating crew member, e.g. `"/crew/33"`. */
+  creator?: string | null;
+  /** Resource path to the crew member who completed the task. */
+  completed_by?: string | null;
+  expiry_notification_date?: string | null;
+  time_budget?: number | null;
+}

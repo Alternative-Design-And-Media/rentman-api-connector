@@ -15,6 +15,20 @@ import type {
   RentmanNumberSeries,
   RentmanTemplate,
   WithUnknownFields,
+  // Codegen model-type anchor (see the bottom of this file).
+  RentmanSubProject,
+  RentmanProjectFunction,
+  RentmanProjectCrew,
+  RentmanProjectEquipment,
+  RentmanProjectVehicle,
+  RentmanSerialNumber,
+  RentmanSubrental,
+  RentmanContact,
+  RentmanContactPerson,
+  RentmanVehicle,
+  RentmanTimeRegistration,
+  RentmanRepair,
+  RentmanTask,
 } from '../types.js';
 import type {
   RentmanCustomFieldDefinition,
@@ -628,3 +642,50 @@ describe('custom field helpers', () => {
     >();
   });
 });
+
+// ---------------------------------------------------------------------------
+// Codegen model-type anchor
+// ---------------------------------------------------------------------------
+
+/**
+ * Pins every `RentmanCustomFieldModel` to the exported model type that
+ * `scripts/generate-custom-fields.ts` names in `MODEL_TYPE_IMPORTS`. The
+ * generator emits that name as an `import` into the **consumer's** generated
+ * file, so a mismatch here does not break us — it breaks them, on their build.
+ *
+ * Two failure modes this closes, neither of which any other check catches:
+ *
+ * 1. **Renaming or removing an exported model type.** Nothing in `src/` has to
+ *    reference a model type for the generator to name it, so `tsc` stays happy
+ *    and the generator test stays green — it only string-matches the generated
+ *    output and never compiles it. `task` was the first entry with zero other
+ *    references in the codebase; `RentmanTask` → `RentmanTaskItem` would have
+ *    shipped a broken import to every consumer with a fully green CI.
+ * 2. **Adding a model to the union without a type.** `satisfies Record<…>`
+ *    makes the map total, so a new union member fails to compile until it is
+ *    registered here — and `MODEL_TYPE_IMPORTS` is itself a total `Record`, so
+ *    the generator forces the same decision at the same moment.
+ *
+ * ⚠ Keep in sync with `MODEL_TYPE_IMPORTS`. That map is a build script's local
+ * constant rather than an export, which is why this has to be restated.
+ */
+const _codegenModelTypeAnchor = {
+  project: null as unknown as RentmanProject,
+  subproject: null as unknown as RentmanSubProject,
+  projectfunction: null as unknown as RentmanProjectFunction,
+  projectcrew: null as unknown as RentmanProjectCrew,
+  projectequipment: null as unknown as RentmanProjectEquipment,
+  projectvehicle: null as unknown as RentmanProjectVehicle,
+  equipment: null as unknown as RentmanEquipmentItem,
+  serialnumber: null as unknown as RentmanSerialNumber,
+  subrental: null as unknown as RentmanSubrental,
+  contact: null as unknown as RentmanContact,
+  contactperson: null as unknown as RentmanContactPerson,
+  crew: null as unknown as RentmanCrewMember,
+  vehicle: null as unknown as RentmanVehicle,
+  timeregistration: null as unknown as RentmanTimeRegistration,
+  repair: null as unknown as RentmanRepair,
+  task: null as unknown as RentmanTask,
+} satisfies Record<RentmanCustomFieldModel, unknown>;
+
+void _codegenModelTypeAnchor;
