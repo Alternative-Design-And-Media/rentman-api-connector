@@ -9,6 +9,11 @@ on:
 jobs:
   ci:
     runs-on: ubuntu-latest
+    # A job csak checkoutol es lokalisan futtat (typecheck/test/build).
+    # Nem ir vissza a repoba, nem kommentel PR-t, nem tolt fel artifactot,
+    # ezert a GITHUB_TOKEN-nek eleg az olvasasi jog.
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -24,6 +29,12 @@ jobs:
     needs: ci
     if: github.ref == 'refs/heads/main' && startsWith(github.event.head_commit.message, 'release:')
     runs-on: ubuntu-latest
+    # Az npm publish az NPM_TOKEN secrettel authentikal (NODE_AUTH_TOKEN),
+    # NEM OIDC/trusted publishing-gel, es provenance sincs bekapcsolva
+    # (nincs --provenance flag, nincs publishConfig.provenance, nincs .npmrc),
+    # ezert `id-token: write` NEM kell. A GITHUB_TOKEN-t csak a checkout hasznalja.
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
