@@ -1219,6 +1219,13 @@ export interface RentmanTemplate extends RentmanBaseEntity {
  * the shape below was verified against the live API response (2026-08-05)
  * rather than derived from the spec.
  *
+ * ⚠ **Verified subset, not the full response.** Every field declared here was
+ * measured, but the API returns more than this — notably the recurrence group
+ * (`recurhoe`, `recurperiode`, `recureind`), the relative-deadline group
+ * (`deadline_relative_offset_*`) and `synchronization_id` / `_uri`. They are
+ * omitted deliberately, the same way `RentmanRepair` declares 5 of its 23 OAS
+ * properties; add them here when a call site needs them.
+ *
  * Two fields differ between the API's own `describe` (request shape) and the
  * actual list response — the response shape wins here:
  * `order` and `public` are documented as `string` but come back as numbers.

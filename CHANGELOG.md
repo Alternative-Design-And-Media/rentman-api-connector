@@ -6,9 +6,11 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 ## [2.6.0] — 2026-08-06
 
 Adds `task` as a custom-field model, so consumers can generate typed custom
-fields for Rentman tasks. Type-level only: the compiled runtime bundle
-(`dist/index.js` / `dist/index.mjs`) is byte-for-byte identical to 2.5.0 —
-verified by building both and diffing. No existing call site changes.
+fields for Rentman tasks. **No change to the runtime client bundle:**
+`dist/index.js` and `dist/index.mjs` are byte-for-byte identical to 2.5.0 —
+verified by building both and diffing. What does change is `index.d.ts` and the
+build-time codegen CLI (`dist/scripts/generate-custom-fields.js`), which is the
+point of the release. No existing call site changes.
 
 ### Added
 - `'task'` in `RentmanCustomFieldModel`, and in the `CUSTOM_FIELD_MODELS` list the `generate-rentman-custom-fields` CLI validates `belongs_to` against. Entries with `belongs_to: "task"` previously failed with `belongs_to has unknown value`.

@@ -155,9 +155,12 @@ describe('generate-custom-fields CLI', () => {
             required: false,
             default_value: null,
           },
+          // Real-world names on purpose: every live task field is accented
+          // Hungarian, and one of them contains a space. An ASCII snake_case
+          // fixture would prove nothing about what actually ships.
           {
             id: 251,
-            name: 'task_priority',
+            name: 'Prioritás',
             belongs_to: 'task',
             type: 'dropdown',
             input_fields_group: 'General',
@@ -169,8 +172,21 @@ describe('generate-custom-fields CLI', () => {
             ],
           },
           {
+            id: 257,
+            name: 'Kemény határidő',
+            belongs_to: 'task',
+            type: 'dropdown',
+            input_fields_group: 'General',
+            required: false,
+            default_value: null,
+            options: [
+              { id: 0, name: 'Igen' },
+              { id: 1, name: 'Nem' },
+            ],
+          },
+          {
             id: 254,
-            name: 'task_start',
+            name: 'Kezdés',
             belongs_to: 'task',
             type: 'datetime',
             input_fields_group: 'General',
@@ -196,8 +212,11 @@ describe('generate-custom-fields CLI', () => {
     expect(generated).toContain('RentmanTask');
     expect(generated).toContain('export interface TaskCustomFields {');
     expect(generated).toContain('export type TaskWithCustom = WithCustomFields<RentmanTask, TaskCustomFields>;');
-    expect(generated).toContain('task_priority');
-    expect(generated).toContain('task_start');
+    // Accented / spaced names survive into quoted interface keys and sanitised
+    // helper identifiers.
+    expect(generated).toContain("'Prioritás'?:");
+    expect(generated).toContain("'Kemény határidő'?:");
+    expect(generated).toContain("'Kezdés'?: string;");
 
     // The facade list is genuinely populated …
     expect(generated).toContain('export interface RentmanCustomFields extends CustomFieldMap {');
