@@ -3,6 +3,25 @@
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Security / Maintenance
+Development tooling and CI configuration only — nothing here needs an npm
+release of its own. **The shipped bundle is unaffected:** `dist/index.js`,
+`dist/index.mjs`, `dist/index.d.ts`, `dist/index.d.mts` and
+`dist/scripts/generate-custom-fields.js` build byte-for-byte identical to the
+2.6.0 build — verified by building both from a clean `npm ci` and diffing the
+whole `dist` tree. The package declares no runtime dependencies, so none of
+this reaches consumers.
+
+- Explicit `permissions: contents: read` on the CI workflow (workflow-level default plus both jobs, `ci` and `publish`). Neither job writes to the repository; `npm publish` authenticates with the `NPM_TOKEN` secret, not with the `GITHUB_TOKEN` and not via OIDC, so no `id-token: write` is needed. Closes the two `actions/missing-workflow-permissions` code-scanning alerts.
+- Dev dependency updates resolving all five open Dependabot alerts: `postcss` 8.5.14 → 8.5.26 (GHSA-r28c-9q8g-f849 high, GHSA-fxqj-rqcc-2cmp), `vite` 8.0.13 → 8.2.1 (GHSA-fx2h-pf6j-xcff high, GHSA-v6wh-96g9-6wx3), `tsx` 4.22.2 → 4.23.9. Pulled along by the vite bump: `rolldown` 1.0.1 → 1.2.3, `lightningcss` 1.32.0 → 1.33.0, `@oxc-project/types` 0.130.0 → 0.143.0, `nanoid` 3.3.12 → 3.3.17, `picomatch` 4.0.4 → 4.0.5, `tinyglobby` 0.2.16 → 0.2.17. No `engines` requirement changed — `vite` still asks for `^20.19.0 || >=22.12.0`, which the CI's `node-version: '20'` satisfies.
+- `overrides: { "esbuild": "^0.28.1" }` — `tsup@8.5.1` (the latest release) pins `esbuild@^0.27.0`, which cannot reach the 0.28.1 fix for GHSA-g7r4-m6w7-qqqr on its own. The override is a root-only npm mechanism and is inert for consumers of this package, though it does travel in the published `package.json`. It should be dropped once tsup itself moves to esbuild 0.28+.
+- `package-lock.json` root `version` was still `2.4.0`; regenerating the lock brought it back in sync with `package.json` (`2.6.0`).
+- `npm audit`: 3 findings (2 high, 1 low) → **0**.
+
+---
+
 ## [2.6.0] — 2026-08-06
 
 Adds `task` as a custom-field model, so consumers can generate typed custom
@@ -27,19 +46,6 @@ point of the release. No existing call site changes.
 > generate a `RentmanCustomFields` member that does not exist on the base
 > interface. `task` therefore behaves like `projectfunction` and `projectcrew`:
 > typed custom fields, no top-level facade property.
-
-### Security / Maintenance
-Development-only. **The shipped bundle is unaffected:** `dist/index.js`,
-`dist/index.mjs`, `dist/index.d.ts`, `dist/index.d.mts` and
-`dist/scripts/generate-custom-fields.js` are byte-for-byte identical to the
-build from the previous `main` commit — verified by building both and diffing
-the whole `dist` tree. The package declares no runtime dependencies, so none of
-this reaches consumers.
-
-- Explicit `permissions: contents: read` on both CI jobs (`ci`, `publish`). Neither job writes to the repository; `npm publish` authenticates with the `NPM_TOKEN` secret, not with the `GITHUB_TOKEN` and not via OIDC, so no `id-token: write` is needed. Closes the two `actions/missing-workflow-permissions` code-scanning alerts.
-- Dev dependency updates resolving all five open Dependabot alerts: `postcss` 8.5.14 → 8.5.26 (GHSA-r28c-9q8g-f849 high, GHSA-fxqj-rqcc-2cmp), `vite` 8.0.13 → 8.2.1 (GHSA-fx2h-pf6j-xcff high, GHSA-v6wh-96g9-6wx3), `tsx` 4.22.2 → 4.23.9.
-- `overrides: { "esbuild": "^0.28.1" }` — `tsup@8.5.1` (the latest release) pins `esbuild@^0.27.0`, which cannot reach the 0.28.1 fix for GHSA-g7r4-m6w7-qqqr on its own. The override is a root-only npm mechanism and is inert for consumers of this package. `npm audit` now reports 0 vulnerabilities.
-- `package-lock.json` root `version` was still `2.4.0`; regenerating the lock brought it back in sync with `package.json` (`2.6.0`).
 
 ---
 

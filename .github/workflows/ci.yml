@@ -6,6 +6,11 @@ on:
   pull_request:
     branches: [main]
 
+# Alapertelmezes minden jobra, hogy egy kesobb hozzaadott job se orokolje
+# a repo-szintu beallitast. Az egyes jobok alabb ezt explicit megismetlik.
+permissions:
+  contents: read
+
 jobs:
   ci:
     runs-on: ubuntu-latest
